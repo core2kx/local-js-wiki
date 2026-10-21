@@ -1253,17 +1253,6 @@
       document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
       persistUI();
     });
-    document.addEventListener('keydown', event => {
-      if ((event.ctrlKey || event.metaKey) && !event.altKey) {
-        // On non-Latin layouts (e.g. Russian, Greek) event.key is not a Latin letter; use the physical key.
-        const key = /^[a-z]$/i.test(event.key) ? event.key.toLowerCase() : (event.code.match(/^Key([A-Z])$/)?.[1].toLowerCase() || '');
-        if (key === 's') { event.preventDefault(); saveChanges(); }
-        if (key === 'k') { event.preventDefault(); els.search.focus(); els.search.select(); }
-        if (key === 'n') { event.preventDefault(); createPage(); }
-        if (event.target === els.content && key === 'b') { event.preventDefault(); formatSelection('bold'); }
-        if (event.target === els.content && key === 'i') { event.preventDefault(); formatSelection('italic'); }
-      }
-    });
     window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
   }
   function init() {

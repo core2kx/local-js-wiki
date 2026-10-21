@@ -25,7 +25,7 @@ button, [type="button"] { -webkit-appearance: button; }
 [type="search"] { -webkit-appearance: textfield; outline-offset: -2px; }
 h1, h2, h3, h4, h5, h6 { margin-top: 0; margin-bottom: .5rem; font-weight: 500; line-height: 1.2; }
 p { margin-top: 0; margin-bottom: 1rem; }
-code, kbd, pre { font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+code, pre { font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
 code { font-size: .875em; }
 table { caption-side: bottom; border-collapse: collapse; }
 [hidden] { display: none !important; }
@@ -56,7 +56,6 @@ table { caption-side: bottom; border-collapse: collapse; }
 .search-icon { font-size: 24px; padding-left: 10px; line-height: 1; }
 #search { border: 0; outline: 0; padding: 8px 5px; margin: 0; box-shadow: none; min-width: 0; width: 100%; background: none; color: var(--text); font-size: 12px; }
 #search::placeholder { color: var(--muted); }
-kbd { margin-right: 7px; padding: 1px 4px; font-size: 10px; color: var(--muted); white-space: nowrap; background: var(--sidebar-bg); border: 1px solid var(--border); border-radius: 3px; }
 .sidebar-heading { display: flex; align-items: center; justify-content: space-between; margin: 23px 5px 8px; color: var(--muted); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1.15px; }
 .page-nav { flex: 1; min-height: 200px; overflow: auto; padding: 2px 12px 24px; }
 .nav-entry { display: flex; align-items: center; width: 100%; gap: 8px; text-align: left; border: 0; background: transparent; border-radius: 7px; color: var(--text); padding: 7px 8px; min-height: 35px; }

@@ -5,7 +5,7 @@
   "tags": [
     "getting started"
   ],
-  "content": "# Welcome to your offline wiki\n\nThis wiki runs **entirely in your browser**. No server, internet connection, or database needed.\n\n## Start here\n\n- Choose **+** on the left to add a page.\n- Use **+ Child page** to create a page underneath another page.\n- Switch between **Edit**, **Preview**, and **Split** views.\n- Search titles, tags, and page content from the left sidebar.\n- Use `[[Page title]]` to link one wiki page to another.\n- Choose **Save changes** to write each page as its own JSON file.\n\n## Example links\n\nVisit [[Editing guide]], [[Tables, symbols and icons]], or [[Project notes]].\n\n| Shortcut | Action |\n| --- | --- |\n| Ctrl+K | Search |\n| Ctrl+S | Save changes |\n| Ctrl+N | New page |",
+  "content": "# Welcome to your offline wiki\n\nThis wiki runs **entirely in your browser**. No server, internet connection, or database needed.\n\n## Start here\n\n- Choose **+** on the left to add a page.\n- Use **+ Child page** to create a page underneath another page.\n- Switch between **Edit**, **Preview**, and **Split** views.\n- Search titles, tags, and page content from the left sidebar.\n- Use `[[Page title]]` to link one wiki page to another.\n- Choose **Save changes** to write each page as its own JSON file.\n\n## Example links\n\nVisit [[Editing guide]], [[Tables, symbols and icons]], or [[Project notes]].\n\n| View | What it shows |\n| --- | --- |\n| Preview | The formatted page |\n| Edit | The Markdown source |\n| Split | Source and preview side by side |",
   "createdAt": "2026-10-20T13:00:00.000Z",
   "updatedAt": "2026-10-20T13:00:00.000Z",
   "icon": "icon:home"

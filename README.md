@@ -22,7 +22,6 @@ Titles, filenames, links, and search work in any script. IDs are lowercase and k
 - Right-to-left text (Hebrew, Arabic) is displayed right-to-left in titles, the editor, the sidebar, and each rendered paragraph.
 - Search ignores case and accents: `cafe` finds `Café`, `strasse` finds `Straße`, `αθηνα` finds `Αθήνα`, `елка` finds `ёлка`. Vowel signs in scripts such as Hindi, Thai, Arabic, and Hebrew still count, and Russian `й` stays distinct from `и`. The matched text is highlighted in the result snippet.
 - Word counts handle languages written without spaces (Chinese, Japanese, Thai).
-- Keyboard shortcuts also work on non-Latin keyboard layouts.
 
 ## Tables, symbols and icons
 
@@ -104,7 +103,6 @@ A wiki folder can be anywhere on your disk, independently of the app directory. 
 - If writable folder access is missing or denied, **Open folder** falls back to a folder input, which can *read* the chosen folder but cannot overwrite it. Use **Export wiki ZIP** to save all pages as one downloadable ZIP; extract it to obtain separate JSON files.
 - **Save to folder…** lets you choose a new destination. If the destination already contains a different `wiki.json`, the app warns before replacing its index. Use a new empty folder for safe copies.
 - **Export wiki ZIP…** works without a server or outside libraries. It uses standard, uncompressed ZIP entries, so archives are larger but compatible with normal extraction tools.
-- **Ctrl/Cmd+S** saves, **Ctrl/Cmd+K** focuses search, **Ctrl/Cmd+N** creates a page.
 
 ### Damaged or hand-edited files
 
