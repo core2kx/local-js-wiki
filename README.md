@@ -109,7 +109,7 @@ A wiki folder can be anywhere on your disk, independently of the app directory. 
 ## Other features
 
 - Create, edit, nest, rename, move, and delete pages.
-- Full text / tag / title search across all opened wiki pages.
+- Search across titles, tags, and text of all opened pages. Each word is matched separately and in any order (`lisbon friday` finds pages containing both words); put words in quotes for an exact phrase (`"lisbon trip"`). Results with words in the title rank first, and matched words are highlighted.
 - Markdown edit, preview, and split views; visual table builder/editor; Unicode symbols, emoji, inline SVG tokens; internal links `[[Page title]]` and `[[page-id|Text]]`.
 - Light/dark mode, responsive sidebar and 75%/90%/100% page width.
 - All assets are local and there are no third-party libraries or CSS frameworks. Layout customizations belong in `css/wiki.css`.

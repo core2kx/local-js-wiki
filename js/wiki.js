@@ -257,21 +257,73 @@
   function touchPage(page) { page.updatedAt = isoNow(); changedIds.add(page.id); markDirty(); }
   function sorted(list) { return [...list].sort((a, b) => a.title.localeCompare(b.title, undefined, {sensitivity:'base', numeric:true})); }
 
+  // Query terms are whitespace-separated words or "quoted phrases" (an unclosed quote runs to the
+  // end, so typing a phrase works). A page matches when every term appears in its title, tags or text.
+  function searchTerms(raw) {
+    const terms = [];
+    for (const [, phrase, word] of raw.matchAll(/"([^"]*)"?|(\S+)/g)) {
+      const term = searchFold((phrase ?? word).trim().replace(/\s+/g, ' '));
+      if (term && !terms.includes(term)) terms.push(term);
+    }
+    return terms;
+  }
+  function scorePage(p, terms, phrase) {
+    const title = searchFold(p.title);
+    const tags = searchFold(p.tags.join(' '));
+    const body = foldForSearch(p.content);
+    let score = 0;
+    for (const term of terms) {
+      const best = title.includes(term) ? 3 : tags.includes(term) ? 2 : body.folded.includes(term) ? 1 : 0;
+      if (!best) return null;
+      score += best;
+    }
+    // Rank an exact title match first, and pages containing the words side by side above scattered ones.
+    if (title === phrase) score += 10;
+    else if (terms.length > 1 && (title.includes(phrase) || body.folded.includes(phrase))) score += 1;
+    return {p, score, body};
+  }
+  function appendSnippet(snippet, p, body, terms, phrase) {
+    const text = p.content;
+    const ranges = [];
+    for (const term of terms) {
+      for (let i = body.folded.indexOf(term), n = 0; i >= 0 && n < 50; i = body.folded.indexOf(term, i + term.length), n++) {
+        ranges.push(originalRange(body, i, term.length));
+      }
+    }
+    if (!ranges.length) {
+      const cleaned = text.replace(/[#*`\[\]|]/g, '').replace(/\s+/g, ' ');
+      snippet.textContent = p.tags.join(', ') || graphemes(cleaned).slice(0, 85).join('');
+      return;
+    }
+    // Centre on the words side by side if they occur that way, otherwise on the earliest match.
+    const at = terms.length > 1 ? body.folded.indexOf(phrase) : -1;
+    const anchor = at >= 0 ? originalRange(body, at, phrase.length)[0] : Math.min(...ranges.map(r => r[0]));
+    const from = graphemeBoundary(text, Math.max(0, anchor - 30));
+    const to = graphemeBoundary(text, Math.min(text.length, anchor + 110));
+    const visible = ranges.map(([start, end]) => [Math.max(start, from), Math.min(end, to)])
+      .filter(([start, end]) => start < end).sort((a, b) => a[0] - b[0]);
+    const clean = value => value.replace(/\s+/g, ' ');
+    let cursor = from;
+    snippet.append(from > 0 ? '…' : '');
+    for (const [start, end] of visible) {
+      if (end <= cursor) continue; // overlaps a highlight already shown
+      const begin = Math.max(start, cursor);
+      const mark = document.createElement('mark'); mark.textContent = text.slice(begin, end);
+      snippet.append(clean(text.slice(cursor, begin)), mark);
+      cursor = end;
+    }
+    snippet.append(clean(text.slice(cursor, to)) + (to < text.length ? '…' : ''));
+  }
   function renderTree() {
     const raw = els.search.value.trim();
     els.sidebarHeading.textContent = raw ? 'Search results' : 'Pages';
     els.nav.replaceChildren();
     if (raw) {
-      const query = searchFold(raw);
-      const matches = !query ? [] : wiki.pages.map(p => {
-        const title = searchFold(p.title);
-        const tags = searchFold(p.tags.join(' '));
-        const body = foldForSearch(p.content);
-        const index = body.folded.indexOf(query);
-        const score = title.includes(query) ? (title === query ? 5 : 3) : tags.includes(query) ? 2 : index >= 0 ? 1 : 0;
-        return {p, score, body, index};
-      }).filter(result => result.score).sort((a,b) => b.score - a.score || a.p.title.localeCompare(b.p.title));
-      for (const {p, body, index} of matches) {
+      const terms = searchTerms(raw);
+      const phrase = searchFold(raw.replace(/"/g, ' ').trim().replace(/\s+/g, ' '));
+      const matches = !terms.length ? [] : wiki.pages.map(p => scorePage(p, terms, phrase))
+        .filter(Boolean).sort((a,b) => b.score - a.score || a.p.title.localeCompare(b.p.title));
+      for (const {p, body} of matches) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'nav-entry nav-result' + (p.id === currentId ? ' active' : '');
@@ -281,18 +333,7 @@
         path.className = 'nav-result-path'; path.textContent = ancestors(p).map(x => x.title).join(' / ') || 'Top-level';
         const snippet = document.createElement('span'); snippet.className = 'nav-result-snippet';
         snippet.dir = 'auto';
-        if (index >= 0) {
-          const [start, end] = originalRange(body, index, query.length);
-          const from = graphemeBoundary(p.content, Math.max(0, start - 30));
-          const to = graphemeBoundary(p.content, Math.min(p.content.length, end + 80));
-          const clean = text => text.replace(/\s+/g, ' ');
-          const mark = document.createElement('mark'); mark.textContent = p.content.slice(start, end);
-          snippet.append((from > 0 ? '…' : '') + clean(p.content.slice(from, start)), mark,
-            clean(p.content.slice(end, to)) + (to < p.content.length ? '…' : ''));
-        } else {
-          const cleaned = p.content.replace(/[#*`\[\]|]/g, '').replace(/\s+/g, ' ');
-          snippet.textContent = p.tags.join(', ') || graphemes(cleaned).slice(0, 85).join('');
-        }
+        appendSnippet(snippet, p, body, terms, phrase);
         button.append(title, path, snippet);
         button.addEventListener('click', () => selectPage(p.id));
         els.nav.append(button);
