@@ -32,6 +32,7 @@
   <script defer src="js/ui/picker.js"></script>
   <script defer src="js/ui/problems.js"></script>
   <script defer src="js/ui/revisions.js"></script>
+  <script defer src="js/ui/folder-help.js"></script>
   <!-- Start -->
   <script defer src="js/app.js"></script>
 </head>
@@ -157,6 +158,20 @@
       <div class="revisions-detail"><p id="revisions-summary" class="dialog-hint"></p><div id="revisions-diff" class="revisions-diff"></div></div>
     </div>
     <div class="dialog-foot"><button type="button" id="revisions-cancel" class="btn">Close</button><button type="button" id="revisions-restore" class="btn btn-primary" disabled>Restore this version</button></div>
+  </dialog>
+  <dialog id="folder-help-dialog" class="wiki-dialog folder-help-dialog" aria-labelledby="folder-help-title">
+    <div class="dialog-head"><h2 id="folder-help-title">Folder saving is turned off in this browser</h2><button type="button" id="folder-help-x" class="dialog-close" aria-label="Close">×</button></div>
+    <div id="folder-help-brave">
+      <p>Brave turns off the browser feature LocalWiki uses to save into a folder (the File System Access API). You can turn it on:</p>
+      <ol class="folder-help-steps">
+        <li>Open a new tab and go to <code id="folder-help-flag"></code> <button type="button" id="folder-help-copy" class="btn btn-sm">Copy</button></li>
+        <li>Set <strong>File System Access API</strong> to <strong>Enabled</strong>. (If the address does not jump to it, search the page for "File System Access".)</li>
+        <li>Click <strong>Relaunch</strong>, then choose <strong>Open folder</strong> again.</li>
+      </ol>
+    </div>
+    <p id="folder-help-other" hidden></p>
+    <p class="dialog-hint">Until then you can open a folder read-only and keep your changes with <strong>Export wiki ZIP…</strong></p>
+    <div class="dialog-foot"><button type="button" id="folder-help-close" class="btn">Close</button><button type="button" id="folder-help-export" class="btn">Export wiki ZIP…</button><button type="button" id="folder-help-readonly" class="btn btn-primary">Open read-only</button></div>
   </dialog>
   <dialog id="problems-dialog" class="wiki-dialog problems-dialog" aria-labelledby="problems-title">
     <div class="dialog-head"><h2 id="problems-title">Problems found while opening</h2><button type="button" id="problems-close" class="dialog-close" aria-label="Close">×</button></div>

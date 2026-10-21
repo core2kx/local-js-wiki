@@ -148,10 +148,14 @@
         if (!['SecurityError','NotAllowedError','TypeError','NotSupportedError'].includes(err.name)) {
           console.error(err); ui.toast('Could not open folder: ' + err.message); return;
         }
-        console.warn('Folder access unavailable; switching to folder import', err);
+        console.warn('Folder access refused', err);
+        ui.explainFolderAccess({purpose: 'open', blocked: true});
+        return;
       }
     }
-    ui.chooseFolderReadOnly(); // the file input calls openFolderFiles() with the chosen files
+    // No folder access (e.g. Brave's default): explain, and offer read-only opening, which ends in
+    // openFolderFiles() with the files chosen in the file input.
+    ui.explainFolderAccess({purpose: 'open'});
   }
   // Read-only fallback: the files of a folder chosen with <input webkitdirectory>.
   async function openFolderFiles(files) {
@@ -179,10 +183,7 @@
   const idOf = path => path.slice('pages/'.length, -'.json'.length);
   // "Save to folder…": choose a (new) destination and write the whole wiki there.
   async function saveToFolder() {
-    if (typeof window.showDirectoryPicker !== 'function') {
-      ui.toast('Direct folder saving is unavailable here. Export a ZIP instead.');
-      return;
-    }
+    if (typeof window.showDirectoryPicker !== 'function') { ui.explainFolderAccess({purpose: 'save'}); return; }
     try {
       const handle = await window.showDirectoryPicker({mode:'readwrite', id:'localwiki'});
       let existing = null;
@@ -219,8 +220,7 @@
     clearTimeout(autosaveTimer);
     if (!state.folderHandle) {
       if (auto) return;
-      if (typeof window.showDirectoryPicker === 'function') { await saveToFolder(); return; }
-      ui.toast('Choose Export wiki ZIP (direct folder saving is unavailable in this browser).'); return;
+      await saveToFolder(); return; // explains the problem if this browser cannot save to folders
     }
     const {wiki, setAside} = state;
     const keep = new Set([...wiki.pages, ...setAside].map(p => pathFor(p.id)));

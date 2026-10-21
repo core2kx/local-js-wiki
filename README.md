@@ -1,6 +1,6 @@
 # LocalWiki — an offline wiki, one JSON file per page
 
-A browser-only wiki that works offline. **No runtime server, database, Python, Node.js, CDN, package manager, or internet connection is required.** Double-click `index.html` in Brave/Chrome/Edge.
+A browser-only wiki that works offline. **No runtime server, database, Python, Node.js, CDN, package manager, or internet connection is required.** Double-click `index.html` in Chrome or Edge, or in Brave after turning on folder access (see [Brave](#brave)).
 
 ## How it stores data
 
@@ -97,7 +97,7 @@ A wiki folder can be anywhere on your disk, independently of the app directory. 
 
 ## Getting started
 
-1. Extract the ZIP, then open `index.html` in Brave (or another Chromium-based desktop browser).
+1. Open `index.html` in Chrome or Edge on a desktop computer. In Brave, first turn on folder access (see [Brave](#brave)).
 2. Click **Open folder** and select one of the samples in `data/` (`example-wiki` tours the editor; `cisco-catalyst-wiki` and `dell-xr5610-wiki` are realistic mock runbooks), **or** click the `+` button to create your own pages. The mock wikis use invented names, addresses and versions; check vendor documentation before using their procedures. Opening a sample with write access means edits are saved into it; use **Save to folder…** to work on a copy.
 3. Edit titles, tags, parent relationships, and Markdown as before. Page width can be changed to 75%, 90%, or 100%; 90% is the default.
 4. Click **Save changes** (or **Save to folder…**) and choose a writable directory. From then on, **changes are saved automatically** to that folder about 2 seconds after you stop editing (at least every 15 seconds while typing, and when you switch away from the tab). The status in the top bar shows *Saving…* and *Saved at …*. **Save changes** still saves immediately.
@@ -122,7 +122,16 @@ Page history needs a linked folder (**Open folder** or **Save to folder…**). *
 
 ### Browser permissions and saving
 
-- In browsers with the File System Access API (recent Brave/Chrome/Edge versions), **Open folder** grants access to the selected directory, and **Save changes** writes the index and changed page files in place. The browser may prompt for read/write permission.
+- In browsers with the File System Access API (recent Chrome and Edge, and Brave once it is turned on), **Open folder** grants access to the selected directory, and **Save changes** writes the index and changed page files in place. The browser may prompt for read/write permission.
+- Without it, **Open folder** and **Save changes** show a dialog that explains what to do in your browser and offers **Open read-only** or **Export wiki ZIP…**.
+
+#### Brave
+
+Brave turns the File System Access API off by default, so LocalWiki cannot save into folders until you turn it on:
+
+1. Open a new tab and go to `brave://flags/#file-system-access-api` (or search the flags page for "File System Access").
+2. Set **File System Access API** to **Enabled**.
+3. Click **Relaunch**, then use **Open folder** again.
 - If writable folder access is missing or denied, **Open folder** falls back to a folder input, which can *read* the chosen folder but cannot overwrite it. Use **Export wiki ZIP** to save all pages as one downloadable ZIP; extract it to obtain separate JSON files.
 - **Save to folder…** lets you choose a new destination. If the destination already contains a different `wiki.json`, the app warns before replacing its index. Use a new empty folder for safe copies.
 - **Export wiki ZIP…** works without a server or outside libraries. It uses standard, uncompressed ZIP entries, so archives are larger but compatible with normal extraction tools.

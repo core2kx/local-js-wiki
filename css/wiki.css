@@ -209,3 +209,7 @@ mark { background: #fbe8af; color: #3f351a; border-radius: 2px; }
 .diff-same { color: var(--muted); }
 .diff-gap { color: var(--muted); font-style: italic; padding: 3px 8px; border-block: 1px dashed var(--border); }
 @media (max-width: 700px) { .revisions-body { grid-template-columns: 1fr; } .revisions-list { border-right: 0; max-height: 25vh; } }
+.folder-help-dialog { width: min(600px, calc(100vw - 32px)); }
+.folder-help-steps { padding-left: 20px; margin: 0 0 12px; }
+.folder-help-steps li { margin-bottom: 8px; }
+.folder-help-steps code { font-size: .9em; background: var(--sidebar-bg); border-radius: 4px; padding: 2px 5px; overflow-wrap: anywhere; }

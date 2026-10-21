@@ -31,7 +31,7 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 | **Pure logic** | `icon-library.js`, `text.js`, `model.js`, `markdown.js`, `zip.js`, `search.js` | Functions that take data and return data. They never touch the page, so they also run under Node and are covered by the tests. |
 | **State** | `folder.js`, `state.js` | Helpers for reading and writing folder files; the open wiki (`LocalWiki.state`) and change tracking (`LocalWiki.store`). |
 | **Features** | `revisions.js`, `history.js`, `pages.js`, `storage.js` | Operations: saved page history, undo/redo, page editing and renaming, opening/saving/autosave/export. They change state and then ask the UI to redraw. They never touch HTML elements directly. |
-| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/problems.js`, `ui/revisions.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
+| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
 | **Start** | `app.js` | Wires the remaining controls to features, restores the browser draft and preferences, draws the first screen. |
 
 ### Files at a glance

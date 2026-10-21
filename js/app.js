@@ -54,9 +54,9 @@
     ui.installPicker();
     ui.installProblems();
     ui.installRevisions();
+    ui.installFolderHelp();
 
-    // Read-only folder fallback: storage.openFolder() opens this file input when folder access is unavailable.
-    ui.chooseFolderReadOnly = () => els.folderInput.click();
+    // Read-only folder fallback: chosen from the folder-access dialog (ui/folder-help.js).
     els.folderInput.addEventListener('change', async () => {
       if (els.folderInput.files?.length) {
         try { await storage.openFolderFiles([...els.folderInput.files]); }

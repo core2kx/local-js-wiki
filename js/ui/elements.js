@@ -38,6 +38,11 @@
     revisionsDialog: $('revisions-dialog'), revisionsTitle: $('revisions-title'), revisionsList: $('revisions-list'),
     revisionsSummary: $('revisions-summary'), revisionsDiff: $('revisions-diff'), revisionsRestore: $('revisions-restore'),
     revisionsClose: $('revisions-close'), revisionsCancel: $('revisions-cancel'),
+    // Folder-access help dialog
+    folderHelpDialog: $('folder-help-dialog'), folderHelpTitle: $('folder-help-title'), folderHelpBrave: $('folder-help-brave'),
+    folderHelpOther: $('folder-help-other'), folderHelpFlag: $('folder-help-flag'), folderHelpCopy: $('folder-help-copy'),
+    folderHelpReadOnly: $('folder-help-readonly'), folderHelpExport: $('folder-help-export'),
+    folderHelpClose: $('folder-help-close'), folderHelpCloseX: $('folder-help-x'),
     // Load-problems dialog
     problemsDialog: $('problems-dialog'), problemsList: $('problems-list'),
     problemsClose: $('problems-close'), problemsOk: $('problems-ok'),
