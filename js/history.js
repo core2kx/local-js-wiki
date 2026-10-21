@@ -7,9 +7,10 @@
    snapshot is taken when the title edit starts, before the rename rewrites links (see pages.js).
 
    Restoring a step marks every page that differs as changed, so autosave writes the files back
-   (an undone delete re-creates its file; an undone rename moves it back).
+   (an undone delete re-creates its file; an undone rename moves it back). A step that renamed
+   pages remembers it (attachRename), so undo and redo also move the saved revisions.
 
-   Depends on: state.js; asks LocalWiki.ui to redraw.
+   Depends on: state.js, revisions.js; asks LocalWiki.ui to redraw.
    Provides:   LocalWiki.history */
 (() => {
   'use strict';
@@ -62,9 +63,14 @@
   function step(from, to, verb) {
     const entry = from.pop();
     if (!entry) return;
-    to.push(snapshot(entry.label));
+    const counterpart = snapshot(entry.label);
+    if (entry.renames) counterpart.renames = entry.renames;
+    to.push(counterpart);
     const oldContent = pageById(state.currentId)?.content;
     restore(entry);
+    // Undo reverses the step's renames (newest first); redo repeats them.
+    const renames = verb === 'Undid' ? [...(entry.renames || [])].reverse().map(([a, b]) => [b, a]) : entry.renames || [];
+    for (const [fromId, toId] of renames) LW.revisions.noteRename(fromId, toId);
     ui.moveCaretToChange(oldContent);
     ui.renderUndoButtons();
     ui.toast(verb + ' ' + entry.label + '.');
@@ -83,11 +89,16 @@
     page.updatedAt = previous.updatedAt; forgetPageText(page);
     if (sameState(top, snapshot(top.label))) { undoStack.pop(); ui.renderUndoButtons(); }
   }
+  // Records that the newest step renamed a page (pages.commitTitle calls this).
+  function attachRename(fromId, toId) {
+    const top = undoStack[undoStack.length - 1];
+    if (top) (top.renames ||= []).push([fromId, toId]);
+  }
   function clear() { undoStack = []; redoStack = []; undoGroup = null; ui.renderUndoButtons(); }
   // Labels of the steps Undo and Redo would apply next (null when there is none).
   function peek() {
     return {undo: undoStack[undoStack.length - 1]?.label ?? null, redo: redoStack[redoStack.length - 1]?.label ?? null};
   }
 
-  LW.history = {record, undo, redo, dropNoop, clear, peek};
+  LW.history = {record, undo, redo, dropNoop, attachRename, clear, peek};
 })();

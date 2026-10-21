@@ -20,6 +20,7 @@
     // Page header and metadata
     empty: $('empty-state'), emptyCreate: $('empty-create-btn'), mainPage: document.querySelector('.page-wrap'),
     breadcrumbs: $('breadcrumbs'), pageWidth: $('page-width-select'), newChild: $('new-child-btn'), del: $('delete-page-btn'),
+    historyButton: $('history-btn'),
     pageIconButton: $('page-icon-btn'), pageIconDisplay: $('page-icon-display'), title: $('page-title'),
     modified: $('page-modified'), count: $('page-word-count'), parent: $('parent-select'), tags: $('tags-input'),
     // Editor
@@ -33,6 +34,10 @@
     // Icon/symbol picker dialog
     pickerDialog: $('picker-dialog'), pickerSearch: $('picker-search'), pickerResults: $('picker-results'),
     pickerClear: $('picker-clear'), pickerHint: $('picker-hint'), pickerClose: $('picker-close'), pickerCancel: $('picker-cancel'),
+    // Page history dialog
+    revisionsDialog: $('revisions-dialog'), revisionsTitle: $('revisions-title'), revisionsList: $('revisions-list'),
+    revisionsSummary: $('revisions-summary'), revisionsDiff: $('revisions-diff'), revisionsRestore: $('revisions-restore'),
+    revisionsClose: $('revisions-close'), revisionsCancel: $('revisions-cancel'),
     // Load-problems dialog
     problemsDialog: $('problems-dialog'), problemsList: $('problems-list'),
     problemsClose: $('problems-close'), problemsOk: $('problems-ok'),

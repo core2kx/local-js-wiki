@@ -29,9 +29,9 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 | Layer | Files | Role |
 |---|---|---|
 | **Pure logic** | `icon-library.js`, `text.js`, `model.js`, `markdown.js`, `zip.js`, `search.js` | Functions that take data and return data. They never touch the page, so they also run under Node and are covered by the tests. |
-| **State** | `state.js` | The open wiki (`LocalWiki.state`) and change tracking (`LocalWiki.store`). |
-| **Features** | `history.js`, `pages.js`, `storage.js` | Operations: undo/redo, page editing and renaming, opening/saving/autosave/export. They change state and then ask the UI to redraw. They never touch HTML elements directly. |
-| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/problems.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
+| **State** | `folder.js`, `state.js` | Helpers for reading and writing folder files; the open wiki (`LocalWiki.state`) and change tracking (`LocalWiki.store`). |
+| **Features** | `revisions.js`, `history.js`, `pages.js`, `storage.js` | Operations: saved page history, undo/redo, page editing and renaming, opening/saving/autosave/export. They change state and then ask the UI to redraw. They never touch HTML elements directly. |
+| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/problems.js`, `ui/revisions.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
 | **Start** | `app.js` | Wires the remaining controls to features, restores the browser draft and preferences, draws the first screen. |
 
 ### Files at a glance
@@ -43,8 +43,10 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 | `js/markdown.js` | The Markdown renderer, table parsing and writing, rewriting `[[links]]` on rename |
 | `js/zip.js` | The ZIP writer used by "Export wiki ZIP" |
 | `js/search.js` | Query parsing, ranking, result snippets |
+| `js/folder.js` | Reading, writing, deleting and listing files in a folder handle |
 | `js/state.js` | Every field of the open wiki's state, `markDirty`/`touchPage`, the crash-recovery draft |
-| `js/history.js` | Undo/redo snapshots and grouping |
+| `js/revisions.js` | Saved page history: when a version is kept, thinning, line diff, following renames and deletes |
+| `js/history.js` | Undo/redo snapshots and grouping (session only; `revisions.js` is the saved history) |
 | `js/pages.js` | Create/select/delete pages, editing fields, committing renames |
 | `js/storage.js` | Folder format, tolerant loading, saving, autosave, export, new wiki |
 | `js/ui/*.js` | Everything you see; one file per area of the screen |
@@ -62,9 +64,10 @@ Typing in the editor, as an example:
 4. `markDirty()` saves the browser draft and notifies listeners: `app.js` registered the save-status
    display and `storage.scheduleAutosave()`.
 5. `pages.editContent` asks the UI to redraw the preview and word count.
-6. About 2 seconds after typing stops, autosave calls `storage.saveChanges()`, which writes only the
-   pages in `changedIds`, then `wiki.json` if `state.indexDirty`, then deletes files of pages that
-   no longer exist.
+6. About 2 seconds after typing stops, autosave calls `storage.saveChanges()`. It first lets
+   `revisions.beforeSave()` keep versions that are about to be overwritten or deleted (and move the
+   history of renamed pages), then writes only the pages in `changedIds`, then `wiki.json` if
+   `state.indexDirty`, then deletes files of pages that no longer exist.
 
 Other operations follow the same pattern: **record undo → change state → touch/markDirty → redraw**.
 
@@ -78,7 +81,11 @@ Other operations follow the same pattern: **record undo → change state → tou
   exports or undoes calls `pages.commitTitle()` first.
 - **Page text is never trusted as HTML.** The Markdown renderer escapes everything; only bundled
   icons become SVG.
-- **Set-aside files are never written or deleted.** See `storage.js` and `state.setAside`.
+- **Set-aside files are never written or deleted.** See `storage.js` and `state.setAside`. The same
+  goes for a `revisions/` file that cannot be parsed.
+- **Renames must be reported to revisions.** Anything that changes a page ID calls
+  `revisions.noteRename(from, to)` (pages.js does, and undo/redo replay it), or the page's history
+  is left under the old name.
 
 ## Tests
 
@@ -91,4 +98,5 @@ node --test
 `tests/load.js` loads the script files into Node the same way `index.html` does, with small
 stand-ins for browser features. The tests cover the pure-logic files plus `tests/workflow.test.js`,
 which runs open → rename → save → undo → delete against an in-memory folder and checks exactly which
-files are written and deleted. The screen itself (`ui/*.js`) is checked by hand in a browser.
+files are written and deleted, and `tests/revisions.test.js`, which covers the page-history rules and
+lifecycle (moving the clock forward instead of waiting). The screen itself (`ui/*.js`) is checked by hand in a browser.

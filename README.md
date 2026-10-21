@@ -43,8 +43,8 @@ localwiki/
 ├── js/                        # Plain scripts, loaded in order by index.html
 │   ├── icon-library.js        # Bundled SVG icons; optional to extend
 │   ├── text.js, model.js, markdown.js, zip.js, search.js   # Pure logic
-│   ├── state.js               # The open wiki and change tracking
-│   ├── history.js, pages.js, storage.js                     # Undo, page operations, files
+│   ├── folder.js, state.js    # Folder access helpers; the open wiki and change tracking
+│   ├── revisions.js, history.js, pages.js, storage.js       # Saved history, undo, page operations, files
 │   ├── ui/                    # Everything on screen, one file per area
 │   └── app.js                 # Wiring and startup
 ├── tests/                     # Developer tests: node --test (not needed to use the wiki)
@@ -60,7 +60,7 @@ localwiki/
 └── README.md
 ```
 
-A wiki folder can be anywhere on your disk, independently of the app directory. **Make a new empty folder for your own wiki** (e.g. `Documents/TechWiki`). The editor writes `wiki.json` and creates `pages/` within that chosen folder.
+A wiki folder can be anywhere on your disk, independently of the app directory. **Make a new empty folder for your own wiki** (e.g. `Documents/TechWiki`). The editor writes `wiki.json` and creates `pages/` (and `revisions/` for page history) within that chosen folder.
 
 ### Example index, `wiki.json`
 
@@ -105,7 +105,18 @@ A wiki folder can be anywhere on your disk, independently of the app directory. 
 
 ### Undo and redo
 
-**↶ Undo** and **↷ Redo** in the top bar step through every change made in this session: typing (grouped into bursts), formatting, tables, icons, tags, moves, new pages, deletes, and renames. Undoing a rename also restores the links it rewrote and the old filename; undoing a delete brings back the page and its children. Undone changes are written to the folder by autosave like any other change. Hover a button to see which step it will undo or redo. History holds the last 200 steps and is cleared when you open or create a different wiki or reload the page.
+**↶ Undo** and **↷ Redo** in the top bar step through every change made in this session: typing (grouped into bursts), formatting, tables, icons, tags, moves, new pages, deletes, and renames. Undoing a rename also restores the links it rewrote and the old filename; undoing a delete brings back the page and its children. Undone changes are written to the folder by autosave like any other change. Hover a button to see which step it will undo or redo. History holds the last 200 steps and is cleared when you open or create a different wiki or reload the page; for anything older, use page history (below).
+
+### Page history (saved versions)
+
+Earlier versions of each page are kept in the wiki folder, in `revisions/<page id>.json`, so they survive reloads and are included in backups. Choose **History** above the page:
+
+- **This page** lists saved versions with their date. Choosing one shows what changed since then (red lines are only in that version, green lines were added since). **Restore this version** brings back its text, tags and icon; the title and position stay as they are, and the restore can be undone.
+- **Deleted pages** lists pages that were deleted, with **Restore page**.
+
+When a version is kept: just before a page is overwritten, the version on disk is kept if it had rested unchanged for 10 minutes or more (so the state before each editing session is always kept), or if the last saved version is more than 10 minutes old (a checkpoint during long sessions). The first change to a page keeps its original. Versions from the last 7 days are all kept; older ones are thinned to one per day, with at most 100 per page. Renaming a page moves its history with it, and deleting a page keeps its history so it can be restored.
+
+Page history needs a linked folder (**Open folder** or **Save to folder…**). **Save to folder…** and **Export wiki ZIP…** copy the `revisions/` folder along.
 
 ### Browser permissions and saving
 

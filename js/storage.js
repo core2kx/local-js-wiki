@@ -4,6 +4,7 @@
 
    Folder format:  wiki.json             {schemaVersion, type, name, updatedAt, pages: [{id, file}]}
                    pages/<id>.json       one file per page (see model.js)
+                   revisions/<id>.json   earlier versions of a page (see revisions.js)
    Folders are accessed with the browser's File System Access API (Chrome, Edge, Brave). Without it,
    a folder can still be read through a file input, but not written (use Export ZIP instead).
 
@@ -11,10 +12,12 @@
    (never written or deleted, kept in wiki.json, copied verbatim elsewhere), fixable problems are
    repaired, and everything is reported in the load-problems dialog.
 
-   Saving writes only changed pages, then wiki.json (only when needed), then deletes files of pages
-   that were removed or renamed. Autosave does this a moment after editing pauses.
+   Saving first lets revisions.js keep versions that are about to be overwritten, then writes only
+   changed pages, then wiki.json (only when needed), then deletes files of pages that were removed
+   or renamed. Autosave does this a moment after editing pauses.
 
-   Depends on: text.js, model.js, zip.js, state.js, history.js, pages.js; asks LocalWiki.ui to redraw.
+   Depends on: text.js, model.js, zip.js, folder.js, state.js, revisions.js, history.js, pages.js;
+               asks LocalWiki.ui to redraw.
    Provides:   LocalWiki.storage */
 (() => {
   'use strict';
@@ -23,6 +26,8 @@
   const {isoNow, pathFor, PAGE_PATH, normalizePage, repairStructure} = LW.model;
   const state = LW.state;
   const {markDirty, saveDraft} = LW.store;
+  const {jsonText, readText, writeText, remove} = LW.folder;
+  const revisions = LW.revisions;
   const ui = (LW.ui ||= {});
   const SCHEMA_VERSION = 1; // wiki.json format version
   const AUTOSAVE_DELAY = 2000, AUTOSAVE_MAX_WAIT = 15000;
@@ -39,7 +44,6 @@
       pages: entries.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map(p => ({id: p.id, file: pathFor(p.id)}))
     };
   }
-  function jsonText(value) { return JSON.stringify(value, null, 2) + '\n'; }
 
   // --- Opening ------------------------------------------------------------------------------------
   // getText(path) returns a file's text, or throws an error named NotFoundError if it is missing.
@@ -110,6 +114,7 @@
     state.diskPaths = new Set(result.pages.map(p => pathFor(p.id)));
     state.setAside = result.setAside; state.loadProblems = result.problems; state.copySetAside = false;
     state.changedIds = new Set(result.repairedIds); state.renameFrom = null;
+    state.pendingRenames = []; revisions.reset(result.pages);
     state.indexDirty = result.indexNeedsRewrite;
     state.folderHandle = handle;
     state.folderName = name;
@@ -124,9 +129,8 @@
   async function loadFromFolderHandle(handle) {
     const getText = async name => {
       const parts = name.split('/');
-      if (parts.length === 1) return (await (await handle.getFileHandle(parts[0])).getFile()).text();
-      const pages = await handle.getDirectoryHandle('pages');
-      return (await (await pages.getFileHandle(parts[1])).getFile()).text();
+      if (parts.length === 1) return readText(handle, parts[0]);
+      return readText(await handle.getDirectoryHandle('pages'), parts[1]);
     };
     return readFolderContents(getText);
   }
@@ -172,12 +176,7 @@
   }
 
   // --- Saving -------------------------------------------------------------------------------------
-  async function readJsonFile(handle) { return JSON.parse(await (await handle.getFile()).text()); }
-  async function writeJsonFile(handle, text) {
-    const writer = await handle.createWritable();
-    try { await writer.write(text); await writer.close(); }
-    catch (err) { try { await writer.abort(); } catch (_) {} throw err; }
-  }
+  const idOf = path => path.slice('pages/'.length, -'.json'.length);
   // "Save to folder…": choose a (new) destination and write the whole wiki there.
   async function saveToFolder() {
     if (typeof window.showDirectoryPicker !== 'function') {
@@ -187,13 +186,20 @@
     try {
       const handle = await window.showDirectoryPicker({mode:'readwrite', id:'localwiki'});
       let existing = null;
-      try { existing = await readJsonFile(await handle.getFileHandle('wiki.json')); }
+      try { existing = JSON.parse(await readText(handle, 'wiki.json')); }
       catch (err) { if (err.name !== 'NotFoundError') throw err; }
       if (existing) {
         const sameIndex = existing.type === 'localwiki-index' &&
           JSON.stringify(existing.pages) === JSON.stringify(indexObject().pages) && existing.name === state.wiki.name;
         if (!sameIndex && !confirm(`Folder "${handle.name}" already has a wiki.json. Overwrite its index with this wiki? Other page files are not deleted.`)) return;
       }
+      // Saved revisions come along to the new folder.
+      const previous = state.folderHandle;
+      if (previous) {
+        try { await revisions.copyFolder(previous, handle); }
+        catch (err) { console.error(err); ui.toast('Page history could not be copied: ' + err.message); }
+      }
+      revisions.reset([]); // nothing of this wiki is in the new folder yet
       // When changing destination, copy all pages, not just previously edited pages.
       state.folderHandle = handle; state.folderName = handle.name;
       state.changedIds = new Set(state.wiki.pages.map(p => p.id));
@@ -227,18 +233,22 @@
     const copying = state.copySetAside ? setAside.filter(entry => entry.text !== null) : [];
     const indexText = state.indexDirty ? jsonText(indexObject(state.copySetAside)) : null;
     try {
+      // Keep versions that are about to be overwritten or deleted. A problem here must not stop
+      // the save itself.
+      try { await revisions.beforeSave(pending.map(([path, text]) => [idOf(path), text]), stale.map(idOf)); }
+      catch (err) { console.error(err); ui.toast('Page history could not be updated: ' + err.message); }
       const pagesDir = await state.folderHandle.getDirectoryHandle('pages', {create:true});
       for (const [path, text] of pending) {
-        await writeJsonFile(await pagesDir.getFileHandle(path.split('/')[1], {create:true}), text);
+        await writeText(pagesDir, path.split('/')[1], text);
         state.diskPaths.add(path);
+        revisions.afterWrite(idOf(path), text);
       }
       // Set-aside files are copied byte for byte, and are not added to diskPaths (never deleted).
-      for (const entry of copying) await writeJsonFile(await pagesDir.getFileHandle(entry.file.split('/')[1], {create:true}), entry.text);
+      for (const entry of copying) await writeText(pagesDir, entry.file.split('/')[1], entry.text);
       // The manifest is written after every page it references exists, and before stale files go.
-      if (indexText) await writeJsonFile(await state.folderHandle.getFileHandle('wiki.json', {create:true}), indexText);
+      if (indexText) await writeText(state.folderHandle, 'wiki.json', indexText);
       for (const path of stale) {
-        try { await pagesDir.removeEntry(path.split('/')[1]); }
-        catch (err) { if (err.name !== 'NotFoundError') throw err; }
+        await remove(pagesDir, path.split('/')[1]);
         state.diskPaths.delete(path);
       }
       if (state.copySetAside) { state.setAside = state.setAside.filter(entry => entry.text !== null); state.copySetAside = false; }
@@ -289,11 +299,11 @@
     document.body.append(link); link.click(); link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
-  function exportZip() {
+  async function exportZip() {
     LW.pages.commitTitle();
     try {
       const name = slug(state.wiki.name, 'my-wiki') + '.zip';
-      downloadBlob(LW.zip.makeZip(filesForExport()), name);
+      downloadBlob(LW.zip.makeZip([...filesForExport(), ...await revisions.allFiles()]), name);
       ui.toast('Exported ' + name + '. It contains wiki.json and every page JSON.');
     } catch (err) { console.error(err); ui.toast('ZIP export failed: ' + err.message); }
   }
@@ -304,6 +314,7 @@
     state.wiki = LW.model.normalizeWiki({name: name.trim() || 'My Wiki', pages: []});
     state.currentId = null; state.folderHandle = null; state.folderName = 'No folder selected'; state.dirty = false;
     state.diskPaths.clear(); state.changedIds.clear(); state.renameFrom = null; state.indexDirty = true; state.changeVersion++;
+    state.pendingRenames = []; revisions.reset([]);
     state.setAside = []; state.loadProblems = []; state.copySetAside = false; ui.renderProblems();
     LW.history.clear(); clearTimeout(autosaveTimer); state.lastSavedAt = null; state.dirtySince = 0;
     ui.clearSearch();

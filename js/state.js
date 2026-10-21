@@ -28,6 +28,7 @@
     saving: false,
     lastSavedAt: null,         // Date of the last successful save
     renameFrom: null,          // {id, title} while the title field has an uncommitted edit (see pages.js)
+    pendingRenames: [],        // [[fromId, toId]] not yet applied to revisions/ (see revisions.js)
     // Pages that could not be loaded: {id, file, text}. Their files are never written or deleted,
     // they stay listed in wiki.json, and text (the raw file, or null if unreadable) is copied verbatim
     // when the wiki is saved elsewhere or exported.
@@ -68,8 +69,8 @@
   // A copy of the open wiki in browser storage. Not the master copy: folder access is not kept
   // across reloads, so a recovered draft must be saved to a folder again.
   function saveDraft() {
-    const {wiki, currentId, folderName, dirty, renameFrom, setAside} = state;
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({wiki, currentId, folderName, dirty, renameFrom, setAside})); }
+    const {wiki, currentId, folderName, dirty, renameFrom, setAside, pendingRenames} = state;
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({wiki, currentId, folderName, dirty, renameFrom, setAside, pendingRenames})); }
     catch (err) { console.warn('Local draft recovery unavailable:', err); }
   }
   // Loads the draft into state, if there is one. Returns true when it held unsaved changes.
@@ -85,6 +86,8 @@
       state.setAside = (Array.isArray(recovered.setAside) ? recovered.setAside : []).filter(entry =>
         typeof entry?.id === 'string' && entry.file === pathFor(entry.id) && PAGE_PATH.test(entry.file) &&
         (typeof entry.text === 'string' || entry.text === null) && !has(entry.id));
+      state.pendingRenames = (Array.isArray(recovered.pendingRenames) ? recovered.pendingRenames : [])
+        .filter(pair => Array.isArray(pair) && pair.length === 2 && pair.every(id => typeof id === 'string' && PAGE_PATH.test(pathFor(id))));
       state.folderName = recovered.folderName || 'Recovered browser draft';
       state.dirty = recovered.dirty === true;
       state.changedIds = new Set(state.dirty ? wiki.pages.map(p => p.id) : []);

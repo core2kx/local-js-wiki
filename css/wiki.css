@@ -5,6 +5,7 @@
   --text: #23342f; --muted: #788581; --border: #dce6e2;
   --accent: #2e766b; --accent-soft: #e5f3f0; --accent-hover: #245e55;
   --input: #ffffff; --shadow: 0 12px 32px rgba(29, 62, 50, .035);
+  --diff-added: #e3f4ec; --diff-removed: #fbe6e4;
   --page-width: 90%; /* default: chosen portion of space to the right of the sidebar */
   color-scheme: light;
 }
@@ -13,6 +14,7 @@ html[data-theme="dark"] {
   --text: #e4ede9; --muted: #9caeaa; --border: #354940;
   --accent: #80c7b6; --accent-soft: #2c463f; --accent-hover: #a0decf;
   --input: #182420; --shadow: 0 10px 26px rgba(0, 0, 0, .14);
+  --diff-added: #1f4033; --diff-removed: #4a2a28;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -188,3 +190,22 @@ mark { background: #fbe8af; color: #3f351a; border-radius: 2px; }
 .problems-list { max-height: 50vh; overflow: auto; margin: 0 0 14px; padding-left: 18px; }
 .problems-list li { margin-bottom: 8px; overflow-wrap: anywhere; }
 .problems-list code { font-size: .85em; background: var(--sidebar-bg); border-radius: 4px; padding: 1px 4px; }
+.revisions-dialog { width: min(980px, calc(100vw - 32px)); }
+.revisions-body { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: 14px; min-height: 0; }
+.revisions-list { list-style: none; margin: 0; padding: 0; max-height: 55vh; overflow: auto; border-right: 1px solid var(--border); padding-right: 10px; }
+.revision-entry { display: block; width: 100%; text-align: start; border: 1px solid transparent; background: none; color: var(--text); border-radius: 7px; padding: 7px 9px; margin-bottom: 3px; }
+.revision-entry:hover { background: var(--accent-soft); }
+.revision-entry.active { background: var(--accent-soft); border-color: var(--accent); }
+.revision-main { display: block; font-weight: 600; font-size: 13px; }
+.revision-detail { display: block; font-size: 11px; color: var(--muted); }
+.revision-message { color: var(--muted); padding: 8px; }
+.revisions-detail { min-width: 0; }
+.revisions-detail .dialog-hint { margin-top: 0; }
+.revisions-diff { max-height: 48vh; overflow: auto; font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--input); }
+.revisions-diff:empty { display: none; }
+.diff-line { white-space: pre-wrap; overflow-wrap: anywhere; padding: 1px 8px; }
+.diff-added { background: var(--diff-added); }
+.diff-removed { background: var(--diff-removed); }
+.diff-same { color: var(--muted); }
+.diff-gap { color: var(--muted); font-style: italic; padding: 3px 8px; border-block: 1px dashed var(--border); }
+@media (max-width: 700px) { .revisions-body { grid-template-columns: 1fr; } .revisions-list { border-right: 0; max-height: 25vh; } }

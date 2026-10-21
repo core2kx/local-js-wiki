@@ -15,8 +15,10 @@
   <script defer src="js/markdown.js"></script>
   <script defer src="js/zip.js"></script>
   <script defer src="js/search.js"></script>
-  <!-- The open wiki and the operations on it -->
+  <!-- Folder access, the open wiki, and the operations on it -->
+  <script defer src="js/folder.js"></script>
   <script defer src="js/state.js"></script>
+  <script defer src="js/revisions.js"></script>
   <script defer src="js/history.js"></script>
   <script defer src="js/pages.js"></script>
   <script defer src="js/storage.js"></script>
@@ -29,6 +31,7 @@
   <script defer src="js/ui/table-builder.js"></script>
   <script defer src="js/ui/picker.js"></script>
   <script defer src="js/ui/problems.js"></script>
+  <script defer src="js/ui/revisions.js"></script>
   <!-- Start -->
   <script defer src="js/app.js"></script>
 </head>
@@ -82,6 +85,7 @@
                 </select>
               </label>
               <button class="btn btn-ghost btn-sm" id="new-child-btn" title="Add a nested child page">+ Child page</button>
+              <button class="btn btn-ghost btn-sm" id="history-btn" title="Earlier saved versions of this page, and deleted pages">History</button>
               <button class="btn btn-ghost btn-sm" id="delete-page-btn" title="Delete the selected page">Delete</button>
             </div>
           </div>
@@ -144,6 +148,15 @@
     <input id="picker-search" class="picker-search" type="search" placeholder="Search by name…" aria-label="Search icons or symbols" autocomplete="off">
     <div id="picker-results" class="picker-results" aria-live="polite"></div>
     <div class="dialog-foot"><span id="picker-hint" class="dialog-hint">Choose an item to insert it.</span><button type="button" id="picker-clear" class="btn btn-sm" hidden>Remove page icon</button><button type="button" id="picker-cancel" class="btn">Cancel</button></div>
+  </dialog>
+  <dialog id="revisions-dialog" class="wiki-dialog revisions-dialog" aria-labelledby="revisions-title">
+    <div class="dialog-head"><h2 id="revisions-title" dir="auto">Page history</h2><button type="button" id="revisions-close" class="dialog-close" aria-label="Close">×</button></div>
+    <div class="picker-tabs" role="group" aria-label="Choose history"><button type="button" data-revisions-tab="page" class="picker-tab">This page</button><button type="button" data-revisions-tab="deleted" class="picker-tab">Deleted pages</button></div>
+    <div class="revisions-body">
+      <ul id="revisions-list" class="revisions-list" aria-label="Saved versions"></ul>
+      <div class="revisions-detail"><p id="revisions-summary" class="dialog-hint"></p><div id="revisions-diff" class="revisions-diff"></div></div>
+    </div>
+    <div class="dialog-foot"><button type="button" id="revisions-cancel" class="btn">Close</button><button type="button" id="revisions-restore" class="btn btn-primary" disabled>Restore this version</button></div>
   </dialog>
   <dialog id="problems-dialog" class="wiki-dialog problems-dialog" aria-labelledby="problems-title">
     <div class="dialog-head"><h2 id="problems-title">Problems found while opening</h2><button type="button" id="problems-close" class="dialog-close" aria-label="Close">×</button></div>

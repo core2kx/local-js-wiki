@@ -53,6 +53,7 @@
     ui.installTableBuilder();
     ui.installPicker();
     ui.installProblems();
+    ui.installRevisions();
 
     // Read-only folder fallback: storage.openFolder() opens this file input when folder access is unavailable.
     ui.chooseFolderReadOnly = () => els.folderInput.click();

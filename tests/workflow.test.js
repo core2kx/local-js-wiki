@@ -6,35 +6,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {load} = require('./load');
 
-// Minimal File System Access API: directories of text files, with a log of writes and deletes.
-class MemoryDirectory {
-  constructor(name) { this.name = name; this.files = new Map(); this.dirs = new Map(); this.log = []; }
-  async getFileHandle(name, {create = false} = {}) {
-    if (!this.files.has(name)) {
-      if (!create) throw new DOMException('Not found: ' + name, 'NotFoundError');
-      this.files.set(name, '');
-    }
-    const dir = this;
-    return {
-      async getFile() { return {text: async () => dir.files.get(name)}; },
-      async createWritable() {
-        let buffer = '';
-        return {write: async text => { buffer += text; }, close: async () => { dir.files.set(name, buffer); dir.log.push('write ' + name); }, abort: async () => {}};
-      }
-    };
-  }
-  async getDirectoryHandle(name, {create = false} = {}) {
-    if (!this.dirs.has(name)) {
-      if (!create) throw new DOMException('Not found: ' + name, 'NotFoundError');
-      this.dirs.set(name, new MemoryDirectory(name));
-    }
-    return this.dirs.get(name);
-  }
-  async removeEntry(name) {
-    if (!this.files.delete(name)) throw new DOMException('Not found: ' + name, 'NotFoundError');
-    this.log.push('delete ' + name);
-  }
-}
+const {MemoryDirectory} = require('./memory-folder');
 
 const json = value => JSON.stringify(value, null, 2) + '\n';
 const pageFile = (id, title, extra = {}) => json({id, title, parentId: null, tags: [], content: '', icon: '', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', ...extra});
@@ -54,7 +26,7 @@ function exampleFolder(extraPages = {}, extraEntries = []) {
   return {root, pagesDir};
 }
 
-const LW = load('icon-library', 'text', 'model', 'markdown', 'zip', 'search', 'state', 'history', 'pages', 'storage');
+const LW = load('icon-library', 'text', 'model', 'markdown', 'zip', 'search', 'folder', 'state', 'revisions', 'history', 'pages', 'storage');
 const {state, store, history, pages, storage} = LW;
 globalThis.window = globalThis;
 

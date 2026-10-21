@@ -9,7 +9,7 @@
    (updating children's parentId). Intermediate titles never capture links, and autosave waits
    while state.renameFrom is set. Anything that switches context calls commitTitle() first.
 
-   Depends on: text.js, model.js, markdown.js, state.js, history.js; asks LocalWiki.ui to redraw.
+   Depends on: text.js, model.js, markdown.js, state.js, revisions.js, history.js; asks LocalWiki.ui to redraw.
    Provides:   LocalWiki.pages */
 (() => {
   'use strict';
@@ -112,6 +112,9 @@
       page.id = newId;
       if (state.currentId === oldId) state.currentId = newId;
       state.indexDirty = true;
+      // Saved revisions follow the page to its new filename (and back, if this is undone).
+      history.attachRename(oldId, newId);
+      LW.revisions.noteRename(oldId, newId);
     }
     touchPage(page);
     ui.renderAfterRename();
@@ -154,6 +157,41 @@
     else if (confirm(`Page "${target}" does not exist. Create it?`)) createPage(null, target.slice(0, 140));
   }
 
+  // --- Saved revisions (see revisions.js) ---------------------------------------------------------
+  // Brings back an earlier version's text, tags and icon. Title and position stay as they are.
+  function restoreRevision(revision) {
+    const page = currentPage(); if (!page) return;
+    history.record(`restoring an earlier version of "${page.title}"`);
+    page.content = revision.content;
+    page.tags = [...(revision.tags || [])];
+    page.icon = revision.icon || '';
+    touchPage(page);
+    ui.renderPage(); ui.renderTree();
+    ui.toast('Restored the earlier version. Use Undo to go back.');
+  }
+  // Brings back a deleted page from its newest revision (file: from revisions.deletedPages()).
+  function restoreDeleted(file) {
+    commitTitle();
+    const wiki = state.wiki;
+    const revision = file.revisions[file.revisions.length - 1];
+    const existing = new Set(wiki.pages.map(p => titleKey(p.title)));
+    let title = revision.title;
+    for (let i = 2; existing.has(titleKey(title)); i++) title = revision.title + ' (' + i + ')';
+    history.record(`restoring "${title}"`);
+    const owners = [...wiki.pages, ...state.setAside];
+    const id = owners.some(p => p.id.toUpperCase() === file.id.toUpperCase()) ? uniqueId(title, owners) : file.id;
+    const parentId = revision.parentId && pageById(revision.parentId) ? revision.parentId : null;
+    const page = {id, title, parentId, tags: [...(revision.tags || [])], content: revision.content, icon: revision.icon || '', createdAt: isoNow(), updatedAt: isoNow()};
+    wiki.pages.push(page);
+    if (id !== file.id) LW.revisions.noteRename(file.id, id); // its revisions move with it
+    state.indexDirty = true;
+    state.changedIds.add(id);
+    state.currentId = id;
+    ui.clearSearch();
+    markDirty(); ui.renderAll();
+    ui.toast(`Restored "${title}".`);
+  }
+
   function renameWiki() {
     const wiki = state.wiki;
     const name = prompt('Wiki name:', wiki.name);
@@ -163,5 +201,5 @@
     state.indexDirty = true; markDirty(); ui.renderAll();
   }
 
-  LW.pages = {selectPage, createPage, deletePage, editTitle, commitTitle, editTags, editContent, movePage, setIcon, openLink, renameWiki};
+  LW.pages = {selectPage, createPage, deletePage, editTitle, commitTitle, editTags, editContent, movePage, setIcon, openLink, restoreRevision, restoreDeleted, renameWiki};
 })();
