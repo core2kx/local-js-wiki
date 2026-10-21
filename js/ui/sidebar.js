@@ -1,7 +1,7 @@
 /* LocalWiki — ui/sidebar.js
    The sidebar's page list: the nested page tree, or search results while the search box has text.
 
-   Depends on: model.js, search.js, state.js, pages.js, ui/elements.js, ui/page.js (page icons)
+   Depends on: i18n.js, model.js, search.js, state.js, pages.js, ui/elements.js, ui/page.js (page icons)
    Provides:   LocalWiki.ui.renderTree, renderTreeIfSearching, clearSearch */
 (() => {
   'use strict';
@@ -11,11 +11,12 @@
   const state = LW.state;
   const {ancestors, sortByTitle} = LW.model;
   const {pageById} = LW.store;
+  const {t} = LW.i18n;
   const {searchPages, snippetParts} = LW.search;
 
   function renderTree() {
     const raw = els.search.value.trim();
-    els.sidebarHeading.textContent = raw ? 'Search results' : 'Pages';
+    els.sidebarHeading.textContent = t(raw ? 'side.results' : 'side.pages');
     els.nav.replaceChildren();
     if (raw) renderSearchResults(raw);
     else renderPageTree();
@@ -31,9 +32,9 @@
       button.type = 'button';
       button.className = 'nav-entry nav-result' + (p.id === state.currentId ? ' active' : '');
       const title = document.createElement('span');
-      title.className = 'nav-result-title'; title.dir = 'auto'; title.textContent = p.title || 'Untitled page';
+      title.className = 'nav-result-title'; title.dir = 'auto'; title.textContent = p.title || t('page.untitled');
       const path = document.createElement('span');
-      path.className = 'nav-result-path'; path.textContent = ancestors(state.wiki.pages, p).map(x => x.title).join(' / ') || 'Top-level';
+      path.className = 'nav-result-path'; path.textContent = ancestors(state.wiki.pages, p).map(x => x.title).join(' / ') || t('side.top_level');
       const snippet = document.createElement('span'); snippet.className = 'nav-result-snippet';
       snippet.dir = 'auto';
       for (const part of snippetParts(p, body, terms, phrase)) {
@@ -47,7 +48,7 @@
     }
     if (!matches.length) {
       const noResults = document.createElement('div');
-      noResults.className = 'search-empty'; noResults.textContent = 'No matching pages.';
+      noResults.className = 'search-empty'; noResults.textContent = t('side.no_results');
       els.nav.append(noResults);
     }
   }
@@ -56,7 +57,7 @@
     const pages = state.wiki.pages;
     if (!pages.length) {
       const blank = document.createElement('div'); blank.className = 'search-empty';
-      blank.textContent = 'No pages yet. Select + to create one.';
+      blank.textContent = t('side.no_pages');
       els.nav.append(blank);
       return;
     }
@@ -68,7 +69,7 @@
         btn.type = 'button'; btn.title = page.title;
         btn.className = 'nav-entry' + (page.id === state.currentId ? ' active' : '');
         const icon = document.createElement('span'); icon.className = 'nav-page-icon'; ui.fillPageIcon(icon, page);
-        const name = document.createElement('span'); name.className = 'nav-title'; name.dir = 'auto'; name.textContent = page.title || 'Untitled page';
+        const name = document.createElement('span'); name.className = 'nav-title'; name.dir = 'auto'; name.textContent = page.title || t('page.untitled');
         btn.append(icon, name);
         btn.addEventListener('click', () => LW.pages.selectPage(page.id));
         container.append(btn);

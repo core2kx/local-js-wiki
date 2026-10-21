@@ -22,7 +22,8 @@ function load(...names) {
   const LW = (globalThis.LocalWiki ||= {});
   const noop = () => {};
   LW.ui ||= new Proxy({}, {get: (target, name) => (name in target ? target[name] : noop)});
-  for (const name of names) require(path.join(__dirname, '..', 'js', name + '.js'));
+  // The translation core and English are used by almost everything, so they are always loaded.
+  for (const name of ['i18n', 'lang/en', ...names]) require(path.join(__dirname, '..', 'js', name + '.js'));
   return LW;
 }
 

@@ -26,7 +26,7 @@ function exampleFolder(extraPages = {}, extraEntries = []) {
   return {root, pagesDir};
 }
 
-const LW = load('icon-library', 'text', 'model', 'markdown', 'zip', 'search', 'folder', 'state', 'revisions', 'history', 'pages', 'storage');
+const LW = load('icon-library', 'text', 'model', 'markdown', 'zip', 'search', 'folder', 'state', 'languages', 'revisions', 'history', 'pages', 'storage');
 const {state, store, history, pages, storage} = LW;
 globalThis.window = globalThis;
 
@@ -74,7 +74,8 @@ test('delete removes the page and its children; undo writes them back', async ()
   pages.deletePage();
   await storage.saveChanges();
   assert.deepEqual([...pagesDir.files.keys()], ['welcome.json']);
-  assert.match(history.peek().undo, /deleting "Editing guide" and 1 child/);
+  assert.deepEqual(history.peek().undo, {key: 'act.delete_children', params: {title: 'Editing guide', count: 1}});
+  assert.equal(LW.i18n.t('top.undo_with', {action: history.peek().undo}), 'Undo: Deleting “Editing guide” and 1 child page');
   history.undo();
   await storage.saveChanges();
   assert.deepEqual([...pagesDir.files.keys()].sort(), ['editing-guide.json', 'tables.json', 'welcome.json']);
@@ -116,9 +117,11 @@ test('damaged page files are set aside, repaired or skipped, and never overwritt
 
 test('an unusable wiki.json stops opening with a clear message', async () => {
   const root = new MemoryDirectory('empty');
-  await assert.rejects(storage.readFolderContents(async name => (await (await root.getFileHandle(name)).getFile()).text()), /no wiki.json/);
+  const read = name => root.getFileHandle(name).then(handle => handle.getFile()).then(file => file.text());
+  // The error carries a translatable message; its English text says what is wrong.
+  await assert.rejects(storage.readFolderContents(read), err => err.key === 'err.no_wiki_json' && /no wiki.json/.test(LW.i18n.describeError(err)));
   root.files.set('wiki.json', '{bad');
-  await assert.rejects(storage.readFolderContents(async name => (await (await root.getFileHandle(name)).getFile()).text()), /not valid JSON/);
+  await assert.rejects(storage.readFolderContents(read), err => err.key === 'err.wiki_json_invalid' && /not valid JSON/.test(LW.i18n.describeError(err)));
 });
 
 test('typing right after a toolbar action gets its own undo step', async () => {
@@ -126,7 +129,7 @@ test('typing right after a toolbar action gets its own undo step', async () => {
   await open(root);
   pages.selectPage('welcome');
   const original = store.currentPage().content;
-  history.record('inserting an icon');     // a toolbar action records first...
+  history.record('act.insert_icon');       // a toolbar action records first...
   pages.editContent(original + ' :icon[server]:'); // ...then saves its change like typing
   pages.editContent(original + ' :icon[server]: typed'); // typing immediately afterwards
   history.undo();

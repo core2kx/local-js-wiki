@@ -7,7 +7,7 @@ const assert = require('node:assert/strict');
 const {load} = require('./load');
 const {MemoryDirectory} = require('./memory-folder');
 
-const LW = load('icon-library', 'palettes', 'text', 'model', 'markdown', 'zip', 'search', 'folder', 'state', 'revisions', 'history', 'pages', 'storage');
+const LW = load('icon-library', 'palettes', 'text', 'model', 'markdown', 'zip', 'search', 'folder', 'state', 'languages', 'revisions', 'history', 'pages', 'storage');
 const {state, history, pages, storage, model} = LW;
 globalThis.window = globalThis;
 
@@ -59,7 +59,7 @@ test('changing settings can be undone', async () => {
   const root = folder({appName: 'Before', icon: '', palette: 'evergreen'});
   await open(root);
   pages.updateSettings({name: 'Test', appearance: {appName: 'After', icon: '🛰️', palette: 'plum'}, logo: null});
-  assert.equal(history.peek().undo, 'changing the wiki settings');
+  assert.equal(history.peek().undo.key, 'act.settings');
   history.undo();
   assert.deepEqual(state.wiki.appearance, {appName: 'Before', icon: '', palette: 'evergreen'});
   await storage.saveChanges();

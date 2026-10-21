@@ -20,7 +20,8 @@
     logoDirty: false,          // branding/logo.png must be written (or removed) on the next save
     currentId: null,           // id of the page being viewed
     folderHandle: null,        // the linked, writable folder, or null (not linked / read-only)
-    folderName: 'No folder selected',
+    folderName: null,          // name of the linked or last opened folder; null when there is none
+    draftRecovered: false,     // the wiki was restored from the browser draft (so folderName may be null)
     dirty: false,              // there are changes not yet written to the folder
     dirtySince: 0,             // when the oldest unsaved change was made (for the autosave ceiling)
     changeVersion: 0,          // increases on every change; lets a save notice edits made while it ran
@@ -92,7 +93,7 @@
         .filter(pair => Array.isArray(pair) && pair.length === 2 && pair.every(id => typeof id === 'string' && PAGE_PATH.test(pathFor(id))));
       state.logo = typeof recovered.logo === 'string' && recovered.logo.startsWith('data:image/png;base64,') ? recovered.logo : null;
       if (wiki.appearance.icon === 'image' && !state.logo) wiki.appearance.icon = '';
-      state.folderName = recovered.folderName || 'Recovered browser draft';
+      state.folderName = recovered.folderName || null; state.draftRecovered = true;
       state.dirty = recovered.dirty === true;
       state.changedIds = new Set(state.dirty ? wiki.pages.map(p => p.id) : []);
       state.indexDirty = state.dirty;

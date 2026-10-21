@@ -10,7 +10,7 @@
    The dialog only collects a choice; the caller inserts it (see visual-editor.js, editor.js):
      ui.openLinkDialog({kind, target, text, editing, onChoose({kind, target, label}), onCancel})
 
-   Depends on: text.js, model.js, markdown.js, search.js, state.js, ui/elements.js, ui/page.js
+   Depends on: i18n.js, text.js, model.js, markdown.js, search.js, state.js, ui/elements.js, ui/page.js
    Provides:   LocalWiki.ui.openLinkDialog, installLinkPicker */
 (() => {
   'use strict';
@@ -19,6 +19,7 @@
   const els = LW.els;
   const state = LW.state;
   const {titleKey} = LW.text;
+  const {t} = LW.i18n;
   const {ancestors, findLinkTarget, linkTargetFor} = LW.model;
   const MAX_ROWS = 100;
 
@@ -31,8 +32,8 @@
   // or just the selected text (text) when inserting. onCancel runs when the dialog is dismissed.
   function openLinkDialog({kind = 'wiki', target = '', text = '', editing = false, onChoose, onCancel = null}) {
     session = {kind, editing, onChoose, onCancel, done: false};
-    els.linkTitle.textContent = editing ? 'Edit link' : 'Insert link';
-    els.linkConfirm.textContent = editing ? 'Update link' : 'Insert link';
+    els.linkTitle.textContent = t(editing ? 'link.title_edit' : 'link.title_insert');
+    els.linkConfirm.textContent = t(editing ? 'link.update' : 'link.title_insert');
     const page = kind === 'wiki' && editing ? findLinkTarget(state.wiki.pages, target) : null;
     els.linkSearch.value = kind === 'wiki' && editing ? (page ? page.title : target) : '';
     els.linkUrl.value = kind === 'web' ? target : '';
@@ -51,8 +52,8 @@
       tab.setAttribute('aria-pressed', String(tab.dataset.linkTab === kind));
     }
     els.linkWikiPanel.hidden = kind !== 'wiki'; els.linkList.hidden = kind !== 'wiki'; els.linkWebPanel.hidden = kind !== 'web';
-    els.linkText.placeholder = kind === 'wiki' ? 'Defaults to the page title' : 'Defaults to the address';
-    els.linkHint.textContent = kind === 'wiki' ? '↑ ↓ to move, Enter to choose' : 'https://…, mailto:…, or just example.com';
+    els.linkText.placeholder = t(kind === 'wiki' ? 'link.text_ph_wiki' : 'link.text_ph_web');
+    els.linkHint.textContent = t(kind === 'wiki' ? 'link.hint_wiki' : 'link.hint_web');
     showError('');
     if (kind === 'wiki') renderList();
   }
@@ -72,12 +73,12 @@
     rows.forEach((row, index) => els.linkList.append(rowElement(row, index)));
     if (results.length > MAX_ROWS) {
       const note = document.createElement('li'); note.className = 'link-note'; note.setAttribute('role', 'presentation');
-      note.textContent = `Showing the first ${MAX_ROWS} of ${results.length} pages. Keep typing to narrow the list.`;
+      note.textContent = t('link.limit', {shown: MAX_ROWS, total: results.length});
       els.linkList.append(note);
     }
     if (!rows.length) {
       const empty = document.createElement('li'); empty.className = 'link-note'; empty.setAttribute('role', 'presentation');
-      empty.textContent = 'This wiki has no pages yet.';
+      empty.textContent = t('link.no_pages');
       els.linkList.append(empty);
     }
     syncActive();
@@ -97,11 +98,11 @@
         const mark = document.createElement('mark'); mark.textContent = part.text; title.append(mark);
       }
       const path = ancestors(state.wiki.pages, row.p).map(x => x.title).join(' / ');
-      detail.textContent = [path, row.p.id === state.currentId ? 'this page' : ''].filter(Boolean).join(' · ');
+      detail.textContent = [path, row.p.id === state.currentId ? t('link.this_page') : ''].filter(Boolean).join(' · ');
     } else {
       icon.textContent = '+';
-      title.textContent = `Link to “${row.text}”`;
-      detail.textContent = "This page doesn't exist yet. The link shows as missing until you create it.";
+      title.textContent = t('link.new_row', {name: row.text});
+      detail.textContent = t('link.new_detail');
     }
     main.append(title); if (detail.textContent) main.append(detail);
     li.append(icon, main);
@@ -140,12 +141,12 @@
   }
   function confirm() {
     if (session.kind === 'wiki') {
-      if (active < 0) showError('Choose a page, or type a name to link to a new one.');
+      if (active < 0) showError(t('link.err_choose'));
       else choose(active);
       return;
     }
     const address = LW.markdown.webAddress(els.linkUrl.value);
-    if (!address) { showError('Enter a web address starting with http://, https:// or mailto: (or a name like example.com).'); els.linkUrl.focus(); return; }
+    if (!address) { showError(t('link.err_address')); els.linkUrl.focus(); return; }
     finish({kind: 'web', target: address, label: els.linkText.value.trim() || address});
   }
 

@@ -52,6 +52,24 @@ Choose **⚙ Wiki settings** in the sidebar to brand a wiki:
 
 Changes preview immediately; **Save** keeps them (and can be undone), **Cancel** discards them. Settings are stored in the wiki folder, so anyone opening the wiki or an exported ZIP sees the same branding: in `wiki.json` under `"appearance"`, plus `branding/logo.png` when an image is used. Light or dark mode remains each browser's own choice.
 
+## Languages
+
+The buttons, menus and messages can be shown in another language (the 🌐 button in the top bar); page content is never translated. Built in: English, Svenska, Deutsch, Norsk bokmål, Dansk, Suomi, Français, Español and Polski. The choice is remembered per browser, and the browser's language is used the first time.
+
+**The translations other than English were drafted by an AI assistant and have not been reviewed by native speakers.** Corrections are very welcome: edit `languages/<code>.json` and send it back.
+
+### Adding a language
+
+1. In the language dialog, choose **Download translation template**. You get a JSON file with every English text.
+2. Translate the texts (keep `{placeholders}` such as `{count}` or `{title}` and `**bold**` markers; leave a text empty to fall back to English). Set `language.code` (for example `pt-br`) and `language.name` (the language's own name).
+3. Choose **Add language from file…**. The dialog reports problems (unknown keys, missing placeholders, a broken file) with line and column for JSON syntax errors; usable texts are still applied and anything untranslated shows in English.
+
+**Download this language to edit** gives the same file filled with an existing language, which is the easiest way to improve one. Texts with a number come as plural forms (`one`, `other`; some languages also `few`, `many`...); `other` is required.
+
+Added languages are saved in the wiki folder as `languages/<code>.json` (and in the ZIP export), so everyone opening the wiki gets them; without a linked folder they stay in that browser. A file in the folder with the same code as a built-in language replaces the built-in one for that wiki. Right-to-left languages are accepted but still shown left-to-right; proper right-to-left layout is planned (`"direction": "rtl"` is already part of the format).
+
+**Built-in languages** are generated: edit `languages/<code>.json`, then run `node tools/build-languages.js` to rewrite `js/lang/<code>.js` (the browser cannot read JSON files from disk, so each language ships as a script). A new built-in also needs its `<script>` line in `index.html`. The tests fail if a script is out of date or a language is incomplete.
+
 ## Tables, symbols and icons
 
 - **Create tables:** In Visual, choose **▦ Table** to insert a table, then type into the cells and use the table bar to add or remove rows and columns. In Markdown, **▦ Table** opens a grid dialog. Tables have no size limit.
@@ -72,11 +90,15 @@ localwiki/
 ├── js/                        # Plain scripts, loaded in order by index.html
 │   ├── icon-library.js        # Bundled SVG icons; optional to extend
 │   ├── palettes.js            # Color palettes (light and dark versions)
+│   ├── i18n.js, languages.js  # Interface languages: translation core; adding/saving languages
+│   ├── lang/                  # Built-in languages (generated from languages/*.json)
 │   ├── text.js, model.js, markdown.js, zip.js, search.js   # Pure logic
 │   ├── folder.js, state.js    # Folder access helpers; the open wiki and change tracking
 │   ├── revisions.js, history.js, pages.js, storage.js       # Saved history, undo, page operations, files
 │   ├── ui/                    # Everything on screen, one file per area
 │   └── app.js                 # Wiring and startup
+├── languages/                 # Language files (en.json is the master list of every text)
+├── tools/                     # build-languages.js: regenerates js/lang/*.js (developers only)
 ├── tests/                     # Developer tests: node --test (not needed to use the wiki)
 ├── data/                      # Sample wikis: choose Open folder -> one of these directories
 │   ├── cisco-catalyst-wiki/   # Mock campus network runbook (Cisco Catalyst 9000, IOS XE)
@@ -92,7 +114,7 @@ localwiki/
 └── README.md
 ```
 
-A wiki folder can be anywhere on your disk, independently of the app directory. **Make a new empty folder for your own wiki** (e.g. `Documents/TechWiki`). The editor writes `wiki.json` and creates `pages/` (plus `revisions/` for page history and `branding/` for an icon image) within that chosen folder.
+A wiki folder can be anywhere on your disk, independently of the app directory. **Make a new empty folder for your own wiki** (e.g. `Documents/TechWiki`). The editor writes `wiki.json` and creates `pages/` (plus `revisions/` for page history, `branding/` for an icon image and `languages/` for added languages) within that chosen folder.
 
 ### Example index, `wiki.json`
 

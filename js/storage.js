@@ -6,6 +6,7 @@
                    pages/<id>.json       one file per page (see model.js)
                    revisions/<id>.json   earlier versions of a page (see revisions.js)
                    branding/logo.png     the wiki's icon, when an image was chosen (appearance.icon "image")
+                   languages/<code>.json added interface languages (see languages.js)
    Folders are accessed with the browser's File System Access API (Chrome, Edge, Brave). Without it,
    a folder can still be read through a file input, but not written (use Export ZIP instead).
 
@@ -17,13 +18,15 @@
    changed pages, then wiki.json (only when needed), then deletes files of pages that were removed
    or renamed. Autosave does this a moment after editing pauses.
 
-   Depends on: text.js, model.js, zip.js, folder.js, state.js, revisions.js, history.js, pages.js;
-               asks LocalWiki.ui to redraw.
+   Depends on: i18n.js, text.js, model.js, zip.js, folder.js, state.js, languages.js, revisions.js,
+               history.js, pages.js; asks LocalWiki.ui to redraw.
    Provides:   LocalWiki.storage */
 (() => {
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
   const {slug} = LW.text;
+  const i18n = LW.i18n;
+  const {t} = i18n;
   const {isoNow, pathFor, PAGE_PATH, normalizePage, repairStructure, normalizeAppearance, LOGO_PATH} = LW.model;
   const state = LW.state;
   const {markDirty, saveDraft} = LW.store;
@@ -49,28 +52,30 @@
 
   // --- Opening ------------------------------------------------------------------------------------
   // getText(path) / getBlob(path) return a file's text / contents, or throw an error named
-  // NotFoundError if it is missing. Returns {name, appearance, logo, pages, setAside, problems,
-  // repairedIds, indexNeedsRewrite}; only an unusable wiki.json throws.
-  async function readFolderContents(getText, getBlob = null) {
+  // NotFoundError if it is missing; listFiles(dir) lists the file names in a folder. Returns
+  // {name, appearance, logo, pages, setAside, problems, languages, repairedIds, indexNeedsRewrite};
+  // only an unusable wiki.json throws. Problems are {file, key, params, kind}: translatable messages
+  // (see i18n.js) that the problems dialog turns into text.
+  async function readFolderContents(getText, getBlob = null, listFiles = null) {
     let index;
     try { index = JSON.parse(await getText('wiki.json')); }
     catch (err) {
-      if (err.name === 'NotFoundError') throw new Error('This folder has no wiki.json.');
-      throw new Error(err instanceof SyntaxError ? 'wiki.json is not valid JSON (' + err.message + ').' : 'Could not read wiki.json: ' + err.message);
+      if (err.name === 'NotFoundError') throw i18n.error('err.no_wiki_json');
+      throw err instanceof SyntaxError ? i18n.error('err.wiki_json_invalid', {error: err.message}) : i18n.error('err.wiki_json_read', {error: err.message});
     }
-    if (!index || index.type !== 'localwiki-index' || !Array.isArray(index.pages)) throw new Error('wiki.json is not a LocalWiki index.');
-    if (index.schemaVersion !== SCHEMA_VERSION) throw new Error('Unsupported wiki.json version: ' + index.schemaVersion);
-    if (index.pages.length > 20000) throw new Error('Too many wiki pages (limit 20,000).');
-    const result = {name: 'Untitled Wiki', pages: [], setAside: [], problems: [], repairedIds: new Set(), indexNeedsRewrite: false};
-    const problem = (file, message, kind) => result.problems.push({file, message, kind});
+    if (!index || index.type !== 'localwiki-index' || !Array.isArray(index.pages)) throw i18n.error('err.not_index');
+    if (index.schemaVersion !== SCHEMA_VERSION) throw i18n.error('err.version', {version: index.schemaVersion});
+    if (index.pages.length > 20000) throw i18n.error('err.too_many');
+    const result = {name: 'Untitled Wiki', pages: [], setAside: [], problems: [], languages: [], repairedIds: new Set(), indexNeedsRewrite: false};
+    const problem = (file, key, params, kind) => result.problems.push({file, key, params, kind});
     if (typeof index.name === 'string' && index.name.trim()) result.name = index.name.trim().slice(0, 140);
-    else problem('wiki.json', 'The wiki has no name, so "Untitled Wiki" is used.', 'info');
+    else problem('wiki.json', 'prob.no_name', {name: result.name}, 'info');
     result.appearance = normalizeAppearance(index.appearance);
     result.logo = null;
     if (result.appearance.icon === 'image') {
       try { result.logo = await blobToDataUrl(await getBlob(LOGO_PATH), 'image/png'); }
       catch (err) {
-        problem(LOGO_PATH, 'The wiki icon picture could not be read (' + (err.name === 'NotFoundError' ? 'missing' : err.message) + '), so the default icon is used.', 'info');
+        problem(LOGO_PATH, 'prob.logo', {reason: err.name === 'NotFoundError' ? {key: 'prob.reason_missing'} : err.message}, 'info');
         result.appearance.icon = '';
         result.indexNeedsRewrite = true;
       }
@@ -79,11 +84,11 @@
     for (const entry of index.pages) {
       const file = typeof entry?.file === 'string' ? entry.file : 'wiki.json';
       if (!entry || typeof entry.id !== 'string' || typeof entry.file !== 'string' || !PAGE_PATH.test(entry.file) || entry.file !== pathFor(entry.id)) {
-        problem(file, 'Invalid entry in wiki.json (' + JSON.stringify(entry) + '). It was ignored and will be removed from wiki.json on the next save; no file is deleted.', 'ignored');
+        problem(file, 'prob.bad_entry', {entry: JSON.stringify(entry)}, 'ignored');
         result.indexNeedsRewrite = true; continue;
       }
       if (ids.has(entry.id)) {
-        problem(file, 'Listed more than once in wiki.json. The duplicate entry was ignored.', 'ignored');
+        problem(file, 'prob.duplicate', {}, 'ignored');
         result.indexNeedsRewrite = true; continue;
       }
       ids.add(entry.id);
@@ -91,11 +96,11 @@
       try { text = await getText(entry.file); }
       catch (err) {
         if (err.name === 'NotFoundError') {
-          problem(file, 'The file is missing. It will be removed from wiki.json on the next save.', 'missing');
+          problem(file, 'prob.missing', {}, 'missing');
           result.indexNeedsRewrite = true;
         } else {
           result.setAside.push({id: entry.id, file, text: null});
-          problem(file, 'The file could not be read (' + err.message + '). It was set aside and left untouched.', 'set-aside');
+          problem(file, 'prob.unreadable', {error: err.message}, 'set-aside');
         }
         continue;
       }
@@ -103,19 +108,26 @@
         const {page, notes} = normalizePage(JSON.parse(text), entry.id);
         if (notes.length) {
           result.repairedIds.add(page.id);
-          problem(file, 'Repaired: ' + notes.join('; ') + '. The fix will be written on the next save.', 'repaired');
+          problem(file, 'prob.repaired', {notes}, 'repaired');
         }
         result.pages.push(page);
       } catch (err) {
         result.setAside.push({id: entry.id, file, text});
-        const reason = err instanceof SyntaxError ? 'is not valid JSON (' + err.message + ')' : err.message;
-        problem(file, `The file ${reason}. It was set aside and left untouched; fix it in a text editor and open the folder again.`, 'set-aside');
+        const reason = err instanceof SyntaxError ? {key: 'prob.not_json', params: {error: err.message}}
+          : err.name === 'KeyError' ? {key: err.key, params: err.params} : err.message;
+        problem(file, 'prob.set_aside', {reason}, 'set-aside');
       }
     }
-    repairStructure(result.pages, (page, message, repaired) => {
+    repairStructure(result.pages, (page, note, repaired) => {
       if (repaired) result.repairedIds.add(page.id);
-      problem(pathFor(page.id), 'This page ' + message + (repaired ? '. The fix will be written on the next save.' : '.'), repaired ? 'repaired' : 'info');
+      problem(pathFor(page.id), repaired ? 'prob.page_note_fixed' : 'prob.page_note', {note}, repaired ? 'repaired' : 'info');
     });
+    // Interface languages added to this wiki (languages/*.json); languages.js registers them.
+    if (listFiles) {
+      for (const name of (await listFiles(LW.languages.DIR)).filter(n => n.toLowerCase().endsWith('.json'))) {
+        try { result.languages.push({name, text: await getText(LW.languages.DIR + '/' + name)}); } catch (_) { /* unreadable: skip */ }
+      }
+    }
     return result;
   }
   // Makes a freshly read folder the open wiki. handle is null for a read-only folder.
@@ -130,13 +142,18 @@
     state.pendingRenames = []; revisions.reset(result.pages);
     state.indexDirty = result.indexNeedsRewrite;
     state.folderHandle = handle;
-    state.folderName = name;
+    state.folderName = name; state.draftRecovered = false;
     state.dirty = state.changedIds.size > 0;
     ui.clearSearch();
     LW.history.clear(); clearTimeout(autosaveTimer); state.lastSavedAt = null; state.dirtySince = 0;
+    // Languages saved in the folder become available (and replace same-code ones kept in this browser).
+    const adopted = LW.languages.adopt(result.languages);
+    for (const {file, error} of adopted.problems) state.loadProblems.push({file, key: 'prob.language_file', params: {error}, kind: 'info'});
+    if (adopted.changed) ui.applyLanguage();
     ui.renderAll(); ui.renderProblems(); saveDraft();
     const count = state.loadProblems.length;
-    ui.toast('Opened ' + state.folderName + ': ' + state.wiki.pages.length + ' page(s)' + (count ? `, ${count} problem(s) found.` : '.'));
+    const pages = t('count.pages', {count: state.wiki.pages.length});
+    ui.toast(count ? t('toast.opened_problems', {folder: name, pages, problems: t('count.problems', {count})}) : t('toast.opened', {folder: name, pages}));
     if (count) ui.showProblems();
   }
   async function loadFromFolderHandle(handle) {
@@ -144,11 +161,12 @@
       const parts = path.split('/');
       return parts.length === 1 ? [handle, parts[0]] : [await handle.getDirectoryHandle(parts[0]), parts[1]];
     };
-    return readFolderContents(async path => readText(...await fileOf(path)), async path => LW.folder.readBlob(...await fileOf(path)));
+    const listFiles = async dir => { const sub = await subfolder(handle, dir); return sub ? LW.folder.fileNames(sub) : []; };
+    return readFolderContents(async path => readText(...await fileOf(path)), async path => LW.folder.readBlob(...await fileOf(path)), listFiles);
   }
   function isCancellation(err) { return err?.name === 'AbortError'; }
   async function openFolder() {
-    if (state.dirty && !confirm('Open a different folder? Your unsaved edits will be replaced.')) return;
+    if (state.dirty && !confirm(t('confirm.open_other'))) return;
     if (typeof window.showDirectoryPicker === 'function') {
       try {
         const handle = await window.showDirectoryPicker({mode:'readwrite', id:'localwiki'});
@@ -158,7 +176,7 @@
       } catch (err) {
         if (isCancellation(err)) return;
         if (!['SecurityError','NotAllowedError','TypeError','NotSupportedError'].includes(err.name)) {
-          console.error(err); ui.toast('Could not open folder: ' + err.message); return;
+          console.error(err); ui.toast(t('toast.open_failed', {error: i18n.describeError(err)})); return;
         }
         console.warn('Folder access refused', err);
         ui.explainFolderAccess({purpose: 'open', blocked: true});
@@ -172,14 +190,14 @@
   // Read-only fallback: the files of a folder chosen with <input webkitdirectory>.
   async function openFolderFiles(files) {
     const fileMap = new Map();
-    let name = 'Imported folder';
+    let name = t('file.imported');
     for (const file of files) {
       const relative = file.webkitRelativePath || file.name;
       const parts = relative.split('/');
       if (parts.length > 1) { name = parts[0]; parts.shift(); }
       // macOS may report decomposed (NFD) names; index paths are NFC.
       const path = parts.join('/').normalize('NFC');
-      if (fileMap.has(path)) throw new Error('Duplicate file path: ' + path);
+      if (fileMap.has(path)) throw i18n.error('err.duplicate_path', {path});
       fileMap.set(path, file);
     }
     const fileAt = path => {
@@ -187,9 +205,10 @@
       if (!file) throw new DOMException('Missing ' + path, 'NotFoundError');
       return file;
     };
-    const result = await readFolderContents(async path => fileAt(path).text(), async path => fileAt(path));
+    const listFiles = async dir => [...fileMap.keys()].filter(k => k.startsWith(dir + '/') && !k.slice(dir.length + 1).includes('/')).map(k => k.slice(dir.length + 1));
+    const result = await readFolderContents(async path => fileAt(path).text(), async path => fileAt(path), listFiles);
     acceptLoadedFolder(result, name, null);
-    if (!result.problems.length) ui.toast('Folder loaded read-only. Use Save to folder or Export ZIP to keep edits.');
+    if (!result.problems.length) ui.toast(t('toast.readonly_loaded'));
   }
 
   // --- Saving -------------------------------------------------------------------------------------
@@ -205,17 +224,20 @@
       if (existing) {
         const sameIndex = existing.type === 'localwiki-index' &&
           JSON.stringify(existing.pages) === JSON.stringify(indexObject().pages) && existing.name === state.wiki.name;
-        if (!sameIndex && !confirm(`Folder "${handle.name}" already has a wiki.json. Overwrite its index with this wiki? Other page files are not deleted.`)) return;
+        if (!sameIndex && !confirm(t('confirm.overwrite_index', {folder: handle.name}))) return;
       }
       // Saved revisions come along to the new folder.
       const previous = state.folderHandle;
       if (previous) {
         try { await revisions.copyFolder(previous, handle); }
-        catch (err) { console.error(err); ui.toast('Page history could not be copied: ' + err.message); }
+        catch (err) { console.error(err); ui.toast(t('toast.history_copy_failed', {error: err.message})); }
       }
+      // Added interface languages come along too.
+      try { await LW.languages.writeAllToFolder(handle); }
+      catch (err) { console.error(err); ui.toast(t('lang.folder_failed', {error: err.message})); }
       revisions.reset([]); // nothing of this wiki is in the new folder yet
       // When changing destination, copy all pages, not just previously edited pages.
-      state.folderHandle = handle; state.folderName = handle.name;
+      state.folderHandle = handle; state.folderName = handle.name; state.draftRecovered = false;
       state.changedIds = new Set(state.wiki.pages.map(p => p.id));
       state.diskPaths = new Set(); state.indexDirty = true; // never delete files we did not write here
       state.copySetAside = state.setAside.length > 0;
@@ -224,7 +246,7 @@
       await saveChanges();
     } catch (err) {
       if (isCancellation(err)) return;
-      console.error(err); ui.toast('Could not choose save folder: ' + err.message);
+      console.error(err); ui.toast(t('toast.save_folder_failed', {error: i18n.describeError(err)}));
     }
   }
   // Writes pending changes to the linked folder. auto: called by autosave (quiet unless it fails).
@@ -239,7 +261,7 @@
     const {wiki, setAside} = state;
     const keep = new Set([...wiki.pages, ...setAside].map(p => pathFor(p.id)));
     const stale = [...state.diskPaths].filter(path => !keep.has(path));
-    if (!state.dirty && !state.indexDirty && !state.changedIds.size && !stale.length && !state.copySetAside && !state.logoDirty) { if (!auto) ui.toast('No changes to save.'); return; }
+    if (!state.dirty && !state.indexDirty && !state.changedIds.size && !stale.length && !state.copySetAside && !state.logoDirty) { if (!auto) ui.toast(t('toast.no_changes')); return; }
     state.saving = true; ui.setSaveStatus();
     // Snapshot everything up front so edits made during the async writes cannot mix states.
     const version = state.changeVersion;
@@ -251,7 +273,7 @@
       // Keep versions that are about to be overwritten or deleted. A problem here must not stop
       // the save itself.
       try { await revisions.beforeSave(pending.map(([path, text]) => [idOf(path), text]), stale.map(idOf)); }
-      catch (err) { console.error(err); ui.toast('Page history could not be updated: ' + err.message); }
+      catch (err) { console.error(err); ui.toast(t('toast.history_update_failed', {error: err.message})); }
       const pagesDir = await state.folderHandle.getDirectoryHandle('pages', {create:true});
       for (const [path, text] of pending) {
         await writeText(pagesDir, path.split('/')[1], text);
@@ -280,12 +302,12 @@
       if (version === state.changeVersion) {
         state.changedIds.clear(); state.indexDirty = false; state.dirty = false; state.dirtySince = 0; state.logoDirty = false;
         saveDraft();
-        if (!auto) ui.toast('Saved ' + pending.length + ' page file(s)' + (indexText ? ' and wiki.json' : '') + ' to ' + state.folderName + '.');
+        if (!auto) ui.toast(t(indexText ? 'toast.saved_index' : 'toast.saved', {count: pending.length, folder: state.folderName}));
       }
       // Otherwise edits arrived during the save; they are still marked and autosave picks them up.
     } catch (err) {
       console.error(err);
-      ui.toast((auto ? 'Autosave failed: ' : 'Save failed: ') + err.message);
+      ui.toast(t(auto ? 'toast.autosave_failed' : 'toast.save_failed', {error: i18n.describeError(err)}));
     } finally {
       state.saving = false; ui.setSaveStatus();
       if (state.dirty) scheduleAutosave();
@@ -313,6 +335,7 @@
     for (const p of state.wiki.pages) files.push([pathFor(p.id), jsonText(p)]);
     for (const entry of state.setAside) if (entry.text !== null) files.push([entry.file, entry.text]);
     if (state.logo && state.wiki.appearance.icon === 'image') files.push([LOGO_PATH, dataUrlToBytes(state.logo)]);
+    files.push(...LW.languages.exportFiles());
     return files;
   }
   function downloadBlob(blob, name) {
@@ -326,23 +349,23 @@
     try {
       const name = slug(state.wiki.name, 'my-wiki') + '.zip';
       downloadBlob(LW.zip.makeZip([...filesForExport(), ...await revisions.allFiles()]), name);
-      ui.toast('Exported ' + name + '. It contains wiki.json and every page JSON.');
-    } catch (err) { console.error(err); ui.toast('ZIP export failed: ' + err.message); }
+      ui.toast(t('toast.exported', {name}));
+    } catch (err) { console.error(err); ui.toast(t('toast.export_failed', {error: i18n.describeError(err)})); }
   }
   function newWiki() {
-    if (state.dirty && !confirm('Create a new wiki? Your unsaved edits will be replaced.')) return;
-    const name = prompt('Name your new wiki:', 'My Wiki');
+    if (state.dirty && !confirm(t('confirm.new_wiki'))) return;
+    const name = prompt(t('prompt.new_wiki'), t('default.wiki_name'));
     if (name === null) return;
-    state.wiki = LW.model.normalizeWiki({name: name.trim() || 'My Wiki', pages: []});
+    state.wiki = LW.model.normalizeWiki({name: name.trim() || t('default.wiki_name'), pages: []});
     state.logo = null; state.logoDirty = false;
-    state.currentId = null; state.folderHandle = null; state.folderName = 'No folder selected'; state.dirty = false;
+    state.currentId = null; state.folderHandle = null; state.folderName = null; state.draftRecovered = false; state.dirty = false;
     state.diskPaths.clear(); state.changedIds.clear(); state.renameFrom = null; state.indexDirty = true; state.changeVersion++;
     state.pendingRenames = []; revisions.reset([]);
     state.setAside = []; state.loadProblems = []; state.copySetAside = false; ui.renderProblems();
     LW.history.clear(); clearTimeout(autosaveTimer); state.lastSavedAt = null; state.dirtySince = 0;
     ui.clearSearch();
-    ui.renderAll(); saveDraft(); ui.toast('New wiki created. Use + to add a page.');
+    ui.renderAll(); saveDraft(); ui.toast(t('toast.new_wiki'));
   }
 
-  LW.storage = {readFolderContents, indexObject, filesForExport, openFolder, openFolderFiles, saveToFolder, saveChanges, scheduleAutosave, autosave, exportZip, newWiki};
+  LW.storage = {readFolderContents, indexObject, filesForExport, openFolder, openFolderFiles, saveToFolder, saveChanges, scheduleAutosave, autosave, exportZip, newWiki, downloadBlob};
 })();

@@ -2,15 +2,17 @@
    Session undo/redo. Each step is a snapshot of the whole wiki taken just before a change
    (pages stored as JSON strings; unchanged pages share one string, so steps are cheap).
 
-   Usage: call record(label) BEFORE changing anything. Bursts of typing pass a key (e.g.
-   "content:<page id>") so quick successive edits share one step. A rename is one step: the
+   Usage: call record(action) BEFORE changing anything. action is a translatable description:
+   a key such as 'act.typing', or {key: 'act.rename', params: {title}} (see the act.* texts in
+   languages/en.json). Bursts of typing pass a second argument, a group name (e.g.
+   "content:<page id>"), so quick successive edits share one step. A rename is one step: the
    snapshot is taken when the title edit starts, before the rename rewrites links (see pages.js).
 
    Restoring a step marks every page that differs as changed, so autosave writes the files back
    (an undone delete re-creates its file; an undone rename moves it back). A step that renamed
    pages remembers it (attachRename), so undo and redo also move the saved revisions.
 
-   Depends on: state.js, revisions.js; asks LocalWiki.ui to redraw.
+   Depends on: i18n.js, state.js, revisions.js; asks LocalWiki.ui to redraw.
    Provides:   LocalWiki.history */
 (() => {
   'use strict';
@@ -23,7 +25,7 @@
   let undoStack = [], redoStack = [];
   let undoGroup = null;      // {key, started, last} for coalescing bursts of typing
 
-  function snapshot(label) {
+  function snapshot(label) { // label: {key, params}
     return {label, name: state.wiki.name, appearance: JSON.stringify(state.wiki.appearance), logo: state.logo,
       currentId: state.currentId, pages: state.wiki.pages.map(serializePage)};
   }
@@ -33,7 +35,8 @@
   }
 
   // Call before changing anything. Changes with the same key in quick succession (typing) share one step.
-  function record(label, key = null) {
+  function record(action, key = null) {
+    const label = typeof action === 'string' ? {key: action, params: {}} : action;
     const now = Date.now();
     const g = undoGroup;
     if (key && g && g.key === key && now - g.last < UNDO_PAUSE && now - g.started < UNDO_MAX_GROUP) { g.last = now; return; }
@@ -77,14 +80,14 @@
     const oldContent = pageById(state.currentId)?.content;
     restore(entry);
     // Undo reverses the step's renames (newest first); redo repeats them.
-    const renames = verb === 'Undid' ? [...(entry.renames || [])].reverse().map(([a, b]) => [b, a]) : entry.renames || [];
+    const renames = verb === 'undo' ? [...(entry.renames || [])].reverse().map(([a, b]) => [b, a]) : entry.renames || [];
     for (const [fromId, toId] of renames) LW.revisions.noteRename(fromId, toId);
     ui.moveCaretToChange(oldContent);
     ui.renderUndoButtons();
-    ui.toast(verb + ' ' + entry.label + '.');
+    ui.toast(LW.i18n.t(verb === 'undo' ? 'toast.undid' : 'toast.redid', {action: entry.label}));
   }
-  function undo() { step(undoStack, redoStack, 'Undid'); }
-  function redo() { step(redoStack, undoStack, 'Redid'); }
+  function undo() { step(undoStack, redoStack, 'undo'); }
+  function redo() { step(redoStack, undoStack, 'redo'); }
 
   // A title edit that ended up changing nothing (rejected, or retyped as before) should not linger as
   // a no-op undo step. Typing touched the page's updatedAt, so restore that from the step first.
@@ -103,7 +106,8 @@
     if (top) (top.renames ||= []).push([fromId, toId]);
   }
   function clear() { undoStack = []; redoStack = []; undoGroup = null; ui.renderUndoButtons(); }
-  // Labels of the steps Undo and Redo would apply next (null when there is none).
+  // The steps Undo and Redo would apply next, as {key, params} (null when there is none).
+  // The screen turns them into text, so they follow the language.
   function peek() {
     return {undo: undoStack[undoStack.length - 1]?.label ?? null, redo: redoStack[redoStack.length - 1]?.label ?? null};
   }

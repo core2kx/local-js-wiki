@@ -4,13 +4,14 @@
    inserts a new one. Tables have no size limit; the grid scrolls. (In the Visual editor, tables
    are edited directly in the page instead.)
 
-   Depends on: markdown.js, state.js, history.js, ui/elements.js, ui/page.js, ui/editor.js
+   Depends on: i18n.js, markdown.js, state.js, history.js, ui/elements.js, ui/page.js, ui/editor.js
    Provides:   LocalWiki.ui.openTableBuilder, installTableBuilder */
 (() => {
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
   const ui = (LW.ui ||= {});
   const els = LW.els;
+  const {t} = LW.i18n;
   const {currentPage, touchPage} = LW.store;
   const {findTableAt, lineOffset, tableMarkdown} = LW.markdown;
   // {startLine, endLine, caret, values}: startLine is null for a new table; values[0] is the header.
@@ -24,10 +25,10 @@
     const located = findTableAt(els.content.value, lineIndex === null ? caretLine : lineIndex);
     tableDraft = located ? {...located, caret} : {
       startLine:null, endLine:null, caret,
-      values:[['Column 1','Column 2','Column 3'],['','',''],['','','']]
+      values:[[1, 2, 3].map(n => t('table.column_n', {n})),['','',''],['','','']]
     };
-    els.tableTitle.textContent = located ? 'Edit table' : 'Insert table';
-    els.tableConfirm.textContent = located ? 'Update table' : 'Insert table';
+    els.tableTitle.textContent = t(located ? 'table.title_edit' : 'table.title_insert');
+    els.tableConfirm.textContent = t(located ? 'table.update' : 'table.title_insert');
     renderTableGrid(); els.tableDialog.showModal();
     els.tableGrid.querySelector('input')?.focus();
   }
@@ -39,12 +40,12 @@
     tableDraft.values.forEach((row, r) => row.forEach((value,c) => {
       const input = document.createElement('input'); input.type = 'text'; input.className = 'table-cell-input' + (r === 0 ? ' is-header':'');
       input.value = value;
-      input.placeholder = r === 0 ? 'Column ' + (c+1) : 'Row ' + r + ', column ' + (c+1);
-      input.setAttribute('aria-label', (r === 0 ? 'Header ' : 'Row ' + r + ', ') + 'column ' + (c+1));
+      input.placeholder = r === 0 ? t('table.column_n', {n: c + 1}) : t('table.cell', {row: r, col: c + 1});
+      input.setAttribute('aria-label', r === 0 ? t('table.header_cell', {col: c + 1}) : t('table.cell', {row: r, col: c + 1}));
       input.addEventListener('input', () => {tableDraft.values[r][c] = input.value;});
       els.tableGrid.append(input);
     }));
-    els.tableSize.textContent = cols + ' column' + (cols===1?'':'s') + ' × ' + (rows-1) + ' data row' + (rows===2?'':'s');
+    els.tableSize.textContent = t('table.size', {columns: t('table.columns', {count: cols}), rows: t('table.data_rows', {count: rows - 1})});
     els.tableRemoveRow.disabled = rows <= 2;
     els.tableRemoveCol.disabled = cols <= 1;
   }
@@ -55,7 +56,7 @@
     const old = els.content.value;
     ui.ensureEditable();
     if (tableDraft.startLine !== null) {
-      LW.history.record('editing a table');
+      LW.history.record('act.edit_table');
       const lines = old.split('\n');
       const start = lineOffset(lines,tableDraft.startLine);
       // A table can end at EOF; ensure we do not include unrelated text in the replacement.

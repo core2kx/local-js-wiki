@@ -258,3 +258,19 @@ mark { background: var(--highlight); color: var(--highlight-text); border-radius
 .link-row-new .link-row-title { font-weight: 500; }
 .link-note { padding: 9px 12px; font-size: 12px; color: var(--muted); }
 .link-error { color: var(--warning); font-size: 12px; margin: 8px 0 0; }
+.btn-icon .wiki-svg-icon { width: 17px; height: 17px; display: block; }
+.language-dialog { width: min(560px, calc(100vw - 32px)); }
+.language-list { list-style: none; margin: 0 0 12px; padding: 0; border: 1px solid var(--border); border-radius: 8px; max-height: 40vh; overflow: auto; background: var(--input); }
+.language-list li { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-right: 8px; }
+.language-list li:last-child { border-bottom: 0; }
+.language-row { flex: 1; display: flex; align-items: center; gap: 10px; padding: 9px 12px; cursor: pointer; min-width: 0; }
+.language-row:hover { background: var(--accent-soft); }
+.language-row input { accent-color: var(--accent); }
+.language-name { font-weight: 650; }
+.language-code { color: var(--muted); font-size: 11px; }
+.language-badge { font-size: 10px; font-weight: 650; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 999px; padding: 0 7px; }
+.language-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.language-result { border: 1px solid var(--border); border-radius: 8px; background: var(--input); padding: 8px 12px; margin: 10px 0 0; }
+.language-result-line { margin: 4px 0; font-size: 12.5px; overflow-wrap: anywhere; }
+.language-result-line.is-ok { color: var(--accent); font-weight: 650; }
+.language-result-line.is-error, .language-result-line.is-warning { color: var(--warning); }

@@ -28,16 +28,20 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 
 | Layer | Files | Role |
 |---|---|---|
-| **Pure logic** | `icon-library.js`, `palettes.js`, `text.js`, `model.js`, `markdown.js`, `zip.js`, `html-to-markdown.js`, `search.js` | Functions that take data and return data. They never touch the page, so they also run under Node and are covered by the tests. |
-| **State** | `folder.js`, `state.js` | Helpers for reading and writing folder files; the open wiki (`LocalWiki.state`) and change tracking (`LocalWiki.store`). |
+| **Pure logic** | `icon-library.js`, `i18n.js`, `lang/*.js`, `palettes.js`, `text.js`, `model.js`, `markdown.js`, `zip.js`, `html-to-markdown.js`, `search.js` | Functions that take data and return data. They never touch the page, so they also run under Node and are covered by the tests. |
+| **State** | `folder.js`, `state.js`, `languages.js` | Helpers for reading and writing folder files; the open wiki (`LocalWiki.state`) and change tracking (`LocalWiki.store`). |
 | **Features** | `revisions.js`, `history.js`, `pages.js`, `storage.js` | Operations: saved page history, undo/redo, page editing and renaming, opening/saving/autosave/export. They change state and then ask the UI to redraw. They never touch HTML elements directly. |
-| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/appearance.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/visual-editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/link-picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js`, `ui/settings.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
+| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/appearance.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/visual-editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/link-picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js`, `ui/settings.js`, `ui/language.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
 | **Start** | `app.js` | Wires the remaining controls to features, restores the browser draft and preferences, draws the first screen. |
 
 ### Files at a glance
 
 | File | Look here for |
 |---|---|
+| `js/i18n.js` | Interface translation: `t(key, params)`, plurals, English fallback, language-file checking, templates |
+| `js/lang/*.js`, `languages/*.json` | One script per built-in language, generated from the JSON by `tools/build-languages.js`; `languages/en.json` is the master (with notes for translators) |
+| `js/languages.js` | Choosing, adding and removing languages; keeping them in the browser and in the wiki folder |
+| `js/ui/language.js` | Applying `data-i18n*` attributes, re-rendering on a language change, the language dialog |
 | `js/palettes.js` | The color palettes: every color for every part of the screen, light and dark |
 | `js/text.js` | Filename slugs, title comparison, accent-insensitive search folding, word count |
 | `js/model.js` | What a page is, validation and repair of damaged pages, the parent/child tree, IDs and paths |
@@ -98,6 +102,14 @@ Other operations follow the same pattern: **record undo → change state → tou
 - **Renames must be reported to revisions.** Anything that changes a page ID calls
   `revisions.noteRename(from, to)` (pages.js does, and undo/redo replay it), or the page's history
   is left under the old name.
+
+- **Every piece of text a person sees has a key.** Add it to `languages/en.json` (with a note if the
+  meaning is not obvious), use `t('group.key', {params})` in code or `data-i18n*` attributes in
+  `index.html`, then run `node tools/build-languages.js`. Never build sentences by joining pieces:
+  word order differs between languages. Pure layers do not translate; they throw `error('key', params)`
+  or return `{key, params}` and the screen calls `t()`. Undo labels are `{key, params}` too, so they
+  follow the language. `tests/i18n.test.js` fails on a missing key, an unused key, missing parameters
+  at a `t()` call, a stale generated script, or an incomplete shipped language.
 
 ## Tests
 

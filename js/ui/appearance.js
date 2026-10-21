@@ -12,6 +12,7 @@
   const els = LW.els;
   const state = LW.state;
   const {escapeHtml} = LW.text;
+  const {t} = LW.i18n;
   const DEFAULT_GLYPH = '◫';
 
   const theme = () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
@@ -21,7 +22,7 @@
     const colors = LW.palettes.byId(appearance.palette)[theme()];
     for (const [token, value] of Object.entries(colors)) document.documentElement.style.setProperty('--' + token, value);
     els.brandName.textContent = appearance.appName;
-    els.brand.setAttribute('aria-label', appearance.appName + ' home');
+    els.brand.setAttribute('aria-label', t('top.brand_home', {name: appearance.appName}));
     fillBrandIcon(els.brandIcon, appearance, logo);
     document.title = state.wiki.name + ' — ' + appearance.appName;
     els.favicon.href = faviconUrl(appearance, logo, colors);

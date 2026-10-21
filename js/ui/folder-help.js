@@ -4,13 +4,14 @@
    some browsers do not have it at all. The dialog explains what to do in the browser at hand and
    offers the alternatives: open the folder read-only, or keep changes with Export wiki ZIP.
 
-   Depends on: state.js, storage.js, ui/elements.js
+   Depends on: i18n.js, state.js, storage.js, ui/elements.js
    Provides:   LocalWiki.ui.explainFolderAccess, chooseFolderReadOnly, installFolderHelp */
 (() => {
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
   const ui = (LW.ui ||= {});
   const els = LW.els;
+  const {t} = LW.i18n;
   const BRAVE_FLAG = 'brave://flags/#file-system-access-api';
 
   const isBrave = () => typeof navigator.brave?.isBrave === 'function';
@@ -22,20 +23,18 @@
   // blocked: folder access exists but the browser refused it (rather than being turned off).
   function explainFolderAccess({purpose = 'save', blocked = false} = {}) {
     const brave = isBrave() && !blocked;
-    els.folderHelpTitle.textContent = blocked ? 'The browser did not allow folder access' : 'Folder saving is turned off in this browser';
+    els.folderHelpTitle.textContent = t(blocked ? 'fh.title_blocked' : 'fh.title_off');
     els.folderHelpBrave.hidden = !brave;
     els.folderHelpOther.hidden = brave;
-    els.folderHelpOther.textContent = blocked
-      ? 'The browser refused access to the folder. Try Open folder again and allow access when asked, or check the browser\'s site settings for file editing permission.'
-      : 'This browser cannot save directly to a folder. Use a recent version of Chrome or Edge, or Brave with folder access turned on.';
+    els.folderHelpOther.textContent = t(blocked ? 'fh.other_blocked' : 'fh.other_missing');
     els.folderHelpReadOnly.hidden = purpose !== 'open';
     els.folderHelpExport.hidden = purpose !== 'save' || !LW.state.wiki.pages.length;
     els.folderHelpDialog.showModal();
   }
 
   async function copyFlag() {
-    try { await navigator.clipboard.writeText(BRAVE_FLAG); ui.toast('Copied. Paste it into a new tab\'s address bar.'); }
-    catch (_) { ui.toast('Copy it by hand: ' + BRAVE_FLAG); }
+    try { await navigator.clipboard.writeText(BRAVE_FLAG); ui.toast(t('fh.copied')); }
+    catch (_) { ui.toast(t('fh.copy_manual', {address: BRAVE_FLAG})); }
   }
 
   function installFolderHelp() {

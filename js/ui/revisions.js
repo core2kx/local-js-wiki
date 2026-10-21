@@ -4,7 +4,7 @@
    "Restore this version". Tab "Deleted pages" lists deleted pages that can be brought back.
    History lives in the linked folder (see revisions.js), so it needs one.
 
-   Depends on: text.js, revisions.js, state.js, pages.js, ui/elements.js
+   Depends on: i18n.js, text.js, revisions.js, state.js, pages.js, ui/elements.js
    Provides:   LocalWiki.ui.openRevisions, installRevisions */
 (() => {
   'use strict';
@@ -13,6 +13,7 @@
   const els = LW.els;
   const state = LW.state;
   const {wordCount} = LW.text;
+  const {t, locale, describeError} = LW.i18n;
   const revisions = LW.revisions;
   const CONTEXT = 2; // unchanged lines shown around each change
 
@@ -22,12 +23,12 @@
 
   const when = iso => {
     const date = new Date(iso);
-    return Number.isNaN(date.getTime()) ? 'Unknown date' : new Intl.DateTimeFormat(undefined, {dateStyle: 'medium', timeStyle: 'short'}).format(date);
+    return Number.isNaN(date.getTime()) ? t('rev.unknown_date') : new Intl.DateTimeFormat(locale(), {dateStyle: 'medium', timeStyle: 'short'}).format(date);
   };
 
   async function openRevisions() {
     if (!state.folderHandle) {
-      ui.toast('Page history is kept in the wiki folder. Open a folder or use Save to folder… first.');
+      ui.toast(t('rev.need_folder'));
       return;
     }
     LW.pages.commitTitle();
@@ -41,7 +42,7 @@
       button.setAttribute('aria-pressed', String(button.dataset.revisionsTab === tab));
     }
     items = []; selected = -1;
-    els.revisionsList.replaceChildren(message('Loading…'));
+    els.revisionsList.replaceChildren(message(t('rev.loading')));
     els.revisionsDiff.replaceChildren();
     els.revisionsSummary.textContent = '';
     els.revisionsRestore.disabled = true;
@@ -49,30 +50,33 @@
       if (tab === 'page') await loadPage(); else await loadDeleted();
     } catch (err) {
       console.error(err);
-      els.revisionsList.replaceChildren(message('Could not read the page history: ' + err.message));
+      els.revisionsList.replaceChildren(message(t('rev.error', {error: describeError(err)})));
     }
   }
 
   // This page: the current version first, then saved versions newest first.
   async function loadPage() {
     const page = LW.store.currentPage();
-    els.revisionsTitle.textContent = page ? `History of "${page.title}"` : 'Page history';
-    els.revisionsRestore.textContent = 'Restore this version';
-    if (!page) { els.revisionsList.replaceChildren(message('No page is open.')); return; }
+    els.revisionsTitle.textContent = page ? t('rev.title_page', {title: page.title}) : t('rev.title');
+    els.revisionsRestore.textContent = t('rev.restore_version');
+    if (!page) { els.revisionsList.replaceChildren(message(t('rev.no_page'))); return; }
     const saved = await revisions.pageRevisions(page.id);
     items = [{current: true, savedAt: page.updatedAt, title: page.title, content: page.content}, ...[...saved].reverse()];
-    renderList(item => [item.current ? 'Current version' : when(item.savedAt),
-      (item.title !== page.title ? `"${item.title}" · ` : '') + wordCount(item.content).toLocaleString() + ' words']);
-    if (!saved.length) els.revisionsSummary.textContent = 'No earlier versions are saved yet. A version is kept when a page that has rested for 10 minutes is changed, and every 10 minutes while you keep editing.';
+    renderList(item => {
+      const words = t('page.words', {count: wordCount(item.content)});
+      return [item.current ? t('rev.current') : when(item.savedAt),
+        item.title !== page.title ? t('rev.detail_renamed', {title: item.title, words}) : t('rev.detail', {words})];
+    });
+    if (!saved.length) els.revisionsSummary.textContent = t('rev.none_yet');
     if (items.length > 1) select(1);
   }
   // Deleted pages: the newest saved version of each.
   async function loadDeleted() {
-    els.revisionsTitle.textContent = 'Deleted pages';
-    els.revisionsRestore.textContent = 'Restore page';
+    els.revisionsTitle.textContent = t('rev.tab_deleted');
+    els.revisionsRestore.textContent = t('rev.restore_page');
     items = await revisions.deletedPages();
-    if (!items.length) { els.revisionsList.replaceChildren(message('No deleted pages with saved history.')); return; }
-    renderList(file => [file.revisions[file.revisions.length - 1].title, 'Deleted ' + when(file.deletedAt)]);
+    if (!items.length) { els.revisionsList.replaceChildren(message(t('rev.no_deleted'))); return; }
+    renderList(file => [file.revisions[file.revisions.length - 1].title, t('rev.deleted_when', {date: when(file.deletedAt)})]);
     select(0);
   }
 
@@ -95,20 +99,18 @@
     const item = items[index];
     if (tab === 'deleted') {
       const revision = item.revisions[item.revisions.length - 1];
-      els.revisionsSummary.textContent = `Last saved ${when(revision.savedAt)}. Restoring adds it back as a page.`;
+      els.revisionsSummary.textContent = t('rev.deleted_summary', {date: when(revision.savedAt)});
       renderLines(revision.content.split('\n').map(text => ({type: 'same', text})), false);
       els.revisionsRestore.disabled = false;
     } else if (item.current) {
-      els.revisionsSummary.textContent = 'This is the page as it is now.';
+      els.revisionsSummary.textContent = t('rev.is_current');
       els.revisionsDiff.replaceChildren();
       els.revisionsRestore.disabled = true;
     } else {
       const current = items[0].content;
       const lines = revisions.diffLines(item.content, current);
       const changed = lines.some(line => line.type !== 'same');
-      els.revisionsSummary.textContent = changed
-        ? `Saved ${when(item.savedAt)}. Red lines are only in this version; green lines were added since. Restoring brings back this version's text, tags and icon; the title and position stay as they are.`
-        : `Saved ${when(item.savedAt)}. The text is the same as now (the title, tags or icon may differ).`;
+      els.revisionsSummary.textContent = t(changed ? 'rev.changed_summary' : 'rev.same_summary', {date: when(item.savedAt)});
       renderLines(lines, true);
       els.revisionsRestore.disabled = false;
     }
@@ -130,7 +132,7 @@
       if (run.length > keepStart + keepEnd + 1) {
         run.slice(0, keepStart).forEach(line => row('same', line.text));
         const gap = document.createElement('div'); gap.className = 'diff-gap';
-        gap.textContent = `… ${run.length - keepStart - keepEnd} unchanged lines …`;
+        gap.textContent = t('rev.gap', {count: run.length - keepStart - keepEnd});
         rows.push(gap);
         run.slice(run.length - keepEnd).forEach(line => row('same', line.text));
       } else run.forEach(line => row('same', line.text));

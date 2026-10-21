@@ -13,7 +13,7 @@
     // Top bar
     brand: $('brand'), brandIcon: $('brand-icon'), brandName: $('brand-name'), favicon: $('favicon'),
     name: $('wiki-name'), status: $('save-status'), open: $('open-btn'), save: $('save-btn'),
-    undo: $('undo-btn'), redo: $('redo-btn'), theme: $('theme-btn'),
+    undo: $('undo-btn'), redo: $('redo-btn'), theme: $('theme-btn'), languageButton: $('language-btn'),
     // Sidebar
     search: $('search'), sidebarHeading: $('sidebar-heading'), nav: $('page-nav'), newPage: $('new-page-btn'),
     newWiki: $('new-wiki-btn'), saveAs: $('save-as-btn'), exportZip: $('export-zip-btn'),
@@ -51,6 +51,10 @@
     settingsIconChoose: $('settings-icon-choose'), settingsIconUpload: $('settings-icon-upload'),
     settingsIconReset: $('settings-icon-reset'), settingsIconFile: $('settings-icon-file'),
     settingsPalettes: $('settings-palettes'), settingsCancel: $('settings-cancel'), settingsSave: $('settings-save'),
+    // Language dialog
+    languageDialog: $('language-dialog'), languageClose: $('language-close'), languageList: $('language-list'),
+    languageAdd: $('language-add'), languageTemplate: $('language-template'), languageExport: $('language-export'),
+    languageFile: $('language-file'), languageResult: $('language-result'), languageDone: $('language-done'),
     // Folder-access help dialog
     folderHelpDialog: $('folder-help-dialog'), folderHelpTitle: $('folder-help-title'), folderHelpBrave: $('folder-help-brave'),
     folderHelpOther: $('folder-help-other'), folderHelpFlag: $('folder-help-flag'), folderHelpCopy: $('folder-help-copy'),

@@ -4,7 +4,7 @@
    previewed live; Save applies them as one undoable change (pages.updateSettings), Cancel restores.
    Settings are saved in the wiki folder (wiki.json, and branding/logo.png for a picture).
 
-   Depends on: palettes.js, model.js, state.js, pages.js, ui/elements.js, ui/appearance.js, ui/picker.js
+   Depends on: i18n.js, palettes.js, model.js, state.js, pages.js, ui/elements.js, ui/appearance.js, ui/picker.js
    Provides:   LocalWiki.ui.openSettings, installSettings */
 (() => {
   'use strict';
@@ -12,6 +12,7 @@
   const ui = (LW.ui ||= {});
   const els = LW.els;
   const state = LW.state;
+  const {t, describeError} = LW.i18n;
   const LOGO_SIZE = 256, MAX_UPLOAD = 10 * 1024 * 1024;
 
   let draft = null; // {name, appearance, logo} being edited
@@ -49,9 +50,9 @@
         const chip = document.createElement('span'); chip.className = 'palette-chip'; chip.style.background = colors[token];
         chip.title = token; swatches.append(chip);
       }
-      const name = document.createElement('span'); name.className = 'palette-name'; name.textContent = palette.name;
+      const name = document.createElement('span'); name.className = 'palette-name'; name.textContent = t('palette.' + palette.id);
       const sample = document.createElement('span'); sample.className = 'palette-sample';
-      sample.style.background = colors.accent; sample.style.color = colors['on-accent']; sample.textContent = 'Button';
+      sample.style.background = colors.accent; sample.style.color = colors['on-accent']; sample.textContent = t('set.sample_button');
       card.append(swatches, name, sample);
       card.addEventListener('click', () => { draft.appearance.palette = palette.id; preview(); });
       return card;
@@ -61,12 +62,12 @@
   // A picture is scaled to fit 256 × 256 and stored as PNG, whatever format was chosen.
   async function useImage(file) {
     if (!file) return;
-    if (!file.type.startsWith('image/')) { ui.toast('Please choose an image file.'); return; }
-    if (file.size > MAX_UPLOAD) { ui.toast('That image is larger than 10 MB.'); return; }
+    if (!file.type.startsWith('image/')) { ui.toast(t('set.err_not_image')); return; }
+    if (file.size > MAX_UPLOAD) { ui.toast(t('set.err_too_large')); return; }
     const url = URL.createObjectURL(file);
     try {
       const image = await new Promise((resolve, reject) => {
-        const img = new Image(); img.onload = () => resolve(img); img.onerror = () => reject(new Error('the image could not be read')); img.src = url;
+        const img = new Image(); img.onload = () => resolve(img); img.onerror = () => reject(LW.i18n.error('set.err_unreadable')); img.src = url;
       });
       const scale = Math.min(1, LOGO_SIZE / Math.max(image.naturalWidth || LOGO_SIZE, image.naturalHeight || LOGO_SIZE));
       const width = Math.max(1, Math.round((image.naturalWidth || LOGO_SIZE) * scale)), height = Math.max(1, Math.round((image.naturalHeight || LOGO_SIZE) * scale));
@@ -75,7 +76,7 @@
       draft.logo = canvas.toDataURL('image/png');
       draft.appearance.icon = 'image';
       preview();
-    } catch (err) { ui.toast('Could not use that image: ' + err.message); }
+    } catch (err) { ui.toast(t('set.err_image', {error: describeError(err)})); }
     finally { URL.revokeObjectURL(url); }
   }
 

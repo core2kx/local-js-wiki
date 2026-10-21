@@ -16,6 +16,7 @@
   const els = LW.els;
   const state = LW.state;
   const {wordCount} = LW.text;
+  const {t, locale} = LW.i18n;
   const {pathFor, descendantsOf, ancestors, sortByTitle} = LW.model;
   const {pageById, currentPage} = LW.store;
   const UI_KEY = 'localwiki:ui';
@@ -25,7 +26,7 @@
 
   function shortDate(iso) {
     const date = new Date(iso);
-    return Number.isNaN(date.getTime()) ? 'Unknown' : new Intl.DateTimeFormat(undefined, {dateStyle: 'medium'}).format(date);
+    return Number.isNaN(date.getTime()) ? t('page.unknown_date') : new Intl.DateTimeFormat(locale(), {dateStyle: 'medium'}).format(date);
   }
 
   // --- Whole page ---------------------------------------------------------------------------------
@@ -64,8 +65,8 @@
   function renderPageStats() {
     const p = currentPage(); if (!p) return;
     const words = wordCount(p.content);
-    els.modified.textContent = 'Edited ' + shortDate(p.updatedAt);
-    els.count.textContent = words.toLocaleString() + (words === 1 ? ' word' : ' words');
+    els.modified.textContent = t('page.edited', {date: shortDate(p.updatedAt)});
+    els.count.textContent = t('page.words', {count: words});
     els.pageId.textContent = pathFor(p.id);
   }
   function renderBreadcrumbs(p) {
@@ -74,11 +75,11 @@
     path.forEach((ancestor, i) => {
       if (i) { const slash = document.createElement('span'); slash.textContent = '/'; els.breadcrumbs.append(slash); }
       if (i === path.length - 1) {
-        const label = document.createElement('span'); label.textContent = ancestor.title || 'Untitled';
+        const label = document.createElement('span'); label.textContent = ancestor.title || t('page.untitled_short');
         els.breadcrumbs.append(label);
       } else {
         const button = document.createElement('button'); button.className = 'crumb-button';
-        button.textContent = ancestor.title || 'Untitled';
+        button.textContent = ancestor.title || t('page.untitled_short');
         button.addEventListener('click', () => LW.pages.selectPage(ancestor.id));
         els.breadcrumbs.append(button);
       }
@@ -88,7 +89,7 @@
   function renderParentChoices(p) {
     const pages = state.wiki.pages;
     els.parent.replaceChildren();
-    const none = new Option('Top-level page', ''); els.parent.add(none);
+    const none = new Option(t('page.top_level'), ''); els.parent.add(none);
     const unavailable = descendantsOf(pages, p.id);
     for (const candidate of sortByTitle(pages.filter(x => !unavailable.has(x.id)))) {
       els.parent.add(new Option('  '.repeat(Math.min(ancestors(pages, candidate).length, 6)) + candidate.title, candidate.id));

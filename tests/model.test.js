@@ -47,15 +47,18 @@ test('normalizePage repairs missing fields and rejects data it would lose', () =
   assert.equal(p.content, '');
   assert.equal(notes.length, 2); // id mismatch, missing content
   assert.equal(model.normalizePage({id: 'x', content: 'c'}, 'x').page.title, 'x');
-  assert.throws(() => model.normalizePage([1, 2], 'x'), /not a JSON object/);
-  assert.throws(() => model.normalizePage({title: 42}, 'x'), /title/);
-  assert.throws(() => model.normalizePage({content: ['x']}, 'x'), /content/);
+  // Problems are translatable messages: the error carries a key, not an English sentence.
+  const keyOf = fn => { try { fn(); } catch (err) { return err.key; } return null; };
+  assert.equal(keyOf(() => model.normalizePage([1, 2], 'x')), 'page.err_not_object');
+  assert.equal(keyOf(() => model.normalizePage({title: 42}, 'x')), 'page.err_title');
+  assert.equal(keyOf(() => model.normalizePage({content: ['x']}, 'x')), 'page.err_content');
+  assert.deepEqual(notes.map(n => n.key), ['page.note_id_mismatch', 'page.note_no_content']);
 });
 
 test('repairStructure fixes duplicate titles and loops, and keeps missing parents', () => {
   const pages = [page('a', 'Same'), page('b', 'SAME'), page('x', 'X', 'y'), page('y', 'Y', 'x'), page('o', 'Orphan', 'gone')];
   const reports = [];
-  model.repairStructure(pages, (p, message, repaired) => reports.push([p.id, repaired]));
+  model.repairStructure(pages, (p, message, repaired) => reports.push([p.id, repaired, message.key]));
   assert.equal(pages[1].title, 'SAME (2)');
   assert.ok(pages[2].parentId === null || pages[3].parentId === null);
   assert.equal(pages[4].parentId, 'gone'); // kept, shown at top level

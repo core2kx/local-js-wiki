@@ -9,7 +9,7 @@
    - content:  Markdown text; icon: "icon:<name>" (bundled SVG), an emoji/symbol, or ""
 
    Pure functions (they take the page list as an argument): no page (DOM) access; runs under Node.
-   Depends on: text.js
+   Depends on: i18n.js, text.js
    Provides:   LocalWiki.model */
 (() => {
   'use strict';
@@ -100,15 +100,17 @@
   // Validates one page object. Throws (the page is set aside) when using it would lose data, e.g. a
   // title or content that is not text. Missing fields get defaults and are reported as repairs.
   function normalizePage(raw, id) {
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('is not a JSON object');
-    if (raw.title !== undefined && typeof raw.title !== 'string') throw new Error('has a "title" that is not text');
-    if (raw.content !== undefined && typeof raw.content !== 'string') throw new Error('has "content" that is not text');
+    // Problems are reported as translatable {key, params} messages (see i18n.js), not as sentences.
+    const {error} = LW.i18n;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw error('page.err_not_object');
+    if (raw.title !== undefined && typeof raw.title !== 'string') throw error('page.err_title');
+    if (raw.content !== undefined && typeof raw.content !== 'string') throw error('page.err_content');
     const notes = [];
-    if (raw.id !== id) notes.push(raw.id === undefined ? 'its "id" was missing' : `its "id" (${JSON.stringify(raw.id)}) did not match the filename`);
+    if (raw.id !== id) notes.push(raw.id === undefined ? {key: 'page.note_id_missing'} : {key: 'page.note_id_mismatch', params: {id: JSON.stringify(raw.id)}});
     let title = typeof raw.title === 'string' ? raw.title.trim().normalize('NFC') : '';
-    if (!title) { title = id; notes.push('it had no title, so the filename is used'); }
-    if (title.length > 140) { title = title.slice(0, 140); notes.push('its title was shortened to 140 characters'); }
-    if (raw.content === undefined) notes.push('it had no "content"');
+    if (!title) { title = id; notes.push({key: 'page.note_no_title'}); }
+    if (title.length > 140) { title = title.slice(0, 140); notes.push({key: 'page.note_title_long'}); }
+    if (raw.content === undefined) notes.push({key: 'page.note_no_content'});
     const page = {
       id, title,
       parentId: typeof raw.parentId === 'string' && raw.parentId ? raw.parentId : null,
@@ -120,26 +122,27 @@
     };
     return {page, notes};
   }
-  // Fixes cross-page problems in place. report(page, message, repaired): repaired pages need rewriting.
+  // Fixes cross-page problems in place. report(page, message, repaired): message is {key, params}
+  // (a translatable phrase that continues "This page …"); repaired pages need rewriting.
   function repairStructure(pages, report) {
     const titles = new Set();
     for (const p of pages) {
       let title = p.title;
       for (let i = 2; titles.has(titleKey(title)); i++) title = `${p.title} (${i})`;
-      if (title !== p.title) { report(p, `had the same title as another page, so it was renamed to "${title}"`, true); p.title = title; }
+      if (title !== p.title) { report(p, {key: 'page.fix_duplicate_title', params: {title}}, true); p.title = title; }
       titles.add(titleKey(title));
     }
     const byId = new Map(pages.map(p => [p.id, p]));
     for (const p of pages) {
       const seen = new Set([p.id]);
       for (let q = p; q.parentId && byId.has(q.parentId); q = byId.get(q.parentId)) {
-        if (seen.has(q.parentId)) { report(q, 'was part of a parent loop, so it was moved to the top level', true); q.parentId = null; break; }
+        if (seen.has(q.parentId)) { report(q, {key: 'page.fix_loop'}, true); q.parentId = null; break; }
         seen.add(q.parentId);
       }
     }
     // A missing parent is kept in the data (it may be a set-aside page that gets fixed) and shown at top level.
     for (const p of pages) {
-      if (p.parentId && !byId.has(p.parentId)) report(p, `has parent "${p.parentId}", which is not loaded, so it is shown at the top level`, false);
+      if (p.parentId && !byId.has(p.parentId)) report(p, {key: 'page.fix_parent_missing', params: {parent: p.parentId}}, false);
     }
   }
   // For in-browser data (drafts, new wikis): drop anything invalid rather than failing.

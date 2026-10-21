@@ -4,7 +4,7 @@
    Also inserts text at the Markdown caret (used by the symbol/icon picker and the table builder).
    Stored page content is always plain Markdown.
 
-   Depends on: markdown.js, state.js, history.js, ui/elements.js, ui/page.js, ui/sidebar.js, ui/link-picker.js
+   Depends on: i18n.js, markdown.js, state.js, history.js, ui/elements.js, ui/page.js, ui/sidebar.js, ui/link-picker.js
    Provides:   LocalWiki.ui.formatSelection, insertAtCaret */
 (() => {
   'use strict';
@@ -12,6 +12,7 @@
   const ui = (LW.ui ||= {});
   const els = LW.els;
   const {currentPage, touchPage} = LW.store;
+  const {t} = LW.i18n;
 
   // kind: a toolbar button's data-format value.
   function formatSelection(kind) {
@@ -23,21 +24,21 @@
     const input = els.content;
     const start = input.selectionStart, end = input.selectionEnd;
     const selected = input.value.substring(start, end);
-    let before = '', after = '', placeholder = 'text';
+    let before = '', after = '', placeholder = t('insert.text');
     switch (kind) {
-      case 'heading': before = '## '; placeholder = 'Heading'; break;
+      case 'heading': before = '## '; placeholder = t('insert.heading'); break;
       case 'bold': before = '**'; after = '**'; break;
       case 'italic': before = '*'; after = '*'; break;
       case 'strike': before = '~~'; after = '~~'; break;
-      case 'list': before = '- '; placeholder = 'List item'; break;
-      case 'olist': before = '1. '; placeholder = 'List item'; break;
-      case 'quote': before = '> '; placeholder = 'Quote'; break;
-      case 'codeblock': before = '```\n'; after = '\n```'; placeholder = 'code'; break;
+      case 'list': before = '- '; placeholder = t('insert.list_item'); break;
+      case 'olist': before = '1. '; placeholder = t('insert.list_item'); break;
+      case 'quote': before = '> '; placeholder = t('insert.quote'); break;
+      case 'codeblock': before = '```\n'; after = '\n```'; placeholder = t('insert.code'); break;
       case 'code': before = '`'; after = '`'; break;
       default: return;
     }
     const insertion = before + (selected || placeholder) + after;
-    LW.history.record('formatting');
+    LW.history.record('act.format');
     input.setRangeText(insertion, start, end, 'end');
     p.content = input.value;
     touchPage(p); ui.renderMarkdown(); ui.renderTree(); ui.renderPageStats();
@@ -55,7 +56,7 @@
       kind, text: input.value.substring(start, end).trim(),
       onChoose: ({kind: chosen, target, label}) => {
         const page = currentPage(); if (!page) return;
-        LW.history.record('inserting a link');
+        LW.history.record('act.insert_link');
         input.focus();
         input.setRangeText(LW.markdown.linkMarkdown(chosen, target, label), start, end, 'end');
         page.content = input.value;
@@ -70,7 +71,7 @@
     ui.ensureEditable();
     const textarea = els.content;
     caret = Math.max(0, Math.min(caret, textarea.value.length));
-    LW.history.record('inserting text');
+    LW.history.record('act.insert_text');
     textarea.setRangeText(text, caret, caret, 'end');
     page.content = textarea.value;
     touchPage(page); ui.renderMarkdown(); ui.renderPageStats();

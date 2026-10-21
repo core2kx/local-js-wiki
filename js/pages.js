@@ -9,7 +9,7 @@
    (updating children's parentId). Intermediate titles never capture links, and autosave waits
    while state.renameFrom is set. Anything that switches context calls commitTitle() first.
 
-   Depends on: text.js, model.js, markdown.js, state.js, revisions.js, history.js; asks LocalWiki.ui to redraw.
+   Depends on: i18n.js, text.js, model.js, markdown.js, state.js, revisions.js, history.js; asks LocalWiki.ui to redraw.
    Provides:   LocalWiki.pages */
 (() => {
   'use strict';
@@ -21,6 +21,7 @@
   const {pageById, currentPage, markDirty, touchPage} = LW.store;
   const history = LW.history;
   const ui = (LW.ui ||= {});
+  const {t} = LW.i18n;
 
   function selectPage(id) {
     commitTitle();
@@ -29,7 +30,7 @@
     ui.renderTree(); ui.renderPage(); LW.store.saveDraft();
   }
 
-  function createPage(parentId = null, desiredTitle = 'New page') {
+  function createPage(parentId = null, desiredTitle = t('default.page_title')) {
     commitTitle();
     const wiki = state.wiki;
     if (parentId && !pageById(parentId)) parentId = null;
@@ -37,7 +38,7 @@
     const existing = new Set(wiki.pages.map(p => titleKey(p.title)));
     let title = desiredTitle;
     for (let i = 2; existing.has(titleKey(title)); i++) title = desiredTitle + ' (' + i + ')';
-    history.record(`creating "${title}"`);
+    history.record({key: 'act.create', params: {title}});
     const page = {id: uniqueId(title, [...wiki.pages, ...state.setAside]), title, parentId, tags: [], content: '', icon: '', createdAt: isoNow(), updatedAt: isoNow()};
     wiki.pages.push(page);
     state.indexDirty = true;
@@ -55,15 +56,14 @@
     const p = currentPage(); if (!p) return;
     const wiki = state.wiki;
     const ids = descendantsOf(wiki.pages, p.id);
-    const message = ids.size === 1 ? `Delete "${p.title}"? You can restore it with Undo.` :
-      `Delete "${p.title}" and its ${ids.size - 1} child page(s)? You can restore them with Undo.`;
-    if (!confirm(message)) return;
-    history.record(`deleting "${p.title}"` + (ids.size > 1 ? ` and ${ids.size - 1} child page(s)` : ''));
+    const children = ids.size - 1;
+    if (!confirm(children ? t('confirm.delete_children', {title: p.title, count: children}) : t('confirm.delete_page', {title: p.title}))) return;
+    history.record(children ? {key: 'act.delete_children', params: {title: p.title, count: children}} : {key: 'act.delete', params: {title: p.title}});
     for (const id of ids) state.changedIds.delete(id);
     wiki.pages = wiki.pages.filter(x => !ids.has(x.id));
     state.indexDirty = true;
     state.currentId = p.parentId && pageById(p.parentId) ? p.parentId : (wiki.pages[0]?.id || null);
-    markDirty(); ui.renderAll(); ui.toast('Page deleted. Use Undo to restore it.');
+    markDirty(); ui.renderAll(); ui.toast(t('toast.deleted'));
   }
 
   // --- Title and renaming -------------------------------------------------------------------------
@@ -71,7 +71,7 @@
   function editTitle(value) {
     const p = currentPage(); if (!p) return;
     // The whole title edit, including the rename it commits, is one undo step.
-    if (!state.renameFrom) { history.record(`renaming "${p.title}"`); state.renameFrom = {id: p.id, title: p.title}; }
+    if (!state.renameFrom) { history.record({key: 'act.rename', params: {title: p.title}}); state.renameFrom = {id: p.id, title: p.title}; }
     p.title = value; touchPage(p);
     ui.renderTree(); ui.renderBreadcrumbs(p);
   }
@@ -86,9 +86,9 @@
     const reject = message => {
       page.title = oldTitle; touchPage(page); history.dropNoop(page); ui.renderAfterRename(); ui.toast(message);
     };
-    if (!title) { reject('A page title cannot be empty.'); return; }
+    if (!title) { reject(t('toast.empty_title')); return; }
     const clash = pageWithTitle(wiki.pages, title, oldId);
-    if (clash) { reject(`Another page is already titled "${clash.title}".`); return; }
+    if (clash) { reject(t('toast.title_taken', {title: clash.title})); return; }
     page.title = title;
     if (title === oldTitle) { touchPage(page); history.dropNoop(page); ui.renderAfterRename(); return; }
     const newId = uniqueId(title, [...wiki.pages, ...state.setAside], oldId);
@@ -117,34 +117,34 @@
     }
     touchPage(page);
     ui.renderAfterRename();
-    if (relinked) ui.toast(`Renamed. Updated links in ${relinked} page(s).`);
+    if (relinked) ui.toast(t('toast.renamed_links', {count: relinked}));
   }
 
   // --- Other page fields --------------------------------------------------------------------------
   function editTags(text) {
     const p = currentPage(); if (!p) return;
-    history.record('tag edits', 'tags:' + p.id);
+    history.record('act.tags', 'tags:' + p.id);
     p.tags = [...new Set(text.split(',').map(s => s.trim()).filter(Boolean))];
     touchPage(p); ui.renderTreeIfSearching();
   }
   function editContent(text) {
     const p = currentPage(); if (!p) return;
-    history.record('typing', 'content:' + p.id);
+    history.record('act.typing', 'content:' + p.id);
     p.content = text; touchPage(p);
     ui.renderPageStats(); ui.renderMarkdown(); ui.renderTreeIfSearching();
   }
   // parentId: the new parent's id, or null for top level.
   function movePage(parentId) {
     const p = currentPage(); if (!p) return;
-    if (parentId && descendantsOf(state.wiki.pages, p.id).has(parentId)) { ui.toast('Cannot move a page inside itself.'); ui.renderParentChoices(p); return; }
-    history.record(`moving "${p.title}"`);
+    if (parentId && descendantsOf(state.wiki.pages, p.id).has(parentId)) { ui.toast(t('toast.cannot_move')); ui.renderParentChoices(p); return; }
+    history.record({key: 'act.move', params: {title: p.title}});
     p.parentId = parentId; touchPage(p);
     ui.renderTree(); ui.renderBreadcrumbs(p); ui.renderParentChoices(p);
   }
   // icon: "icon:<name>", an emoji or symbol, or "" to remove it.
   function setIcon(icon) {
     const page = currentPage(); if (!page) return;
-    history.record(icon ? 'changing the page icon' : 'removing the page icon');
+    history.record(icon ? 'act.set_icon' : 'act.remove_icon');
     page.icon = icon; touchPage(page);
     ui.renderPageIcon(page); ui.renderTree();
   }
@@ -153,20 +153,20 @@
   function openLink(target) {
     const match = findLinkTarget(state.wiki.pages, target);
     if (match) selectPage(match.id);
-    else if (confirm(`Page "${target}" does not exist. Create it?`)) createPage(null, target.slice(0, 140));
+    else if (confirm(t('confirm.create_missing', {title: target}))) createPage(null, target.slice(0, 140));
   }
 
   // --- Saved revisions (see revisions.js) ---------------------------------------------------------
   // Brings back an earlier version's text, tags and icon. Title and position stay as they are.
   function restoreRevision(revision) {
     const page = currentPage(); if (!page) return;
-    history.record(`restoring an earlier version of "${page.title}"`);
+    history.record({key: 'act.restore_version', params: {title: page.title}});
     page.content = revision.content;
     page.tags = [...(revision.tags || [])];
     page.icon = revision.icon || '';
     touchPage(page);
     ui.renderPage(); ui.renderTree();
-    ui.toast('Restored the earlier version. Use Undo to go back.');
+    ui.toast(t('toast.restored_version'));
   }
   // Brings back a deleted page from its newest revision (file: from revisions.deletedPages()).
   function restoreDeleted(file) {
@@ -176,7 +176,7 @@
     const existing = new Set(wiki.pages.map(p => titleKey(p.title)));
     let title = revision.title;
     for (let i = 2; existing.has(titleKey(title)); i++) title = revision.title + ' (' + i + ')';
-    history.record(`restoring "${title}"`);
+    history.record({key: 'act.restore_page', params: {title}});
     const owners = [...wiki.pages, ...state.setAside];
     const id = owners.some(p => p.id.toUpperCase() === file.id.toUpperCase()) ? uniqueId(title, owners) : file.id;
     const parentId = revision.parentId && pageById(revision.parentId) ? revision.parentId : null;
@@ -188,7 +188,7 @@
     state.currentId = id;
     ui.clearSearch();
     markDirty(); ui.renderAll();
-    ui.toast(`Restored "${title}".`);
+    ui.toast(t('toast.restored_page', {title}));
   }
 
   // Wiki settings (the settings dialog): {name, appearance: {appName, icon, palette}, logo}.
@@ -199,7 +199,7 @@
     const nextLogo = next.appearance.icon === 'image' ? logo || null : null;
     if (next.appearance.icon === 'image' && !nextLogo) next.appearance.icon = '';
     if (next.name === wiki.name && JSON.stringify(next.appearance) === JSON.stringify(wiki.appearance) && nextLogo === state.logo) return;
-    history.record('changing the wiki settings');
+    history.record('act.settings');
     wiki.name = next.name;
     wiki.appearance = next.appearance;
     if (nextLogo !== state.logo) { state.logo = nextLogo; state.logoDirty = true; }

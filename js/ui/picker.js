@@ -4,7 +4,7 @@
    page's own icon (shown beside the title and in the sidebar), or handing the choice to a caller
    (target 'custom', e.g. the wiki icon in the settings dialog).
 
-   Depends on: text.js, icon-library.js, state.js, pages.js, ui/elements.js, ui/editor.js
+   Depends on: i18n.js, text.js, icon-library.js, state.js, pages.js, ui/elements.js, ui/editor.js
    Provides:   LocalWiki.ui.openPicker, installPicker */
 (() => {
   'use strict';
@@ -13,27 +13,28 @@
   const els = LW.els;
   const {searchFold} = LW.text;
   const icons = LW.icons;
+  const {t} = LW.i18n;
 
   const SYMBOLS = [
-    ['✓','Check mark'], ['✔','Heavy check'], ['✕','Cross'], ['☐','Checkbox empty'], ['☑','Checkbox checked'],
-    ['★','Filled star'], ['☆','Empty star'], ['●','Filled circle'], ['○','Empty circle'], ['◆','Diamond'],
-    ['→','Arrow right'], ['←','Arrow left'], ['↑','Arrow up'], ['↓','Arrow down'], ['↔','Arrow both ways'],
-    ['⇒','Double arrow'], ['↳','Return arrow'], ['∞','Infinity'], ['≈','Approximately'], ['≠','Not equal'],
-    ['≤','Less than equal'], ['≥','Greater than equal'], ['±','Plus minus'], ['×','Multiply'], ['÷','Divide'],
-    ['°','Degree'], ['µ','Micro'], ['Ω','Ohm'], ['Δ','Delta'], ['π','Pi'], ['Σ','Sigma'], ['∑','Summation'],
-    ['§','Section'], ['¶','Paragraph'], ['©','Copyright'], ['®','Registered'], ['™','Trademark'],
-    ['€','Euro'], ['£','Pound'], ['¥','Yen'], ['•','Bullet'], ['…','Ellipsis'], ['—','Em dash'],
-    ['–','En dash'], ['⚠','Warning'], ['ℹ','Information'], ['⌘','Command'], ['⏎','Return'], ['⌫','Backspace'],
-    ['⏻','Power'], ['⏱','Stopwatch']
+    ['✓','symbol.check_mark'], ['✔','symbol.heavy_check'], ['✕','symbol.cross'], ['☐','symbol.checkbox_empty'], ['☑','symbol.checkbox_checked'],
+    ['★','symbol.filled_star'], ['☆','symbol.empty_star'], ['●','symbol.filled_circle'], ['○','symbol.empty_circle'], ['◆','symbol.diamond'],
+    ['→','symbol.arrow_right'], ['←','symbol.arrow_left'], ['↑','symbol.arrow_up'], ['↓','symbol.arrow_down'], ['↔','symbol.arrow_both_ways'],
+    ['⇒','symbol.double_arrow'], ['↳','symbol.return_arrow'], ['∞','symbol.infinity'], ['≈','symbol.approximately'], ['≠','symbol.not_equal'],
+    ['≤','symbol.less_than_equal'], ['≥','symbol.greater_than_equal'], ['±','symbol.plus_minus'], ['×','symbol.multiply'], ['÷','symbol.divide'],
+    ['°','symbol.degree'], ['µ','symbol.micro'], ['Ω','symbol.ohm'], ['Δ','symbol.delta'], ['π','symbol.pi'], ['Σ','symbol.sigma'], ['∑','symbol.summation'],
+    ['§','symbol.section'], ['¶','symbol.paragraph'], ['©','symbol.copyright'], ['®','symbol.registered'], ['™','symbol.trademark'],
+    ['€','symbol.euro'], ['£','symbol.pound'], ['¥','symbol.yen'], ['•','symbol.bullet'], ['…','symbol.ellipsis'], ['—','symbol.em_dash'],
+    ['–','symbol.en_dash'], ['⚠','symbol.warning'], ['ℹ','symbol.information'], ['⌘','symbol.command'], ['⏎','symbol.return'], ['⌫','symbol.backspace'],
+    ['⏻','symbol.power'], ['⏱','symbol.stopwatch']
   ];
   const EMOJI = [
-    ['📌','Pin'], ['📄','Document'], ['📁','Folder'], ['📚','Books'], ['🔧','Wrench'], ['⚙️','Settings'],
-    ['💻','Computer'], ['🖥️','Desktop'], ['🗄️','Cabinet'], ['📡','Antenna'], ['🌐','Network'],
-    ['🛡️','Shield'], ['🔒','Locked'], ['🔓','Unlocked'], ['✅','Complete'], ['❌','Error'], ['⚠️','Warning'],
-    ['🚀','Rocket'], ['🧪','Test'], ['📝','Notes'], ['💡','Idea'], ['📅','Calendar'], ['⏰','Alarm'],
-    ['🔗','Link'], ['⭐','Star'], ['🎯','Target'], ['📦','Package'], ['🔌','Plug'], ['🔋','Battery'],
-    ['🚨','Alert'], ['🛰️','Satellite'], ['🖨️','Printer'], ['🧭','Compass'], ['🔍','Search'],
-    ['🧱','Building blocks'], ['📊','Chart'], ['📋','Clipboard'], ['🏷️','Tag'], ['👤','Person']
+    ['📌','emoji.pin'], ['📄','emoji.document'], ['📁','emoji.folder'], ['📚','emoji.books'], ['🔧','emoji.wrench'], ['⚙️','emoji.settings'],
+    ['💻','emoji.computer'], ['🖥️','emoji.desktop'], ['🗄️','emoji.cabinet'], ['📡','emoji.antenna'], ['🌐','emoji.network'],
+    ['🛡️','emoji.shield'], ['🔒','emoji.locked'], ['🔓','emoji.unlocked'], ['✅','emoji.complete'], ['❌','emoji.error'], ['⚠️','emoji.warning'],
+    ['🚀','emoji.rocket'], ['🧪','emoji.test'], ['📝','emoji.notes'], ['💡','emoji.idea'], ['📅','emoji.calendar'], ['⏰','emoji.alarm'],
+    ['🔗','emoji.link'], ['⭐','emoji.star'], ['🎯','emoji.target'], ['📦','emoji.package'], ['🔌','emoji.plug'], ['🔋','emoji.battery'],
+    ['🚨','emoji.alert'], ['🛰️','emoji.satellite'], ['🖨️','emoji.printer'], ['🧭','emoji.compass'], ['🔍','emoji.search'],
+    ['🧱','emoji.building_blocks'], ['📊','emoji.chart'], ['📋','emoji.clipboard'], ['🏷️','emoji.tag'], ['👤','emoji.person']
   ];
 
   let pickerTarget = 'body'; // 'body' inserts into the text; 'page' sets the page icon; 'custom' calls onChoose
@@ -42,8 +43,9 @@
   let pickerCaret = 0;       // caret position when the picker opened (focus moves to the dialog)
 
   function pickerEntries() {
-    if (pickerTab === 'icons') return icons.items.map(item => ({name:item.name, label:item.label, glyph:'icon:' + item.name}));
-    return (pickerTab === 'symbols' ? SYMBOLS : EMOJI).map(([glyph,label]) => ({name: glyph, label, glyph}));
+    // Names are looked up by key, so they follow the interface language (and so does searching them).
+    if (pickerTab === 'icons') return icons.items.map(item => ({name: item.name, label: t('icon.' + item.name), glyph: 'icon:' + item.name}));
+    return (pickerTab === 'symbols' ? SYMBOLS : EMOJI).map(([glyph, key]) => ({name: glyph, label: t(key), glyph}));
   }
   function renderPicker() {
     for (const tab of document.querySelectorAll('[data-picker-tab]')) {
@@ -54,7 +56,7 @@
     const entries = pickerEntries().filter(item => searchFold(item.label).includes(query) || searchFold(item.name).includes(query));
     els.pickerResults.replaceChildren();
     if (!entries.length) {
-      const message = document.createElement('div'); message.className = 'picker-empty'; message.textContent = 'No matching items.';
+      const message = document.createElement('div'); message.className = 'picker-empty'; message.textContent = t('picker.none');
       els.pickerResults.append(message);
     }
     for (const item of entries) {
@@ -83,7 +85,7 @@
       els.pickerResults.append(button);
     }
     els.pickerClear.hidden = pickerTarget !== 'page';
-    els.pickerHint.textContent = pickerTarget === 'page' ? 'Choose an icon for this page.' : pickerTarget === 'custom' ? 'Choose an icon or emoji.' : 'Choose a symbol or icon to insert at the cursor.';
+    els.pickerHint.textContent = t(pickerTarget === 'page' ? 'picker.hint_page' : pickerTarget === 'custom' ? 'picker.hint_custom' : 'picker.hint_insert');
   }
   function openPicker(target = 'body', tab = 'icons', choose = null) {
     if (target !== 'custom' && !LW.store.currentPage()) return;

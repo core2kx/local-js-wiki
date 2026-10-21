@@ -8,7 +8,7 @@
    A small context bar appears for links (Open, Edit, Remove) and inside tables (add/remove rows and columns, delete the table). Paste inserts plain
    text, so formatting from other sites cannot sneak in.
 
-   Depends on: model.js, markdown.js, html-to-markdown.js, state.js, history.js, pages.js,
+   Depends on: i18n.js, model.js, markdown.js, html-to-markdown.js, state.js, history.js, pages.js,
                ui/elements.js, ui/link-picker.js
    Provides:   LocalWiki.ui.renderVisual, visualFormat, visualInsertText, visualInsertIcon,
                saveVisualSelection, installVisualEditor */
@@ -20,6 +20,7 @@
   const state = LW.state;
   const {currentPage} = LW.store;
   const {findLinkTarget} = LW.model;
+  const {t} = LW.i18n;
   const BLOCK_SELECTOR = 'p, div, h1, h2, h3, h4, h5, h6, li, blockquote, pre';
 
   let shown = null;        // {id, content} the area currently displays
@@ -98,7 +99,7 @@
     if (kind === 'link' || kind === 'wiki') { insertLink(kind === 'wiki' ? 'wiki' : 'web'); return; } // records its own step
     editor().focus();
     if (!selectionRange()) placeCaret(editor(), true);
-    LW.history.record('formatting');
+    LW.history.record('act.format');
     switch (kind) {
       case 'heading': toggleBlock('H2'); break;
       case 'bold': exec('bold'); break;
@@ -123,7 +124,7 @@
     const inside = closestIn(range.startContainer, 'code');
     if (inside && !closestIn(range.startContainer, 'pre')) { inside.replaceWith(...inside.childNodes); return; } // toggle off
     const code = document.createElement('code');
-    code.textContent = range.collapsed ? 'code' : range.toString();
+    code.textContent = range.collapsed ? t('insert.code') : range.toString();
     range.deleteContents(); range.insertNode(code);
     if (range.collapsed) placeCaret(code); else { const after = document.createRange(); after.setStartAfter(code); after.collapse(true); getSelection().removeAllRanges(); getSelection().addRange(after); }
   }
@@ -157,7 +158,7 @@
       kind, text: selected,
       onChoose: ({kind: chosen, target, label}) => {
         restoreSelection();
-        LW.history.record('inserting a link');
+        LW.history.record('act.insert_link');
         const range = selectionRange() || endRange();
         const a = anchorFor(chosen, target, label);
         range.deleteContents(); range.insertNode(a);
@@ -176,7 +177,7 @@
       target: wiki ? link.dataset.wikiTarget : link.getAttribute('href'),
       onChoose: ({kind, target, label}) => {
         if (!link.isConnected) return;
-        LW.history.record('editing a link');
+        LW.history.record('act.edit_link');
         const a = anchorFor(kind, target, label);
         link.replaceWith(a);
         editor().focus(); placeCaret(a, true);
@@ -188,7 +189,7 @@
     const tr = document.createElement('tr');
     for (let i = 0; i < cells; i++) {
       const cell = document.createElement(header ? 'th' : 'td');
-      if (header) cell.textContent = 'Column ' + (i + 1); else cell.append(document.createElement('br'));
+      if (header) cell.textContent = t('table.column_n', {n: i + 1}); else cell.append(document.createElement('br'));
       tr.append(cell);
     }
     return tr;
@@ -212,14 +213,14 @@
   // --- Inserting from the picker ------------------------------------------------------------------
   function visualInsertText(text) {
     restoreSelection();
-    LW.history.record('inserting text');
+    LW.history.record('act.insert_text');
     exec('insertText', text);
     changed();
   }
   function visualInsertIcon(name) {
     if (!LW.icons.has(name)) return;
     restoreSelection();
-    LW.history.record('inserting an icon');
+    LW.history.record('act.insert_icon');
     const span = document.createElement('span');
     span.className = 'inline-wiki-icon'; span.setAttribute('role', 'img'); span.setAttribute('aria-label', name);
     span.dataset.icon = name; span.contentEditable = 'false'; span.innerHTML = LW.icons.svg(name);
@@ -260,15 +261,15 @@
   function linkButtons(link) {
     const wiki = link.classList.contains('wiki-link');
     const label = document.createElement('span');
-    label.className = 'context-label'; label.textContent = wiki ? 'Page: ' + link.dataset.wikiTarget : link.getAttribute('href');
+    label.className = 'context-label'; label.textContent = wiki ? t('ctx.page', {target: link.dataset.wikiTarget}) : link.getAttribute('href');
     return [label,
-      button('Open', wiki ? 'Go to this page' : 'Open in a new tab', () => {
+      button(t('ctx.open'), t(wiki ? 'ctx.open_page_tip' : 'ctx.open_web_tip'), () => {
         if (wiki) LW.pages.openLink(link.dataset.wikiTarget);
         else window.open(link.getAttribute('href'), '_blank', 'noopener');
       }),
-      button('Edit', 'Change the link or its text', () => editLink(link)),
-      button('Remove', 'Keep the text, remove the link', () => {
-        LW.history.record('removing a link');
+      button(t('ctx.edit'), t('ctx.edit_tip'), () => editLink(link)),
+      button(t('ctx.remove'), t('ctx.remove_tip'), () => {
+        LW.history.record('act.remove_link');
         link.replaceWith(...link.childNodes);
         changed();
       })];
@@ -278,7 +279,7 @@
     const index = Array.prototype.indexOf.call(row.children, cell);
     const edit = (label, action) => () => { LW.history.record(label); action(); prepare(); changed(); };
     return [
-      button('+ Row', 'Add a row below', edit('adding a table row', () => {
+      button(t('table.add_row'), t('table.add_row_tip'), edit('act.add_row', () => {
         const fresh = emptyRow(row.children.length);
         if (row.parentElement.nodeName === 'THEAD') {
           // From the header, the new row becomes the first data row.
@@ -288,27 +289,27 @@
         } else row.after(fresh);
         placeCaret(fresh.cells[Math.min(index, fresh.cells.length - 1)]);
       })),
-      button('+ Column', 'Add a column to the right', edit('adding a table column', () => {
+      button(t('table.add_col'), t('table.add_col_tip'), edit('act.add_col', () => {
         for (const r of table.rows) {
           const header = r.parentElement.nodeName === 'THEAD';
           const fresh = document.createElement(header ? 'th' : 'td');
-          if (header) fresh.textContent = 'Column ' + (r.cells.length + 1); else fresh.append(document.createElement('br'));
+          if (header) fresh.textContent = t('table.column_n', {n: r.cells.length + 1}); else fresh.append(document.createElement('br'));
           r.cells[index] ? r.cells[index].after(fresh) : r.append(fresh);
         }
         placeCaret(row.cells[index + 1]);
       })),
-      button('− Row', 'Remove this row', edit('removing a table row', () => {
-        if (row.parentElement.nodeName === 'THEAD') { ui.toast('The header row cannot be removed; delete the table instead.'); return; }
+      button(t('table.remove_row'), t('table.remove_row_tip'), edit('act.remove_row', () => {
+        if (row.parentElement.nodeName === 'THEAD') { ui.toast(t('table.header_row_error')); return; }
         const next = row.nextElementSibling || row.previousElementSibling || table.rows[0];
         row.remove();
         placeCaret(next.cells[Math.min(index, next.cells.length - 1)]);
       })),
-      button('− Column', 'Remove this column', edit('removing a table column', () => {
+      button(t('table.remove_col'), t('table.remove_col_tip'), edit('act.remove_col', () => {
         if (row.cells.length <= 1) { removeTable(table); return; }
         for (const r of [...table.rows]) r.cells[index]?.remove();
         placeCaret(row.cells[Math.max(0, index - 1)]);
       })),
-      button('Delete table', 'Remove the whole table', edit('deleting a table', () => removeTable(table)))
+      button(t('table.delete'), t('table.delete_tip'), edit('act.delete_table', () => removeTable(table)))
     ];
   }
   function removeTable(table) {
@@ -329,7 +330,7 @@
     const after = document.createRange(); after.selectNodeContents(pre); after.setStart(range.endContainer, range.endOffset);
     const textBefore = linesOf(before.cloneContents()), textAfter = linesOf(after.cloneContents());
     if (range.collapsed && (textBefore === '' || textBefore.endsWith('\n')) && !textAfter.trim()) {
-      LW.history.record('leaving a code block');
+      LW.history.record('act.leave_code');
       const code = linesOf(pre).replace(/\n+$/, '');
       const p = document.createElement('p'); p.append(document.createElement('br'));
       if (code) { pre.textContent = code; pre.after(p); }

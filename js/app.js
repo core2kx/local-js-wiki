@@ -9,6 +9,7 @@
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
   const {els, state, store, history, pages, storage, ui} = LW;
+  const {t} = LW.i18n;
 
   function installEvents() {
     // Top bar
@@ -55,12 +56,13 @@
     ui.installRevisions();
     ui.installFolderHelp();
     ui.installSettings();
+    ui.installLanguage();
 
     // Read-only folder fallback: chosen from the folder-access dialog (ui/folder-help.js).
     els.folderInput.addEventListener('change', async () => {
       if (els.folderInput.files?.length) {
         try { await storage.openFolderFiles([...els.folderInput.files]); }
-        catch (err) { console.error(err); ui.toast('Could not import folder: ' + err.message); }
+        catch (err) { console.error(err); ui.toast(t('toast.import_failed', {error: LW.i18n.describeError(err)})); }
       }
       els.folderInput.value = '';
     });
@@ -73,13 +75,15 @@
   function init() {
     // Every change updates the save status and (re)schedules autosave.
     store.onChange(() => { ui.setSaveStatus(); storage.scheduleAutosave(); });
+    LW.languages.init(); // the interface language: saved choice, or the browser's own
     const recoveredUnsaved = store.restoreDraft();
     const mode = ui.loadPreferences();
     installEvents();
     ui.setMode(mode);
     pages.commitTitle(); // a title edit interrupted by a reload
-    ui.renderAll(); ui.renderUndoButtons(); store.saveDraft();
-    if (recoveredUnsaved) ui.toast('Recovered unsaved changes from this browser. Save changes to write them to a folder.');
+    ui.applyLanguage(); // translates the page and draws the first screen
+    store.saveDraft();
+    if (recoveredUnsaved) ui.toast(t('toast.recovered'));
   }
 
   init();
