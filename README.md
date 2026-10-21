@@ -23,8 +23,7 @@ Note: Tables are saved as **Markdown**, not separate structured table objects. T
 localwiki/
 ├── index.html                  # Browser application
 ├── css/
-│   ├── bootstrap.min.css      # Pinned, local Bootstrap 5.3.6
-│   └── wiki.css               # Wiki-specific appearance; editable
+│   └── wiki.css               # All styling; self-contained and editable
 ├── js/
 │   ├── icon-library.js        # Bundled SVG icons; optional to extend
 │   └── wiki.js                # Wiki editor and file handling
@@ -34,7 +33,8 @@ localwiki/
 │       └── pages/
 │           ├── welcome.json
 │           ├── editing-guide.json
-│           └── project-notes.json
+│           ├── project-notes.json
+│           └── tables-and-icons.json
 └── README.md
 ```
 
@@ -99,7 +99,7 @@ Choose **Import old wiki JSON…** in the sidebar and select the old JSON contai
 - Full text / tag / title search across all opened wiki pages.
 - Markdown edit, preview, and split views; visual table builder/editor; Unicode symbols, emoji, inline SVG tokens; internal links `[[Page title]]` and `[[page-id|Text]]`.
 - Light/dark mode, responsive sidebar and 75%/90%/100% page width.
-- All assets are local. Bootstrap 5.3.6 is pinned and requires no routine updates. Layout customizations belong in `css/wiki.css`.
+- All assets are local and there are no third-party libraries or CSS frameworks. Layout customizations belong in `css/wiki.css`.
 - Safe Markdown renderer escapes HTML and does not execute scripts from wiki content.
 
 ## Limits
