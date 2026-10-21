@@ -29,12 +29,12 @@
   const LEGACY_DRAFT_KEY = 'offlinewiki:draft:1';
   const UI_KEY = 'offlinewiki:ui:1';
   const SCHEMA_VERSION = 1;
-    let wiki;
+  let wiki;
   let currentId;
   let folderHandle = null;
   let folderName = 'No folder selected';
-  let dirty = true;
-  let indexDirty = true;
+  let dirty = false;
+  let indexDirty = false;
   let changeVersion = 0;
   let saving = false;
   let pagePaths = new Map();
@@ -897,7 +897,7 @@
     const name = prompt('Name your new wiki:', 'My Wiki');
     if (name === null) return;
     wiki = normalizeWiki({schemaVersion: SCHEMA_VERSION, name: name.trim() || 'My Wiki', pages: []});
-    currentId = null; folderHandle = null; folderName = 'No folder selected'; dirty = true;
+    currentId = null; folderHandle = null; folderName = 'No folder selected'; dirty = false;
     pagePaths.clear(); changedIds.clear(); removedPaths.clear(); indexDirty = true; changeVersion++;
     els.search.value = '';
     renderAll(); backupDraft(); toast('New wiki created. Use + to add a page.');
@@ -1031,6 +1031,7 @@
   function init() {
     wiki = normalizeWiki({schemaVersion: SCHEMA_VERSION, name:'My Wiki', pages:[]});
     currentId = null;
+    let recoveredUnsaved = false;
     try {
       const recovered = JSON.parse(localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY) || 'null');
       if (recovered?.wiki) {
@@ -1039,9 +1040,11 @@
         pagePaths = new Map(Array.isArray(recovered.pagePaths) ? recovered.pagePaths : []);
         // Directory permissions are not retained across reloads. This is a browser copy only.
         folderName = recovered.folderName || 'Recovered browser draft';
-        dirty = true;
-        changedIds = new Set(wiki.pages.map(p => p.id));
-        indexDirty = true;
+        // Respect the saved flag; drafts from older versions lack it and stay dirty.
+        dirty = recovered.dirty !== false;
+        changedIds = new Set(dirty ? wiki.pages.map(p => p.id) : []);
+        indexDirty = dirty;
+        recoveredUnsaved = dirty && wiki.pages.length > 0;
       }
     } catch (err) { console.warn('Draft recovery skipped:', err); }
     try {
@@ -1052,6 +1055,7 @@
     } catch (_) {}
     applyPageWidth(pageWidth);
     installEvents(); setMode(mode); renderAll(); backupDraft();
+    if (recoveredUnsaved) toast('Recovered unsaved changes from this browser. Save changes to write them to a folder.');
   }
   function pageByIdIn(model, id) { return model.pages.find(p => p.id === id); }
   init();
