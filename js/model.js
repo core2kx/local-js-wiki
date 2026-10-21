@@ -74,6 +74,25 @@
     return result;
   }
 
+  // --- Appearance (wiki.json "appearance") --------------------------------------------------------
+  // {appName, icon, palette}: the name shown in the top bar, the wiki's icon (also the browser-tab
+  // icon) and the color palette (see palettes.js). icon is "" (default), "icon:<name>" (bundled SVG),
+  // "image" (the picture saved as branding/logo.png), or a short emoji/symbol.
+  const DEFAULT_APP_NAME = 'LocalWiki';
+  const LOGO_PATH = 'branding/logo.png';
+  function defaultAppearance() { return {appName: DEFAULT_APP_NAME, icon: '', palette: 'evergreen'}; }
+  function normalizeAppearance(raw) {
+    const appearance = defaultAppearance();
+    if (!raw || typeof raw !== 'object') return appearance;
+    if (typeof raw.appName === 'string' && raw.appName.trim()) appearance.appName = raw.appName.trim().normalize('NFC').slice(0, 40);
+    if (typeof raw.icon === 'string') {
+      const icon = raw.icon.trim();
+      if (icon === 'image' || /^icon:[a-z0-9-]+$/.test(icon) || (icon && !icon.startsWith('icon:') && [...icon].length <= 8)) appearance.icon = icon;
+    }
+    if (typeof raw.palette === 'string' && /^[a-z0-9-]{1,40}$/.test(raw.palette)) appearance.palette = raw.palette;
+    return appearance;
+  }
+
   // --- Validation and repair ----------------------------------------------------------------------
   // Validates one page object. Throws (the page is set aside) when using it would lose data, e.g. a
   // title or content that is not text. Missing fields get defaults and are reported as repairs.
@@ -130,12 +149,14 @@
     repairStructure(pages, () => {});
     return {
       name: typeof input?.name === 'string' && input.name.trim() ? input.name.trim().slice(0, 140) : 'Untitled Wiki',
+      appearance: normalizeAppearance(input?.appearance),
       pages
     };
   }
 
   LW.model = {
     isoNow, pathFor, PAGE_PATH, uniqueId, pageWithTitle, findLinkTarget, sortByTitle,
-    descendantsOf, ancestors, normalizePage, repairStructure, normalizeWiki
+    descendantsOf, ancestors, normalizePage, repairStructure, normalizeWiki,
+    DEFAULT_APP_NAME, LOGO_PATH, defaultAppearance, normalizeAppearance
   };
 })();

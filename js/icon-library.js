@@ -5,7 +5,7 @@
    here are ever turned into SVG.
 
    Depends on: nothing.
-   Provides:   LocalWiki.icons {items, svg(name), has(name)} */
+   Provides:   LocalWiki.icons {items, svg(name), art(name), has(name)} */
 (() => {
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
@@ -48,5 +48,7 @@
     if (!entry) return '';
     return '<svg class="wiki-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + entry.art + '</svg>';
   }
-  LW.icons = Object.freeze({items: Object.keys(ICONS).map(name => ({name, label: ICONS[name].label})), svg, has: name => Object.hasOwn(ICONS,name)});
+  // art: just the drawing (paths), for embedding in another SVG such as the favicon.
+  const art = name => ICONS[name]?.art || '';
+  LW.icons = Object.freeze({items: Object.keys(ICONS).map(name => ({name, label: ICONS[name].label})), svg, art, has: name => Object.hasOwn(ICONS,name)});
 })();

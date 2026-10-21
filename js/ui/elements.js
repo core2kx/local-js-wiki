@@ -11,12 +11,13 @@
 
   LW.els = {
     // Top bar
+    brand: $('brand'), brandIcon: $('brand-icon'), brandName: $('brand-name'), favicon: $('favicon'),
     name: $('wiki-name'), status: $('save-status'), open: $('open-btn'), save: $('save-btn'),
     undo: $('undo-btn'), redo: $('redo-btn'), theme: $('theme-btn'),
     // Sidebar
     search: $('search'), sidebarHeading: $('sidebar-heading'), nav: $('page-nav'), newPage: $('new-page-btn'),
     newWiki: $('new-wiki-btn'), saveAs: $('save-as-btn'), exportZip: $('export-zip-btn'),
-    rename: $('rename-wiki-btn'), fileLabel: $('file-label'), problemsButton: $('problems-btn'),
+    settingsButton: $('settings-btn'), fileLabel: $('file-label'), problemsButton: $('problems-btn'),
     // Page header and metadata
     empty: $('empty-state'), emptyCreate: $('empty-create-btn'), mainPage: document.querySelector('.page-wrap'),
     breadcrumbs: $('breadcrumbs'), pageWidth: $('page-width-select'), newChild: $('new-child-btn'), del: $('delete-page-btn'),
@@ -39,6 +40,12 @@
     revisionsDialog: $('revisions-dialog'), revisionsTitle: $('revisions-title'), revisionsList: $('revisions-list'),
     revisionsSummary: $('revisions-summary'), revisionsDiff: $('revisions-diff'), revisionsRestore: $('revisions-restore'),
     revisionsClose: $('revisions-close'), revisionsCancel: $('revisions-cancel'),
+    // Wiki settings dialog
+    settingsDialog: $('settings-dialog'), settingsClose: $('settings-close'), settingsWikiName: $('settings-wiki-name'),
+    settingsAppName: $('settings-app-name'), settingsIconPreview: $('settings-icon-preview'),
+    settingsIconChoose: $('settings-icon-choose'), settingsIconUpload: $('settings-icon-upload'),
+    settingsIconReset: $('settings-icon-reset'), settingsIconFile: $('settings-icon-file'),
+    settingsPalettes: $('settings-palettes'), settingsCancel: $('settings-cancel'), settingsSave: $('settings-save'),
     // Folder-access help dialog
     folderHelpDialog: $('folder-help-dialog'), folderHelpTitle: $('folder-help-title'), folderHelpBrave: $('folder-help-brave'),
     folderHelpOther: $('folder-help-other'), folderHelpFlag: $('folder-help-flag'), folderHelpCopy: $('folder-help-copy'),

@@ -191,14 +191,20 @@
     ui.toast(`Restored "${title}".`);
   }
 
-  function renameWiki() {
+  // Wiki settings (the settings dialog): {name, appearance: {appName, icon, palette}, logo}.
+  // logo is the picture as a PNG data URL when appearance.icon is "image". One undo step.
+  function updateSettings({name, appearance, logo}) {
     const wiki = state.wiki;
-    const name = prompt('Wiki name:', wiki.name);
-    if (name === null || !name.trim() || wiki.name === name.trim()) return;
-    history.record('renaming the wiki');
-    wiki.name = name.trim().slice(0, 140);
+    const next = {name: (name || '').trim().slice(0, 140) || wiki.name, appearance: LW.model.normalizeAppearance(appearance)};
+    const nextLogo = next.appearance.icon === 'image' ? logo || null : null;
+    if (next.appearance.icon === 'image' && !nextLogo) next.appearance.icon = '';
+    if (next.name === wiki.name && JSON.stringify(next.appearance) === JSON.stringify(wiki.appearance) && nextLogo === state.logo) return;
+    history.record('changing the wiki settings');
+    wiki.name = next.name;
+    wiki.appearance = next.appearance;
+    if (nextLogo !== state.logo) { state.logo = nextLogo; state.logoDirty = true; }
     state.indexDirty = true; markDirty(); ui.renderAll();
   }
 
-  LW.pages = {selectPage, createPage, deletePage, editTitle, commitTitle, editTags, editContent, movePage, setIcon, openLink, restoreRevision, restoreDeleted, renameWiki};
+  LW.pages = {selectPage, createPage, deletePage, editTitle, commitTitle, editTags, editContent, movePage, setIcon, openLink, restoreRevision, restoreDeleted, updateSettings};
 })();

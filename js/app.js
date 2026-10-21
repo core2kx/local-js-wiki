@@ -25,7 +25,6 @@
     els.newWiki.addEventListener('click', storage.newWiki);
     els.saveAs.addEventListener('click', storage.saveToFolder);
     els.exportZip.addEventListener('click', storage.exportZip);
-    els.rename.addEventListener('click', pages.renameWiki);
 
     // Page header and fields
     els.emptyCreate.addEventListener('click', () => pages.createPage());
@@ -54,6 +53,7 @@
     ui.installProblems();
     ui.installRevisions();
     ui.installFolderHelp();
+    ui.installSettings();
 
     // Read-only folder fallback: chosen from the folder-access dialog (ui/folder-help.js).
     els.folderInput.addEventListener('change', async () => {

@@ -24,10 +24,12 @@
   let undoGroup = null;      // {key, started, last} for coalescing bursts of typing
 
   function snapshot(label) {
-    return {label, name: state.wiki.name, currentId: state.currentId, pages: state.wiki.pages.map(serializePage)};
+    return {label, name: state.wiki.name, appearance: JSON.stringify(state.wiki.appearance), logo: state.logo,
+      currentId: state.currentId, pages: state.wiki.pages.map(serializePage)};
   }
   function sameState(a, b) {
-    return a.name === b.name && a.pages.length === b.pages.length && a.pages.every((text, i) => text === b.pages[i]);
+    return a.name === b.name && a.appearance === b.appearance && a.logo === b.logo &&
+      a.pages.length === b.pages.length && a.pages.every((text, i) => text === b.pages[i]);
   }
 
   // Call before changing anything. Changes with the same key in quick succession (typing) share one step.
@@ -51,8 +53,12 @@
     const before = new Map(wiki.pages.map(page => [page.id, serializePage(page)]));
     const pages = entry.pages.map(text => { const page = JSON.parse(text); rememberPageText(page, text); return page; });
     const ids = new Set(pages.map(page => page.id));
-    if (wiki.name !== entry.name || before.size !== ids.size || [...ids].some(id => !before.has(id))) state.indexDirty = true;
+    if (wiki.name !== entry.name || JSON.stringify(wiki.appearance) !== entry.appearance ||
+        before.size !== ids.size || [...ids].some(id => !before.has(id))) state.indexDirty = true;
+    if (state.logo !== entry.logo) state.logoDirty = true;
     wiki.name = entry.name;
+    wiki.appearance = JSON.parse(entry.appearance);
+    state.logo = entry.logo;
     wiki.pages = pages;
     // Rewrite every page that differs from what was there; undone deletions are written back too.
     for (const page of pages) if (before.get(page.id) !== serializePage(page)) state.changedIds.add(page.id);

@@ -6,6 +6,8 @@
   --accent: #2e766b; --accent-soft: #e5f3f0; --accent-hover: #245e55;
   --input: #ffffff; --shadow: 0 12px 32px rgba(29, 62, 50, .035);
   --diff-added: #e3f4ec; --diff-removed: #fbe6e4;
+  --on-accent: #ffffff; --warning: #9a5f17; --highlight: #fbe8af; --highlight-text: #3f351a;
+  /* These are the Evergreen palette; ui/appearance.js applies the wiki's chosen palette (js/palettes.js). */
   --page-width: 90%; /* default: chosen portion of space to the right of the sidebar */
   color-scheme: light;
 }
@@ -15,6 +17,7 @@ html[data-theme="dark"] {
   --accent: #80c7b6; --accent-soft: #2c463f; --accent-hover: #a0decf;
   --input: #182420; --shadow: 0 10px 26px rgba(0, 0, 0, .14);
   --diff-added: #1f4033; --diff-removed: #4a2a28;
+  --on-accent: #10201c; --warning: #e0a95a; --highlight: #5b4a17; --highlight-text: #fbeec7;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -35,17 +38,19 @@ table { caption-side: bottom; border-collapse: collapse; }
 .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
 .topbar { height: 66px; flex: 0 0 66px; display: flex; align-items: center; padding: 0 25px; border-bottom: 1px solid var(--border); background: var(--panel); gap: 18px; }
 .brand { display: flex; align-items: center; gap: 11px; white-space: nowrap; font-weight: 750; font-size: 18px; letter-spacing: -.7px; }
-.brand-icon { width: 30px; height: 30px; background: var(--accent); color: var(--panel); border-radius: 9px; display: grid; place-items: center; font-size: 23px; font-weight: 300; }
-.brand-accent { color: var(--accent); }
+.brand-icon { width: 30px; height: 30px; flex: 0 0 auto; background: var(--accent); color: var(--on-accent); border-radius: 9px; display: grid; place-items: center; font-size: 20px; font-weight: 300; overflow: hidden; line-height: 1; }
+.brand-icon .wiki-svg-icon { width: 19px; height: 19px; }
+.brand-icon.has-image { background: transparent; }
+.brand-icon img { width: 100%; height: 100%; object-fit: contain; }
 .brand-divider { height: 22px; border-left: 1px solid var(--border); }
 .wiki-name { font-size: 14px; font-weight: 600; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-actions { display: flex; align-items: center; gap: 9px; margin-left: auto; }
 .save-status { color: var(--muted); font-size: 12px; padding-right: 10px; white-space: nowrap; }
-.save-status.is-dirty { color: #a4671b; }
+.save-status.is-dirty { color: var(--warning); }
 .btn { border: 1px solid var(--border); display: inline-flex; vertical-align: middle; font-size: 1rem; line-height: 1.5; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; padding: 8px 13px; background: var(--panel); color: var(--text); font-weight: 600; transition: background .14s, color .14s, border-color .14s; box-shadow: none; }
 .btn:hover, .btn:focus { color: var(--text); background: var(--accent-soft); border-color: var(--accent); }
-.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-.btn-primary:hover, .btn-primary:focus { background: var(--accent-hover); color: var(--bg); border-color: var(--accent-hover); }
+.btn-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn-primary:hover, .btn-primary:focus { background: var(--accent-hover); color: var(--on-accent); border-color: var(--accent-hover); }
 .btn-ghost { background: transparent; border-color: transparent; }
 .btn-sm { padding: 6px 11px; font-size: 12px; }
 .btn-icon { width: 35px; height: 35px; padding: 0; font-size: 19px; line-height: 1; }
@@ -72,7 +77,7 @@ table { caption-side: bottom; border-collapse: collapse; }
 .nav-result-path { display: block; font-size: 10px; color: var(--muted); }
 .nav-result-snippet mark { background: var(--accent-soft); color: var(--text); border-radius: 3px; padding: 0 1px; }
 .search-empty { color: var(--muted); padding: 12px; font-size: 12px; }
-mark { background: #fbe8af; color: #3f351a; border-radius: 2px; }
+mark { background: var(--highlight); color: var(--highlight-text); border-radius: 2px; }
 .sidebar-bottom { border-top: 1px solid var(--border); padding: 12px 13px 17px; }
 .sidebar-action { border: 0; background: none; width: 100%; text-align: left; color: var(--text); font-size: 12px; padding: 8px 12px; border-radius: 7px; }
 .sidebar-action:hover { background: var(--accent-soft); }
@@ -191,7 +196,7 @@ mark { background: #fbe8af; color: #3f351a; border-radius: 2px; }
 .picker-label { color: var(--muted); font-size: 10px; max-width: 86px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .picker-empty { grid-column: 1/-1; color: var(--muted); padding: 20px; text-align: center; font-size: 13px; }
 @media(max-width: 630px) { .wiki-dialog { padding: 15px; } .picker-results { grid-template-columns: repeat(auto-fill, minmax(73px, 1fr)); } .table-builder-actions .dialog-hint { margin: 4px 0 0; width: 100%; } }
-.problems-action { color: #a4671b; font-weight: 600; }
+.problems-action { color: var(--warning); font-weight: 600; }
 .problems-dialog { width: min(640px, calc(100vw - 32px)); }
 .problems-list { max-height: 50vh; overflow: auto; margin: 0 0 14px; padding-left: 18px; }
 .problems-list li { margin-bottom: 8px; overflow-wrap: anywhere; }
@@ -219,3 +224,20 @@ mark { background: #fbe8af; color: #3f351a; border-radius: 2px; }
 .folder-help-steps { padding-left: 20px; margin: 0 0 12px; }
 .folder-help-steps li { margin-bottom: 8px; }
 .folder-help-steps code { font-size: .9em; background: var(--sidebar-bg); border-radius: 4px; padding: 2px 5px; overflow-wrap: anywhere; }
+.settings-dialog { width: min(720px, calc(100vw - 32px)); }
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.settings-field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.settings-field input { border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; background: var(--input); color: var(--text); font-size: 14px; font-weight: 400; }
+.settings-section { margin-bottom: 16px; }
+.settings-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 7px; }
+.settings-icon-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.settings-icon-preview { width: 42px; height: 42px; font-size: 26px; border-radius: 11px; }
+.settings-icon-preview .wiki-svg-icon { width: 26px; height: 26px; }
+.palette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.palette-card { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; border: 2px solid; border-radius: 9px; padding: 9px 10px; text-align: start; }
+.palette-card.active { outline: 3px solid var(--accent); outline-offset: 1px; }
+.palette-swatches { display: flex; gap: 3px; }
+.palette-chip { width: 18px; height: 18px; border-radius: 5px; border: 1px solid rgba(127,127,127,.35); }
+.palette-name { font-weight: 650; font-size: 13px; }
+.palette-sample { font-size: 11px; font-weight: 650; border-radius: 5px; padding: 2px 8px; }
+@media (max-width: 600px) { .settings-grid { grid-template-columns: 1fr; } }

@@ -4,16 +4,30 @@
    errors named NotFoundError, as the browser does.
 
    Depends on: nothing (uses handles passed in).
+   Also converts between images as data URLs (how the app holds the logo) and bytes (how it is
+   stored), which works the same in the browser and under Node.
    Provides:   LocalWiki.folder */
 (() => {
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
 
   function jsonText(value) { return JSON.stringify(value, null, 2) + '\n'; }
+  async function readBlob(dir, name) { return (await dir.getFileHandle(name)).getFile(); }
+  // "data:<type>;base64,..." <-> bytes.
+  async function blobToDataUrl(blob, type = blob.type || 'application/octet-stream') {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return 'data:' + type + ';base64,' + btoa(binary);
+  }
+  function dataUrlToBytes(dataUrl) {
+    const binary = atob(dataUrl.slice(dataUrl.indexOf(',') + 1));
+    return Uint8Array.from(binary, ch => ch.charCodeAt(0));
+  }
   async function readText(dir, name) {
     return (await (await dir.getFileHandle(name)).getFile()).text();
   }
-  // Writes a whole file; an interrupted write is aborted so the old file stays intact.
+  // Writes a whole file (text or bytes); an interrupted write is aborted so the old file stays intact.
   async function writeText(dir, name, text) {
     const writer = await (await dir.getFileHandle(name, {create: true})).createWritable();
     try { await writer.write(text); await writer.close(); }
@@ -36,5 +50,5 @@
     return names.sort();
   }
 
-  LW.folder = {jsonText, readText, writeText, remove, subfolder, fileNames};
+  LW.folder = {jsonText, readText, readBlob, writeText, remove, subfolder, fileNames, blobToDataUrl, dataUrlToBytes};
 })();

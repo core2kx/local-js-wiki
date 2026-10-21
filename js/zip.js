@@ -9,7 +9,7 @@
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
 
-  // files: [[path, text], ...] -> Blob of type application/zip
+  // files: [[path, text or Uint8Array], ...] -> Blob of type application/zip
   function makeZip(files) {
     const encoder = new TextEncoder();
     const parts = [], central = [];
@@ -19,7 +19,7 @@
     const header = (size, fill) => { const bytes = new Uint8Array(size); fill(new DataView(bytes.buffer)); return bytes; };
     let offset = 0;
     for (const [name, data] of files) {
-      const path = encoder.encode(name), content = encoder.encode(data), crc = crc32(content);
+      const path = encoder.encode(name), content = typeof data === 'string' ? encoder.encode(data) : data, crc = crc32(content);
       if (path.length > 65535 || content.length > 0xFFFFFFFF) throw new Error('A wiki file is too large to export.');
       // Local file header (flag 0x0800 = UTF-8 filename).
       const local = header(30, v => {

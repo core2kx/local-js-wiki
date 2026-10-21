@@ -11,11 +11,13 @@
 (() => {
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
-  const {isoNow, pathFor, PAGE_PATH, normalizeWiki} = LW.model;
+  const {isoNow, pathFor, PAGE_PATH, normalizeWiki, defaultAppearance} = LW.model;
   const DRAFT_KEY = 'localwiki:draft';
 
   const state = {
-    wiki: {name: 'My Wiki', pages: []}, // {name, pages}; page fields are described in model.js
+    wiki: {name: 'My Wiki', appearance: defaultAppearance(), pages: []}, // {name, appearance, pages}; see model.js
+    logo: null,                // the wiki's logo picture as a PNG data URL (appearance.icon "image"), or null
+    logoDirty: false,          // branding/logo.png must be written (or removed) on the next save
     currentId: null,           // id of the page being viewed
     folderHandle: null,        // the linked, writable folder, or null (not linked / read-only)
     folderName: 'No folder selected',
@@ -69,8 +71,8 @@
   // A copy of the open wiki in browser storage. Not the master copy: folder access is not kept
   // across reloads, so a recovered draft must be saved to a folder again.
   function saveDraft() {
-    const {wiki, currentId, folderName, dirty, renameFrom, setAside, pendingRenames} = state;
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({wiki, currentId, folderName, dirty, renameFrom, setAside, pendingRenames})); }
+    const {wiki, currentId, folderName, dirty, renameFrom, setAside, pendingRenames, logo} = state;
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({wiki, currentId, folderName, dirty, renameFrom, setAside, pendingRenames, logo})); }
     catch (err) { console.warn('Local draft recovery unavailable:', err); }
   }
   // Loads the draft into state, if there is one. Returns true when it held unsaved changes.
@@ -88,10 +90,13 @@
         (typeof entry.text === 'string' || entry.text === null) && !has(entry.id));
       state.pendingRenames = (Array.isArray(recovered.pendingRenames) ? recovered.pendingRenames : [])
         .filter(pair => Array.isArray(pair) && pair.length === 2 && pair.every(id => typeof id === 'string' && PAGE_PATH.test(pathFor(id))));
+      state.logo = typeof recovered.logo === 'string' && recovered.logo.startsWith('data:image/png;base64,') ? recovered.logo : null;
+      if (wiki.appearance.icon === 'image' && !state.logo) wiki.appearance.icon = '';
       state.folderName = recovered.folderName || 'Recovered browser draft';
       state.dirty = recovered.dirty === true;
       state.changedIds = new Set(state.dirty ? wiki.pages.map(p => p.id) : []);
       state.indexDirty = state.dirty;
+      state.logoDirty = state.dirty && !!state.logo;
       return state.dirty && wiki.pages.length > 0;
     } catch (err) {
       console.warn('Draft recovery skipped:', err);

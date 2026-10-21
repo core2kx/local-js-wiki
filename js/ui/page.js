@@ -31,7 +31,7 @@
   // --- Whole page ---------------------------------------------------------------------------------
   function renderAll() {
     els.name.textContent = state.wiki.name;
-    document.title = state.wiki.name + ' — LocalWiki';
+    ui.applyAppearance(); // palette, top-bar name and icon, favicon, window title
     ui.setSaveStatus();
     ui.renderTree();
     renderPage();
@@ -143,6 +143,7 @@
   }
   function toggleTheme() {
     document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    ui.applyAppearance(); // each palette has its own light and dark colors
     savePreferences();
   }
   function savePreferences() {

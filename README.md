@@ -33,6 +33,16 @@ The page editor has three views (remembered per browser):
 
 Pages are always saved as Markdown, whichever view you use, so undo, autosave, page history, renaming and search work the same. Characters you type in Visual stay exactly as typed: `*`, `[[`, `#` or `|` become backslash-escaped in the Markdown (`\*`) instead of turning into formatting. Visual editing writes the page in a consistent Markdown style (for example `-` for bullets), so a page written by hand may be tidied slightly the first time it is edited visually; what it displays does not change.
 
+## Name, icon and colors
+
+Choose **⚙ Wiki settings** in the sidebar to brand a wiki:
+
+- **Wiki name** and **app name**: the app name replaces "LocalWiki" in the top bar and the window title.
+- **Icon**: a bundled icon or emoji, or an uploaded image (scaled to fit 256 × 256 and stored as PNG). It appears in the top bar and as the browser tab icon.
+- **Color palette**: Evergreen (default), Ocean, Slate, Plum, Ember, Rose, Forest or High contrast. Each palette is a matched set of colors for every part of the screen, with a light and a dark version; the ◐ button switches between them. Every palette is checked for readable contrast (WCAG) in both versions.
+
+Changes preview immediately; **Save** keeps them (and can be undone), **Cancel** discards them. Settings are stored in the wiki folder, so anyone opening the wiki or an exported ZIP sees the same branding: in `wiki.json` under `"appearance"`, plus `branding/logo.png` when an image is used. Light or dark mode remains each browser's own choice.
+
 ## Tables, symbols and icons
 
 - **Create tables:** In Visual, choose **▦ Table** to insert a table, then type into the cells and use the table bar to add or remove rows and columns. In Markdown, **▦ Table** opens a grid dialog. Tables have no size limit.
@@ -52,6 +62,7 @@ localwiki/
 │   └── wiki.css               # All styling; self-contained and editable
 ├── js/                        # Plain scripts, loaded in order by index.html
 │   ├── icon-library.js        # Bundled SVG icons; optional to extend
+│   ├── palettes.js            # Color palettes (light and dark versions)
 │   ├── text.js, model.js, markdown.js, zip.js, search.js   # Pure logic
 │   ├── folder.js, state.js    # Folder access helpers; the open wiki and change tracking
 │   ├── revisions.js, history.js, pages.js, storage.js       # Saved history, undo, page operations, files
@@ -72,7 +83,7 @@ localwiki/
 └── README.md
 ```
 
-A wiki folder can be anywhere on your disk, independently of the app directory. **Make a new empty folder for your own wiki** (e.g. `Documents/TechWiki`). The editor writes `wiki.json` and creates `pages/` (and `revisions/` for page history) within that chosen folder.
+A wiki folder can be anywhere on your disk, independently of the app directory. **Make a new empty folder for your own wiki** (e.g. `Documents/TechWiki`). The editor writes `wiki.json` and creates `pages/` (plus `revisions/` for page history and `branding/` for an icon image) within that chosen folder.
 
 ### Example index, `wiki.json`
 

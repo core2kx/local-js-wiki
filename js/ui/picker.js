@@ -1,7 +1,8 @@
 /* LocalWiki — ui/picker.js
    The icon / symbol / emoji picker dialog. Used two ways: inserting into the page text at the
    caret (icons become ":icon[name]:", symbols and emoji are plain Unicode), or choosing the
-   page's own icon (shown beside the title and in the sidebar).
+   page's own icon (shown beside the title and in the sidebar), or handing the choice to a caller
+   (target 'custom', e.g. the wiki icon in the settings dialog).
 
    Depends on: text.js, icon-library.js, state.js, pages.js, ui/elements.js, ui/editor.js
    Provides:   LocalWiki.ui.openPicker, installPicker */
@@ -35,7 +36,8 @@
     ['🧱','Building blocks'], ['📊','Chart'], ['📋','Clipboard'], ['🏷️','Tag'], ['👤','Person']
   ];
 
-  let pickerTarget = 'body'; // 'body' inserts into the text; 'page' sets the page icon
+  let pickerTarget = 'body'; // 'body' inserts into the text; 'page' sets the page icon; 'custom' calls onChoose
+  let onChoose = null;
   let pickerTab = 'icons';   // 'icons' | 'symbols' | 'emoji'
   let pickerCaret = 0;       // caret position when the picker opened (focus moves to the dialog)
 
@@ -64,7 +66,9 @@
       const label = document.createElement('span'); label.className = 'picker-label'; label.textContent = item.label;
       button.append(glyph,label);
       button.addEventListener('click', () => {
-        if (pickerTarget === 'page') {
+        if (pickerTarget === 'custom') {
+          onChoose?.(item.glyph);
+        } else if (pickerTarget === 'page') {
           LW.pages.setIcon(item.glyph);
         } else {
           if (ui.activeSurface() === 'visual') {
@@ -79,11 +83,11 @@
       els.pickerResults.append(button);
     }
     els.pickerClear.hidden = pickerTarget !== 'page';
-    els.pickerHint.textContent = pickerTarget === 'page' ? 'Choose an icon for this page.' : 'Choose a symbol or icon to insert at the cursor.';
+    els.pickerHint.textContent = pickerTarget === 'page' ? 'Choose an icon for this page.' : pickerTarget === 'custom' ? 'Choose an icon or emoji.' : 'Choose a symbol or icon to insert at the cursor.';
   }
-  function openPicker(target = 'body', tab = 'icons') {
-    if (!LW.store.currentPage()) return;
-    pickerTarget = target; pickerTab = tab;
+  function openPicker(target = 'body', tab = 'icons', choose = null) {
+    if (target !== 'custom' && !LW.store.currentPage()) return;
+    pickerTarget = target; pickerTab = tab; onChoose = choose;
     pickerCaret = els.content.selectionStart || 0;
     if (ui.activeSurface() === 'visual') ui.saveVisualSelection(); // the dialog takes the focus
     els.pickerSearch.value = '';

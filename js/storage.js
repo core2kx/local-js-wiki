@@ -2,9 +2,10 @@
    Reading and writing wiki folders: open, save, save to a new folder, autosave, ZIP export, and
    starting a new wiki.
 
-   Folder format:  wiki.json             {schemaVersion, type, name, updatedAt, pages: [{id, file}]}
+   Folder format:  wiki.json             {schemaVersion, type, name, appearance, updatedAt, pages: [{id, file}]}
                    pages/<id>.json       one file per page (see model.js)
                    revisions/<id>.json   earlier versions of a page (see revisions.js)
+                   branding/logo.png     the wiki's icon, when an image was chosen (appearance.icon "image")
    Folders are accessed with the browser's File System Access API (Chrome, Edge, Brave). Without it,
    a folder can still be read through a file input, but not written (use Export ZIP instead).
 
@@ -23,10 +24,10 @@
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
   const {slug} = LW.text;
-  const {isoNow, pathFor, PAGE_PATH, normalizePage, repairStructure} = LW.model;
+  const {isoNow, pathFor, PAGE_PATH, normalizePage, repairStructure, normalizeAppearance, LOGO_PATH} = LW.model;
   const state = LW.state;
   const {markDirty, saveDraft} = LW.store;
-  const {jsonText, readText, writeText, remove} = LW.folder;
+  const {jsonText, readText, writeText, remove, subfolder, blobToDataUrl, dataUrlToBytes} = LW.folder;
   const revisions = LW.revisions;
   const ui = (LW.ui ||= {});
   const SCHEMA_VERSION = 1; // wiki.json format version
@@ -40,16 +41,17 @@
     const entries = [...wiki.pages, ...state.setAside.filter(entry => !forCopy || entry.text !== null)];
     return {
       schemaVersion: SCHEMA_VERSION, type: 'localwiki-index', name: wiki.name,
+      appearance: wiki.appearance,
       updatedAt: wiki.updatedAt || isoNow(),
       pages: entries.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map(p => ({id: p.id, file: pathFor(p.id)}))
     };
   }
 
   // --- Opening ------------------------------------------------------------------------------------
-  // getText(path) returns a file's text, or throws an error named NotFoundError if it is missing.
-  // Returns {name, pages, setAside, problems, repairedIds, indexNeedsRewrite}; only an unusable
-  // wiki.json throws.
-  async function readFolderContents(getText) {
+  // getText(path) / getBlob(path) return a file's text / contents, or throw an error named
+  // NotFoundError if it is missing. Returns {name, appearance, logo, pages, setAside, problems,
+  // repairedIds, indexNeedsRewrite}; only an unusable wiki.json throws.
+  async function readFolderContents(getText, getBlob = null) {
     let index;
     try { index = JSON.parse(await getText('wiki.json')); }
     catch (err) {
@@ -63,6 +65,16 @@
     const problem = (file, message, kind) => result.problems.push({file, message, kind});
     if (typeof index.name === 'string' && index.name.trim()) result.name = index.name.trim().slice(0, 140);
     else problem('wiki.json', 'The wiki has no name, so "Untitled Wiki" is used.', 'info');
+    result.appearance = normalizeAppearance(index.appearance);
+    result.logo = null;
+    if (result.appearance.icon === 'image') {
+      try { result.logo = await blobToDataUrl(await getBlob(LOGO_PATH), 'image/png'); }
+      catch (err) {
+        problem(LOGO_PATH, 'The wiki icon picture could not be read (' + (err.name === 'NotFoundError' ? 'missing' : err.message) + '), so the default icon is used.', 'info');
+        result.appearance.icon = '';
+        result.indexNeedsRewrite = true;
+      }
+    }
     const ids = new Set();
     for (const entry of index.pages) {
       const file = typeof entry?.file === 'string' ? entry.file : 'wiki.json';
@@ -108,7 +120,8 @@
   }
   // Makes a freshly read folder the open wiki. handle is null for a read-only folder.
   function acceptLoadedFolder(result, name, handle) {
-    state.wiki = {name: result.name, pages: result.pages};
+    state.wiki = {name: result.name, appearance: result.appearance, pages: result.pages};
+    state.logo = result.logo; state.logoDirty = false;
     state.currentId = state.wiki.pages[0]?.id || null;
     // Only files that loaded may ever be deleted as stale; set-aside files are never touched.
     state.diskPaths = new Set(result.pages.map(p => pathFor(p.id)));
@@ -127,12 +140,11 @@
     if (count) ui.showProblems();
   }
   async function loadFromFolderHandle(handle) {
-    const getText = async name => {
-      const parts = name.split('/');
-      if (parts.length === 1) return readText(handle, parts[0]);
-      return readText(await handle.getDirectoryHandle('pages'), parts[1]);
+    const fileOf = async path => {
+      const parts = path.split('/');
+      return parts.length === 1 ? [handle, parts[0]] : [await handle.getDirectoryHandle(parts[0]), parts[1]];
     };
-    return readFolderContents(getText);
+    return readFolderContents(async path => readText(...await fileOf(path)), async path => LW.folder.readBlob(...await fileOf(path)));
   }
   function isCancellation(err) { return err?.name === 'AbortError'; }
   async function openFolder() {
@@ -170,11 +182,12 @@
       if (fileMap.has(path)) throw new Error('Duplicate file path: ' + path);
       fileMap.set(path, file);
     }
-    const result = await readFolderContents(async path => {
+    const fileAt = path => {
       const file = fileMap.get(path.normalize('NFC'));
       if (!file) throw new DOMException('Missing ' + path, 'NotFoundError');
-      return file.text();
-    });
+      return file;
+    };
+    const result = await readFolderContents(async path => fileAt(path).text(), async path => fileAt(path));
     acceptLoadedFolder(result, name, null);
     if (!result.problems.length) ui.toast('Folder loaded read-only. Use Save to folder or Export ZIP to keep edits.');
   }
@@ -206,6 +219,7 @@
       state.changedIds = new Set(state.wiki.pages.map(p => p.id));
       state.diskPaths = new Set(); state.indexDirty = true; // never delete files we did not write here
       state.copySetAside = state.setAside.length > 0;
+      state.logoDirty = !!state.logo;
       markDirty();
       await saveChanges();
     } catch (err) {
@@ -225,13 +239,14 @@
     const {wiki, setAside} = state;
     const keep = new Set([...wiki.pages, ...setAside].map(p => pathFor(p.id)));
     const stale = [...state.diskPaths].filter(path => !keep.has(path));
-    if (!state.dirty && !state.indexDirty && !state.changedIds.size && !stale.length && !state.copySetAside) { if (!auto) ui.toast('No changes to save.'); return; }
+    if (!state.dirty && !state.indexDirty && !state.changedIds.size && !stale.length && !state.copySetAside && !state.logoDirty) { if (!auto) ui.toast('No changes to save.'); return; }
     state.saving = true; ui.setSaveStatus();
     // Snapshot everything up front so edits made during the async writes cannot mix states.
     const version = state.changeVersion;
     const pending = wiki.pages.filter(p => state.changedIds.has(p.id)).map(p => [pathFor(p.id), jsonText(p)]);
     const copying = state.copySetAside ? setAside.filter(entry => entry.text !== null) : [];
     const indexText = state.indexDirty ? jsonText(indexObject(state.copySetAside)) : null;
+    const logoChange = state.logoDirty ? {logo: state.logo} : null;
     try {
       // Keep versions that are about to be overwritten or deleted. A problem here must not stop
       // the save itself.
@@ -245,6 +260,12 @@
       }
       // Set-aside files are copied byte for byte, and are not added to diskPaths (never deleted).
       for (const entry of copying) await writeText(pagesDir, entry.file.split('/')[1], entry.text);
+      // The logo picture goes before the manifest that refers to it.
+      if (logoChange) {
+        const [dirName, fileName] = LOGO_PATH.split('/');
+        if (logoChange.logo) await writeText(await subfolder(state.folderHandle, dirName, true), fileName, dataUrlToBytes(logoChange.logo));
+        else { const dir = await subfolder(state.folderHandle, dirName); if (dir) await remove(dir, fileName); }
+      }
       // The manifest is written after every page it references exists, and before stale files go.
       if (indexText) await writeText(state.folderHandle, 'wiki.json', indexText);
       for (const path of stale) {
@@ -257,7 +278,7 @@
       ui.renderProblems();
       state.lastSavedAt = new Date();
       if (version === state.changeVersion) {
-        state.changedIds.clear(); state.indexDirty = false; state.dirty = false; state.dirtySince = 0;
+        state.changedIds.clear(); state.indexDirty = false; state.dirty = false; state.dirtySince = 0; state.logoDirty = false;
         saveDraft();
         if (!auto) ui.toast('Saved ' + pending.length + ' page file(s)' + (indexText ? ' and wiki.json' : '') + ' to ' + state.folderName + '.');
       }
@@ -291,6 +312,7 @@
     const files = [['wiki.json', jsonText(indexObject(true))]];
     for (const p of state.wiki.pages) files.push([pathFor(p.id), jsonText(p)]);
     for (const entry of state.setAside) if (entry.text !== null) files.push([entry.file, entry.text]);
+    if (state.logo && state.wiki.appearance.icon === 'image') files.push([LOGO_PATH, dataUrlToBytes(state.logo)]);
     return files;
   }
   function downloadBlob(blob, name) {
@@ -312,6 +334,7 @@
     const name = prompt('Name your new wiki:', 'My Wiki');
     if (name === null) return;
     state.wiki = LW.model.normalizeWiki({name: name.trim() || 'My Wiki', pages: []});
+    state.logo = null; state.logoDirty = false;
     state.currentId = null; state.folderHandle = null; state.folderName = 'No folder selected'; state.dirty = false;
     state.diskPaths.clear(); state.changedIds.clear(); state.renameFrom = null; state.indexDirty = true; state.changeVersion++;
     state.pendingRenames = []; revisions.reset([]);

@@ -12,10 +12,17 @@ class MemoryDirectory {
     const dir = this;
     return {
       kind: 'file',
-      async getFile() { return {text: async () => dir.files.get(name)}; },
+      async getFile() { return new Blob([dir.files.get(name)]); },
       async createWritable() {
-        let buffer = '';
-        return {write: async text => { buffer += text; }, close: async () => { dir.files.set(name, buffer); dir.log.push('write ' + name); }, abort: async () => {}};
+        const parts = []; // text files are kept as strings, binary files as Uint8Array
+        return {
+          write: async data => { parts.push(data); },
+          close: async () => {
+            dir.files.set(name, parts.every(part => typeof part === 'string') ? parts.join('') : new Uint8Array(await new Blob(parts).arrayBuffer()));
+            dir.log.push('write ' + name);
+          },
+          abort: async () => {}
+        };
       }
     };
   }
