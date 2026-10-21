@@ -1,0 +1,12 @@
+{
+  "id": "troubleshooting-runbook",
+  "title": "Troubleshooting runbook",
+  "parentId": "operations-runbooks",
+  "tags": [
+    "troubleshooting"
+  ],
+  "content": "# Troubleshooting runbook\n\nStart with these commands before escalating.\n\n| Symptom | First commands |\n| --- | --- |\n| Port is down | show interfaces status ; show interfaces Gi1/0/10 ; show logging \\| include Gi1/0/10 |\n| Phone gets no voice VLAN | show cdp neighbors detail ; show interfaces Gi1/0/10 switchport |\n| Slow network | show interfaces counters errors ; show processes cpu sorted |\n| Possible loop | show spanning-tree summary ; show spanning-tree blockedports |\n| PoE device has no power | show power inline ; show power inline Gi1/0/10 detail |\n| Find where a device is plugged in | show mac address-table address aaaa.bbbb.cccc |\n| Client gets no IP address | show ip dhcp snooping ; show ip dhcp snooping binding |\n\n## Common causes\n\n- **Port in err-disabled state**: usually BPDU guard after someone plugged in a small switch. Remove the device, then `shutdown` and `no shutdown` on the port.\n- **No DHCP after a change**: the uplink lost `ip dhcp snooping trust`; see [[Security baseline]].\n- **Phone not powering**: the stack may be out of PoE budget; check `show power inline`.\n\nStill stuck? Open a ticket with the output of the commands above and the switch's row from [[Switch inventory]].",
+  "icon": "icon:search",
+  "createdAt": "2026-09-15T09:00:00.000Z",
+  "updatedAt": "2026-10-16T15:30:00.000Z"
+}

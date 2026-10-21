@@ -1,0 +1,13 @@
+{
+  "id": "vlan-plan",
+  "title": "VLAN plan",
+  "parentId": "standard-configuration",
+  "tags": [
+    "vlan",
+    "addressing"
+  ],
+  "content": "# VLAN plan\n\nVLAN numbers are the same at every site. Subnets below are for HQ; branches use the same VLAN numbers with their own ranges.\n\n| VLAN | Name | Purpose | HQ subnet |\n| --- | --- | --- | --- |\n| 10 | DATA | Wired users | 10.11.10.0/24 |\n| 20 | VOICE | IP phones | 10.11.20.0/24 |\n| 30 | WIFI-CORP | Corporate wireless | 10.11.30.0/23 |\n| 40 | WIFI-GUEST | Guest wireless, internet only | 172.16.40.0/22 |\n| 50 | PRINTERS | Printers and scanners | 10.11.50.0/24 |\n| 99 | MGMT | Switch and access point management | 10.10.0.0/16 |\n| 998 | NATIVE | Native VLAN on trunks; carries no traffic | none |\n| 999 | PARKING | Unused ports; never routed | none |\n\n## Rules\n\n- Never use VLAN 1 for anything.\n- Guest traffic (VLAN 40) is only allowed to the internet firewall.\n- Trunks only carry the VLANs the far end needs; see [[Access and trunk ports]].",
+  "icon": "icon:network",
+  "createdAt": "2026-09-04T09:00:00.000Z",
+  "updatedAt": "2026-09-30T15:30:00.000Z"
+}

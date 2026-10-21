@@ -1,0 +1,12 @@
+{
+  "id": "maintenance-log",
+  "title": "Maintenance log",
+  "parentId": "site-operations",
+  "tags": [
+    "maintenance"
+  ],
+  "content": "# Maintenance log\n\nNewest first. Mock entries.\n\n| Date | Server | Work done | By |\n| --- | --- | --- | --- |\n| 2026-10-17 | edge-wnd-02 | Cleaned clogged air filter after temperature warnings | RB |\n| 2026-10-12 | All servers | BIOS updated to the new baseline | LT |\n| 2026-10-06 | edge-rly-01 | Reinstalled OS after boot mirror replacement | LT |\n| 2026-10-02 | edge-rly-01 | Replaced failed M.2 boot drive | RB |\n| 2026-09-25 | edge-qry-01, edge-qry-02 | Site commissioned | RB, LT |\n| 2026-09-18 | edge-hrb-01 | Replaced data drive in bay 2 | LT |\n\nProcedures: [[Storage layout]], [[BIOS and firmware baseline]], [[Troubleshooting]].",
+  "icon": "icon:calendar",
+  "createdAt": "2026-09-10T09:00:00.000Z",
+  "updatedAt": "2026-10-17T15:30:00.000Z"
+}

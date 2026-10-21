@@ -1,0 +1,13 @@
+{
+  "id": "base-configuration-template",
+  "title": "Base configuration template",
+  "parentId": "standard-configuration",
+  "tags": [
+    "configuration",
+    "template"
+  ],
+  "content": "# Base configuration template\n\nReplace every value in `<angle brackets>` before pasting. Management addresses come from [[Switch inventory]].\n\n```\nhostname <HOSTNAME>\n!\nservice timestamps debug datetime msec localtime\nservice timestamps log datetime msec localtime\nservice password-encryption\n!\nclock timezone UTC 0\nntp server 10.10.5.10\nntp server 10.10.5.11\n!\nip domain name campus.example.net\n!\nvlan 99\n name MGMT\n!\ninterface Vlan99\n description Management\n ip address <MGMT-IP> <MGMT-MASK>\n no shutdown\n!\nip default-gateway <MGMT-GATEWAY>\n!\nlogging host 10.10.5.20\nlogging trap informational\n!\nsnmp-server location <SITE>\nsnmp-server contact network-team@campus.example.net\n!\nip ssh version 2\nline vty 0 15\n transport input ssh\n exec-timeout 10 0\n!\nend\n```\n\nAfter pasting, generate the SSH key and save:\n\n```\ncrypto key generate rsa modulus 2048\nwrite memory\n```\n\n:icon[info]: `ip default-gateway` applies to Layer 2 access switches. Core and distribution switches route, so they use the routing configuration from the design document instead.",
+  "icon": "icon:code",
+  "createdAt": "2026-09-03T09:00:00.000Z",
+  "updatedAt": "2026-10-05T15:30:00.000Z"
+}

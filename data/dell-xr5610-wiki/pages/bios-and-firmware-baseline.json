@@ -1,0 +1,13 @@
+{
+  "id": "bios-and-firmware-baseline",
+  "title": "BIOS and firmware baseline",
+  "parentId": "setup-guides",
+  "tags": [
+    "bios",
+    "firmware"
+  ],
+  "content": "# BIOS and firmware baseline\n\n## Firmware\n\nUpdate in this order: iDRAC and Lifecycle Controller, then BIOS, then everything else (network, storage, power supplies). Use **Maintenance → System Update** in the iDRAC web interface, or upload a Dell Update Package:\n\n```\nracadm update -f <UPDATE-PACKAGE>.EXE\n```\n\n| Component | Approved version | Notes |\n| --- | --- | --- |\n| iDRAC with Lifecycle Controller | 7.x (example) | Always first |\n| BIOS | 1.x (example) | Requires a reboot |\n| Network adapter | site baseline (example) | Same version on both servers at a site |\n| Storage controller | site baseline (example) | Check after every BIOS update |\n\n## BIOS settings\n\n| Setting | Value |\n| --- | --- |\n| Boot mode | UEFI |\n| Secure Boot | Enabled |\n| System profile | Performance |\n| Virtualization technology | Enabled |\n| AC power recovery | Last state |\n\nExample of changing the system profile with `racadm` (the change is applied by a job at the next reboot):\n\n```\nracadm get BIOS.SysProfileSettings.SysProfile\nracadm set BIOS.SysProfileSettings.SysProfile PerfOptimized\nracadm jobqueue create BIOS.Setup.1-1\nracadm serveraction powercycle\n```\n\nNext: [[Storage layout]].",
+  "icon": "icon:settings",
+  "createdAt": "2026-09-05T09:00:00.000Z",
+  "updatedAt": "2026-10-12T15:30:00.000Z"
+}

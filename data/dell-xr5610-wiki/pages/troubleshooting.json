@@ -1,0 +1,13 @@
+{
+  "id": "troubleshooting",
+  "title": "Troubleshooting",
+  "parentId": "site-operations",
+  "tags": [
+    "troubleshooting",
+    "idrac"
+  ],
+  "content": "# Troubleshooting\n\n| Symptom | Where to look first |\n| --- | --- |\n| Server will not power on | iDRAC dashboard; `racadm getsel`; power supply LEDs |\n| Temperature warnings | `racadm getsensorinfo`; check the air filter and cabinet fans |\n| Drive failed | `racadm storage get pdisks`; see [[Storage layout]] |\n| iDRAC unreachable | Management switch port; from the host OS run `racadm racreset` |\n| OS unresponsive | iDRAC virtual console; `racadm serveraction hardreset` as a last resort |\n\n## Logs\n\n```\nracadm getsel\nracadm lclog view\n```\n\n## Collecting data for Dell support\n\nCollect a technical support report and export it to the file share:\n\n```\nracadm techsupreport collect\nracadm techsupreport export -l //10.60.0.30/tsr -u <SHARE-USER> -p <SHARE-PASSWORD>\n```\n\nThen open a case as described in [[Contacts and support]].",
+  "icon": "icon:search",
+  "createdAt": "2026-09-12T09:00:00.000Z",
+  "updatedAt": "2026-10-15T15:30:00.000Z"
+}

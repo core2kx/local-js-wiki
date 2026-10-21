@@ -1,0 +1,13 @@
+{
+  "id": "site-deployment-checklist",
+  "title": "Site deployment checklist",
+  "parentId": "site-operations",
+  "tags": [
+    "deployment",
+    "checklist"
+  ],
+  "content": "# Site deployment checklist\n\n## Before the visit\n\n- ☐ Cabinet depth measured and confirmed against the server's depth plus cabling space\n- ☐ Site power type confirmed (AC or DC) and the matching power supplies fitted\n- ☐ Both servers fully set up on the staging bench ([[Setup guides]])\n- ☐ Site temperature range checked against Dell's rated limits for this configuration\n\n## On site\n\n- ☐ Servers mounted, chassis grounded, both power feeds connected\n- ☐ Air filter fitted, if the cabinet requires one\n- ☐ iDRAC reachable from the operations jump host\n- ☐ Workload network up on both 25 GbE ports\n- ☐ Labels on both ends of every cable\n- ☐ Photos of the cabinet front and back uploaded to the site record\n\n## Handover\n\n- ☐ Servers show healthy in monitoring for 24 hours\n- ☐ Entry added to the [[Maintenance log]]",
+  "icon": "icon:check",
+  "createdAt": "2026-09-09T09:00:00.000Z",
+  "updatedAt": "2026-10-10T15:30:00.000Z"
+}

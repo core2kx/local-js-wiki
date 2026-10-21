@@ -1,0 +1,12 @@
+{
+  "id": "catalyst-switching-home",
+  "title": "Catalyst Switching Home",
+  "parentId": null,
+  "tags": [
+    "overview"
+  ],
+  "content": "# Catalyst switching home\n\n> **Mock data.** Names, addresses, serial numbers, versions and dates in this wiki are invented for demonstration. Check the vendor documentation for your hardware and software release before using any procedure on real equipment.\n\nThis wiki documents the campus switching fleet: **Cisco Catalyst 9000-series** switches running **Cisco IOS XE**.\n\n## Where to start\n\n- [[Hardware models]]: which Catalyst family is used for which role.\n- [[Switch inventory]]: every switch, its site, management address and stack.\n- [[Standard configuration]]: the baseline every switch gets.\n- [[Operations runbooks]]: upgrades, stacking and troubleshooting.\n- [[Change log]]: what changed and when.\n\n## Network at a glance\n\n| Layer | Platform | Switches |\n| --- | --- | --- |\n| Core | Catalyst 9500 (StackWise Virtual pair) | 2 |\n| Distribution | Catalyst 9500 | 2 |\n| Access, HQ | Catalyst 9300 stacks | 4 stacks, 11 members |\n| Access, branches | Catalyst 9200 | 3 sites, 4 switches |\n\n:icon[warning]: Never change the core pair during business hours. See [[Change windows]].",
+  "icon": "icon:home",
+  "createdAt": "2026-09-01T09:00:00.000Z",
+  "updatedAt": "2026-10-18T15:30:00.000Z"
+}

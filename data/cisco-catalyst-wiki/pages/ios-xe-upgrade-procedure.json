@@ -1,0 +1,13 @@
+{
+  "id": "ios-xe-upgrade-procedure",
+  "title": "IOS XE upgrade procedure",
+  "parentId": "operations-runbooks",
+  "tags": [
+    "upgrade",
+    "ios-xe"
+  ],
+  "content": "# IOS XE upgrade procedure\n\nAll switches run in **install mode**. Upgrade one stack or switch at a time, inside a [[Change windows|change window]].\n\n## Approved releases\n\n| Platform | Approved release | Image file pattern |\n| --- | --- | --- |\n| Catalyst 9500 | 17.12.x (example) | cat9k_iosxe.<VERSION>.SPA.bin |\n| Catalyst 9300 | 17.12.x (example) | cat9k_iosxe.<VERSION>.SPA.bin |\n| Catalyst 9200 | 17.12.x (example) | cat9k_lite_iosxe.<VERSION>.SPA.bin |\n\n## Steps\n\n1. Check the current release and that the switch is in install mode:\n\n```\nshow version\nshow install summary\n```\n\n2. Check free space and remove old packages:\n\n```\ndir flash:\ninstall remove inactive\n```\n\n3. Copy the image from the file server:\n\n```\ncopy scp://netadmin@10.10.5.40/images/<IMAGE-FILE> flash:\n```\n\n4. Add, activate and commit in one step. The switch (or the whole stack) reloads:\n\n```\ninstall add file flash:<IMAGE-FILE> activate commit\n```\n\n5. After the reload, verify:\n\n```\nshow version\nshow install summary\nshow switch\n```\n\n## If something goes wrong\n\n- Console in and check `show install summary` for the committed and active packages.\n- Roll back with the `install rollback` command to the previous committed state; check the exact options for your release first.\n- Record the outcome in the [[Change log]].",
+  "icon": "icon:rocket",
+  "createdAt": "2026-09-10T09:00:00.000Z",
+  "updatedAt": "2026-10-14T15:30:00.000Z"
+}

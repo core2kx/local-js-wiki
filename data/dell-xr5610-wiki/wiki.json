@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "type": "localwiki-index",
+  "name": "Edge Compute: Dell PowerEdge XR5610",
+  "updatedAt": "2026-10-17T15:30:00.000Z",
+  "pages": [
+    {
+      "id": "bios-and-firmware-baseline",
+      "file": "pages/bios-and-firmware-baseline.json"
+    },
+    {
+      "id": "contacts-and-support",
+      "file": "pages/contacts-and-support.json"
+    },
+    {
+      "id": "idrac9-setup",
+      "file": "pages/idrac9-setup.json"
+    },
+    {
+      "id": "maintenance-log",
+      "file": "pages/maintenance-log.json"
+    },
+    {
+      "id": "os-installation",
+      "file": "pages/os-installation.json"
+    },
+    {
+      "id": "platform-overview",
+      "file": "pages/platform-overview.json"
+    },
+    {
+      "id": "server-inventory",
+      "file": "pages/server-inventory.json"
+    },
+    {
+      "id": "setup-guides",
+      "file": "pages/setup-guides.json"
+    },
+    {
+      "id": "site-deployment-checklist",
+      "file": "pages/site-deployment-checklist.json"
+    },
+    {
+      "id": "site-operations",
+      "file": "pages/site-operations.json"
+    },
+    {
+      "id": "storage-layout",
+      "file": "pages/storage-layout.json"
+    },
+    {
+      "id": "troubleshooting",
+      "file": "pages/troubleshooting.json"
+    },
+    {
+      "id": "xr5610-edge-servers",
+      "file": "pages/xr5610-edge-servers.json"
+    }
+  ]
+}

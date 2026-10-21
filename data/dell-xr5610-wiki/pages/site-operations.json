@@ -1,0 +1,12 @@
+{
+  "id": "site-operations",
+  "title": "Site operations",
+  "parentId": null,
+  "tags": [
+    "operations"
+  ],
+  "content": "# Site operations\n\n- [[Site deployment checklist]]: everything to check when installing servers at a site.\n- [[Troubleshooting]]: where to look first when something is wrong.\n- [[Maintenance log]]: what was done to which server.\n- [[Contacts and support]]: who to call.",
+  "icon": "icon:wrench",
+  "createdAt": "2026-09-08T09:00:00.000Z",
+  "updatedAt": "2026-10-01T15:30:00.000Z"
+}

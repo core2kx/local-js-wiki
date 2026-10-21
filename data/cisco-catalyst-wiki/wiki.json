@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "type": "localwiki-index",
+  "name": "Campus Network: Cisco Catalyst",
+  "updatedAt": "2026-10-18T15:30:00.000Z",
+  "pages": [
+    {
+      "id": "access-and-trunk-ports",
+      "file": "pages/access-and-trunk-ports.json"
+    },
+    {
+      "id": "base-configuration-template",
+      "file": "pages/base-configuration-template.json"
+    },
+    {
+      "id": "catalyst-switching-home",
+      "file": "pages/catalyst-switching-home.json"
+    },
+    {
+      "id": "change-log",
+      "file": "pages/change-log.json"
+    },
+    {
+      "id": "change-windows",
+      "file": "pages/change-windows.json"
+    },
+    {
+      "id": "hardware-models",
+      "file": "pages/hardware-models.json"
+    },
+    {
+      "id": "ios-xe-upgrade-procedure",
+      "file": "pages/ios-xe-upgrade-procedure.json"
+    },
+    {
+      "id": "operations-runbooks",
+      "file": "pages/operations-runbooks.json"
+    },
+    {
+      "id": "security-baseline",
+      "file": "pages/security-baseline.json"
+    },
+    {
+      "id": "stackwise-stacks",
+      "file": "pages/stackwise-stacks.json"
+    },
+    {
+      "id": "standard-configuration",
+      "file": "pages/standard-configuration.json"
+    },
+    {
+      "id": "switch-inventory",
+      "file": "pages/switch-inventory.json"
+    },
+    {
+      "id": "troubleshooting-runbook",
+      "file": "pages/troubleshooting-runbook.json"
+    },
+    {
+      "id": "vlan-plan",
+      "file": "pages/vlan-plan.json"
+    }
+  ]
+}

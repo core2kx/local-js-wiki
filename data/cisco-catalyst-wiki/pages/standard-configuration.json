@@ -1,0 +1,12 @@
+{
+  "id": "standard-configuration",
+  "title": "Standard configuration",
+  "parentId": null,
+  "tags": [
+    "configuration"
+  ],
+  "content": "# Standard configuration\n\nEvery switch starts from the same building blocks. Apply them in this order:\n\n1. [[Base configuration template]]: hostname, time, logging, management interface, SSH.\n2. [[Security baseline]]: AAA, DHCP snooping, disabled web server.\n3. [[VLAN plan]]: the VLANs for the site.\n4. [[Access and trunk ports]]: port templates for desks, phones, access points and uplinks.\n\nKeep the running configuration identical to the templates wherever possible. Document any exception on the switch's row in [[Switch inventory]] and in the [[Change log]].",
+  "icon": "icon:settings",
+  "createdAt": "2026-09-03T09:00:00.000Z",
+  "updatedAt": "2026-09-20T15:30:00.000Z"
+}

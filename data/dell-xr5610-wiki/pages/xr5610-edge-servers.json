@@ -1,0 +1,12 @@
+{
+  "id": "xr5610-edge-servers",
+  "title": "XR5610 Edge Servers",
+  "parentId": null,
+  "tags": [
+    "overview"
+  ],
+  "content": "# XR5610 edge servers\n\n> **Mock data.** Names, addresses, serial numbers, versions and dates in this wiki are invented for demonstration. Check the vendor documentation for your hardware and software release before using any procedure on real equipment.\n\nOur edge sites run **Dell PowerEdge XR5610** servers: compact, ruggedised 1U servers built for telecom cabinets and other edge locations. Each site has two servers for redundancy.\n\n## Where to start\n\n- [[Platform overview]]: what the XR5610 is and our standard build.\n- [[Server inventory]]: every server, site, service tag and address.\n- [[Setup guides]]: iDRAC, BIOS and firmware, storage, and OS installation.\n- [[Site operations]]: deployment checklist, troubleshooting and maintenance.\n\n## Fleet at a glance\n\n| Item | Value |\n| --- | --- |\n| Sites | 5 |\n| Servers | 10 (2 per site) |\n| Operating system | Ubuntu Server 24.04 LTS |\n| Workloads | Container cluster for local video analytics and telemetry |\n| Out-of-band management | iDRAC9 on a separate management network |\n\n:icon[info]: Confirm every hardware limit (temperature, power, depth) against Dell's specification sheet for your configuration.",
+  "icon": "icon:home",
+  "createdAt": "2026-09-02T09:00:00.000Z",
+  "updatedAt": "2026-10-17T15:30:00.000Z"
+}

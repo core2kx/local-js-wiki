@@ -1,0 +1,12 @@
+{
+  "id": "contacts-and-support",
+  "title": "Contacts and support",
+  "parentId": "site-operations",
+  "tags": [
+    "contacts"
+  ],
+  "content": "# Contacts and support\n\nAll contacts are mock entries.\n\n| Who | When | How |\n| --- | --- | --- |\n| Edge operations on-call | 24/7 | Extension 4400 |\n| Site access (keys, permits) | Business hours | facilities@edge.example.net |\n| Dell hardware support | 24/7 | Dell support portal; contract DEMO-CONTRACT-001 |\n\nBefore calling Dell, have ready:\n\n- The service tag from [[Server inventory]]\n- A technical support report (see [[Troubleshooting]])\n- What changed recently (see [[Maintenance log]])",
+  "icon": "icon:phone",
+  "createdAt": "2026-09-10T09:00:00.000Z",
+  "updatedAt": "2026-09-10T15:30:00.000Z"
+}

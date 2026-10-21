@@ -1,0 +1,12 @@
+{
+  "id": "setup-guides",
+  "title": "Setup guides",
+  "parentId": null,
+  "tags": [
+    "setup"
+  ],
+  "content": "# Setup guides\n\nFollow these in order for every new server:\n\n1. [[iDRAC9 setup]]: management address, accounts, time and logging.\n2. [[BIOS and firmware baseline]]: update firmware and apply BIOS settings.\n3. [[Storage layout]]: boot mirror and data drives.\n4. [[OS installation]]: install Ubuntu through iDRAC virtual media.\n\nThen complete the [[Site deployment checklist]] before handing the site over.",
+  "icon": "icon:book",
+  "createdAt": "2026-09-04T09:00:00.000Z",
+  "updatedAt": "2026-09-25T15:30:00.000Z"
+}

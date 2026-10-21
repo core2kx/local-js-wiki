@@ -1,0 +1,12 @@
+{
+  "id": "server-inventory",
+  "title": "Server inventory",
+  "parentId": "platform-overview",
+  "tags": [
+    "inventory"
+  ],
+  "content": "# Server inventory\n\nService tags below are placeholders.\n\n| Hostname | Site | Service tag | iDRAC IP | OS IP | Power |\n| --- | --- | --- | --- | --- | --- |\n| edge-hrb-01 | Harbor Station | DEMO0A1 | 10.50.1.11 | 10.60.1.11 | AC |\n| edge-hrb-02 | Harbor Station | DEMO0A2 | 10.50.1.12 | 10.60.1.12 | AC |\n| edge-mil-01 | Mill Road | DEMO0B1 | 10.50.2.11 | 10.60.2.11 | AC |\n| edge-mil-02 | Mill Road | DEMO0B2 | 10.50.2.12 | 10.60.2.12 | AC |\n| edge-qry-01 | Quarry Depot | DEMO0C1 | 10.50.3.11 | 10.60.3.11 | DC |\n| edge-qry-02 | Quarry Depot | DEMO0C2 | 10.50.3.12 | 10.60.3.12 | DC |\n| edge-wnd-01 | Wind Farm 3 | DEMO0D1 | 10.50.4.11 | 10.60.4.11 | DC |\n| edge-wnd-02 | Wind Farm 3 | DEMO0D2 | 10.50.4.12 | 10.60.4.12 | DC |\n| edge-rly-01 | Rail Yard North | DEMO0E1 | 10.50.5.11 | 10.60.5.11 | AC |\n| edge-rly-02 | Rail Yard North | DEMO0E2 | 10.50.5.12 | 10.60.5.12 | AC |\n\n- iDRAC addresses: 10.50.<site>.0/24, gateway .1\n- OS addresses: 10.60.<site>.0/24, gateway .1\n\nRecent work on each server is recorded in the [[Maintenance log]].",
+  "icon": "icon:table",
+  "createdAt": "2026-09-03T09:00:00.000Z",
+  "updatedAt": "2026-10-17T15:30:00.000Z"
+}

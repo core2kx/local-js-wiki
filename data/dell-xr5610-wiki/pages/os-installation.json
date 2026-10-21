@@ -1,0 +1,13 @@
+{
+  "id": "os-installation",
+  "title": "OS installation",
+  "parentId": "setup-guides",
+  "tags": [
+    "os",
+    "ubuntu"
+  ],
+  "content": "# OS installation\n\nUbuntu Server 24.04 LTS is installed remotely through iDRAC virtual media, using the automated installer configuration from the deployment repository.\n\n## Attach the installer image\n\n```\nracadm remoteimage -c -u <SHARE-USER> -p <SHARE-PASSWORD> -l //10.60.0.30/isos/ubuntu-24.04-live-server-amd64.iso\nracadm remoteimage -s\n```\n\n## Boot from it once\n\n```\nracadm set iDRAC.ServerBoot.FirstBootDevice VCD-DVD\nracadm set iDRAC.ServerBoot.BootOnce Enabled\nracadm serveraction powercycle\n```\n\nWatch progress in the iDRAC virtual console. When the installation finishes, detach the image:\n\n```\nracadm remoteimage -d\n```\n\n## After installation\n\n- ☐ Hostname and OS address match [[Server inventory]]\n- ☐ Both 25 GbE ports bonded and connected to both site switches\n- ☐ Data drives pooled as described in [[Storage layout]]\n- ☐ Server joined to the container cluster and visible in monitoring",
+  "icon": "icon:rocket",
+  "createdAt": "2026-09-07T09:00:00.000Z",
+  "updatedAt": "2026-10-06T15:30:00.000Z"
+}

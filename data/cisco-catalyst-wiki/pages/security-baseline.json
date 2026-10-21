@@ -1,0 +1,13 @@
+{
+  "id": "security-baseline",
+  "title": "Security baseline",
+  "parentId": "standard-configuration",
+  "tags": [
+    "security",
+    "aaa"
+  ],
+  "content": "# Security baseline\n\nApplied to every switch after the [[Base configuration template]].\n\n## AAA with TACACS+\n\n```\naaa new-model\ntacacs server TACACS-1\n address ipv4 10.10.5.30\n key <SHARED-SECRET>\naaa group server tacacs+ TACACS-GROUP\n server name TACACS-1\naaa authentication login default group TACACS-GROUP local\naaa authorization exec default group TACACS-GROUP local\n```\n\nKeep one local emergency account in the password vault. It only works when TACACS+ is unreachable.\n\n## DHCP snooping and the web server\n\n```\nip dhcp snooping\nip dhcp snooping vlan 10,20,50\n!\nno ip http server\nno ip http secure-server\n```\n\nUplinks must be trusted (`ip dhcp snooping trust`), or clients stop getting addresses. See [[Access and trunk ports]].\n\n## Checklist\n\n- ☑ SSH version 2 only, no Telnet\n- ☑ TACACS+ for all logins\n- ☑ HTTP and HTTPS servers disabled\n- ☑ Unused ports shut down in VLAN 999\n- ☐ 802.1X on desk ports (planned for next year)",
+  "icon": "icon:shield",
+  "createdAt": "2026-09-06T09:00:00.000Z",
+  "updatedAt": "2026-10-09T15:30:00.000Z"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "change-log",
+  "title": "Change log",
+  "parentId": null,
+  "tags": [
+    "changes"
+  ],
+  "content": "# Change log\n\nNewest first. Mock entries.\n\n| Date | Switch | Change | By |\n| --- | --- | --- | --- |\n| 2026-10-18 | br-east-01 | Replaced failed power supply | AK |\n| 2026-10-14 | hq-acc-b1 | Upgraded IOS XE; all 4 members back in 9 minutes | JD |\n| 2026-10-11 | hq-acc-a2 | Moved 6 desk ports to VLAN 10 after office move | MS |\n| 2026-10-05 | All access switches | Added second NTP server to base template | JD |\n| 2026-09-30 | hq-dist-b | Pruned VLAN 40 from trunks to building B floor 2 | AK |\n| 2026-09-20 | br-south-01 | Added second Catalyst 9200 to the stack | MS |\n\nProcedures: [[IOS XE upgrade procedure]], [[StackWise stacks]].",
+  "icon": "icon:clock",
+  "createdAt": "2026-09-01T09:00:00.000Z",
+  "updatedAt": "2026-10-18T15:30:00.000Z"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "operations-runbooks",
+  "title": "Operations runbooks",
+  "parentId": null,
+  "tags": [
+    "operations"
+  ],
+  "content": "# Operations runbooks\n\nStep-by-step procedures for day-to-day work:\n\n- [[IOS XE upgrade procedure]]: upgrading switches in install mode.\n- [[StackWise stacks]]: adding, replacing and renumbering stack members.\n- [[Troubleshooting runbook]]: first commands for common problems.\n- [[Change windows]]: when each kind of change is allowed.\n\nRecord every change in the [[Change log]].",
+  "icon": "icon:book",
+  "createdAt": "2026-09-08T09:00:00.000Z",
+  "updatedAt": "2026-10-01T15:30:00.000Z"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "idrac9-setup",
+  "title": "iDRAC9 setup",
+  "parentId": "setup-guides",
+  "tags": [
+    "idrac",
+    "racadm"
+  ],
+  "content": "# iDRAC9 setup\n\nSet the iDRAC address first, either in System Setup (press F2 at boot, then **iDRAC Settings → Network**) or with `racadm` from the host OS. Addresses come from [[Server inventory]].\n\n## Network\n\n```\nracadm set iDRAC.IPv4.DHCPEnable 0\nracadm set iDRAC.IPv4.Address 10.50.1.11\nracadm set iDRAC.IPv4.Netmask 255.255.255.0\nracadm set iDRAC.IPv4.Gateway 10.50.1.1\nracadm set iDRAC.NIC.DNSRacName idrac-edge-hrb-01\n```\n\n## Accounts\n\nChange the default password before the server leaves the staging bench:\n\n```\nracadm set iDRAC.Users.2.Password <NEW-PASSWORD>\n```\n\n## Time and logging\n\n```\nracadm set iDRAC.NTPConfigGroup.NTPEnable Enabled\nracadm set iDRAC.NTPConfigGroup.NTP1 10.60.0.10\nracadm set iDRAC.SysLog.SysLogEnable 1\nracadm set iDRAC.SysLog.Server1 10.60.0.20\n```\n\n## Remote use\n\nFrom the operations jump host:\n\n```\nracadm -r 10.50.1.11 -u <USER> -p <PASSWORD> getsysinfo\n```\n\n## Security checklist\n\n- ☑ Default password changed\n- ☑ iDRAC only reachable on the management network\n- ☑ IPMI over LAN disabled unless a tool needs it (`racadm set iDRAC.IPMILan.Enable 0`)\n- ☐ Replace the self-signed certificate with one from the internal CA\n\nNext: [[BIOS and firmware baseline]].",
+  "icon": "icon:terminal",
+  "createdAt": "2026-09-04T09:00:00.000Z",
+  "updatedAt": "2026-10-08T15:30:00.000Z"
+}

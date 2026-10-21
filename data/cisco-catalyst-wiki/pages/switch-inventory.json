@@ -1,0 +1,12 @@
+{
+  "id": "switch-inventory",
+  "title": "Switch inventory",
+  "parentId": "hardware-models",
+  "tags": [
+    "inventory"
+  ],
+  "content": "# Switch inventory\n\nOne row per switch or stack. Serial numbers are tracked in the asset system, not here.\n\n| Hostname | Model | Site | Role | Management IP | Stack |\n| --- | --- | --- | --- | --- | --- |\n| hq-core-01 | Catalyst 9500 | HQ data centre | Core | 10.10.0.1 | StackWise Virtual with hq-core-02 |\n| hq-core-02 | Catalyst 9500 | HQ data centre | Core | 10.10.0.2 | StackWise Virtual with hq-core-01 |\n| hq-dist-a | Catalyst 9500 | HQ building A | Distribution | 10.10.0.11 | Standalone |\n| hq-dist-b | Catalyst 9500 | HQ building B | Distribution | 10.10.0.12 | Standalone |\n| hq-acc-a1 | Catalyst 9300 | Building A, floor 1 | Access | 10.10.1.11 | 3 members |\n| hq-acc-a2 | Catalyst 9300 | Building A, floor 2 | Access | 10.10.1.12 | 2 members |\n| hq-acc-b1 | Catalyst 9300 | Building B, floor 1 | Access | 10.10.1.21 | 4 members |\n| hq-acc-b2 | Catalyst 9300 | Building B, floor 2 | Access | 10.10.1.22 | 2 members |\n| br-north-01 | Catalyst 9200 | North branch | Access | 10.20.0.11 | Standalone |\n| br-south-01 | Catalyst 9200 | South branch | Access | 10.30.0.11 | 2 members |\n| br-east-01 | Catalyst 9200 | East branch | Access | 10.40.0.11 | Standalone |\n\nStack member numbering and priorities are described in [[StackWise stacks]].",
+  "icon": "icon:table",
+  "createdAt": "2026-09-02T09:00:00.000Z",
+  "updatedAt": "2026-10-18T15:30:00.000Z"
+}

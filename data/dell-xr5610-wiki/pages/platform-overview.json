@@ -1,0 +1,13 @@
+{
+  "id": "platform-overview",
+  "title": "Platform overview",
+  "parentId": null,
+  "tags": [
+    "hardware",
+    "xr5610"
+  ],
+  "content": "# Platform overview\n\nThe PowerEdge XR5610 is a short-depth, single-socket 1U server designed for edge and telecom sites, where racks are shallow and conditions are harsher than in a data centre. It is managed out-of-band with **iDRAC9**.\n\n## Why we chose it\n\n- **Short depth** fits the shallow cabinets at our sites.\n- **Rugged design** for sites with dust, vibration and wide temperature swings.\n- **Single socket** keeps power and cost down for modest edge workloads.\n- **iDRAC9** gives remote console, power control and alerts when nobody is on site.\n\n## Our standard build\n\nThese are the values on our purchase order, not limits of the platform.\n\n| Component | Our build |\n| --- | --- |\n| Processor | 1 × Intel Xeon (4th generation Scalable family), 24 cores |\n| Memory | 256 GB (8 × 32 GB) |\n| Boot | 2 × M.2 SSD, mirrored |\n| Data | 4 × 1.92 TB SSD |\n| Network | 2 × 25 GbE for workloads, 1 GbE dedicated iDRAC port |\n| Power | 2 redundant supplies; AC or DC to match the site |\n\nInstalled units are listed in [[Server inventory]]. Setup starts with [[iDRAC9 setup]].",
+  "icon": "icon:server",
+  "createdAt": "2026-09-02T09:00:00.000Z",
+  "updatedAt": "2026-10-01T15:30:00.000Z"
+}

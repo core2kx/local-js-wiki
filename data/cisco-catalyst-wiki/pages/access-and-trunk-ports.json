@@ -1,0 +1,13 @@
+{
+  "id": "access-and-trunk-ports",
+  "title": "Access and trunk ports",
+  "parentId": "standard-configuration",
+  "tags": [
+    "interfaces",
+    "template"
+  ],
+  "content": "# Access and trunk ports\n\n## Desk port (PC plus IP phone)\n\n```\ninterface GigabitEthernet1/0/10\n description DESK\n switchport mode access\n switchport access vlan 10\n switchport voice vlan 20\n spanning-tree portfast\n spanning-tree bpduguard enable\n no shutdown\n```\n\n## Uplink trunk (access stack to distribution)\n\n```\ninterface TenGigabitEthernet1/1/1\n description UPLINK-hq-dist-a\n switchport mode trunk\n switchport trunk native vlan 998\n switchport trunk allowed vlan 10,20,30,40,50,99\n ip dhcp snooping trust\n no shutdown\n```\n\n## Unused ports\n\n```\ninterface range GigabitEthernet1/0/40 - 48\n description UNUSED\n switchport mode access\n switchport access vlan 999\n shutdown\n```\n\n| Port type | VLANs | PortFast | BPDU guard |\n| --- | --- | --- | --- |\n| Desk | 10 + voice 20 | Yes | Yes |\n| Access point | Trunk 30,40,99 | No | No |\n| Printer | 50 | Yes | Yes |\n| Uplink | Trunk, native 998 | No | No |\n\nVLAN meanings are in [[VLAN plan]]. DHCP snooping is part of the [[Security baseline]].",
+  "icon": "icon:link",
+  "createdAt": "2026-09-05T09:00:00.000Z",
+  "updatedAt": "2026-10-11T15:30:00.000Z"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "hardware-models",
+  "title": "Hardware models",
+  "parentId": null,
+  "tags": [
+    "hardware",
+    "catalyst"
+  ],
+  "content": "# Hardware models\n\nThe fleet standardises on three Catalyst 9000 families. Each family has one role, so spares and configuration templates can be shared.\n\n| Family | Role | Why this family |\n| --- | --- | --- |\n| Catalyst 9500 | Core and distribution | High-speed uplinks, redundant power and fans, StackWise Virtual for the core pair |\n| Catalyst 9300 | Access at HQ (stacked) | StackWise-480 stacking, PoE+ for phones and access points |\n| Catalyst 9200 | Access at branches | Lower cost, simple stacking for small sites |\n\n## Common traits\n\n- All switches run **IOS XE in install mode**; see [[IOS XE upgrade procedure]].\n- Management uses VLAN 99 only; see [[VLAN plan]].\n- Core, distribution and every access stack have two power supplies on separate feeds.\n\n## Spares\n\n| Item | Kept at | Quantity |\n| --- | --- | --- |\n| Catalyst 9300, 48-port PoE+ | HQ store room | 2 |\n| Catalyst 9200, 24-port PoE+ | HQ store room | 1 |\n| Stack cable, 50 cm | Each HQ wiring closet | 1 |\n| AC power supply (9300) | HQ store room | 4 |\n\nSee [[Switch inventory]] for where each model is installed.",
+  "icon": "icon:server",
+  "createdAt": "2026-09-01T09:00:00.000Z",
+  "updatedAt": "2026-10-02T15:30:00.000Z"
+}

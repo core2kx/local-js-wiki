@@ -1,0 +1,13 @@
+{
+  "id": "stackwise-stacks",
+  "title": "StackWise stacks",
+  "parentId": "operations-runbooks",
+  "tags": [
+    "stacking",
+    "catalyst-9300"
+  ],
+  "content": "# StackWise stacks\n\nHQ access switches are Catalyst 9300 stacks; the South branch has a two-member Catalyst 9200 stack. Member counts are in [[Switch inventory]].\n\n## Check a stack\n\n```\nshow switch\nshow switch stack-ports summary\n```\n\nAll members should show **Ready**, and every stack port should be **OK**.\n\n## Member numbers and priorities\n\n| Member | Priority | Role |\n| --- | --- | --- |\n| 1 | 15 | Active |\n| 2 | 14 | Standby |\n| 3 and above | 1 (default) | Member |\n\n```\nswitch 1 priority 15\nswitch 2 priority 14\n```\n\nTo give a member a different number (takes effect after it reloads):\n\n```\nswitch 3 renumber 2\n```\n\n## Add a member\n\n1. Make sure the new switch runs the same IOS XE release, or enable automatic upgrade on the stack: `software auto-upgrade enable`.\n2. Power off the new switch and connect the stack cables so the stack stays a closed ring.\n3. Power it on and wait for it to join; check with `show switch`.\n4. Apply port configuration from [[Access and trunk ports]].\n\n## Replace a failed member\n\nPre-provision the slot so the configuration is kept for the replacement:\n\n```\nswitch 2 provision <SWITCH-TYPE>\n```\n\nThen install the replacement with the same member number and check `show switch`.",
+  "icon": "icon:server",
+  "createdAt": "2026-09-12T09:00:00.000Z",
+  "updatedAt": "2026-10-03T15:30:00.000Z"
+}

@@ -48,8 +48,10 @@ localwiki/
 │   ├── ui/                    # Everything on screen, one file per area
 │   └── app.js                 # Wiring and startup
 ├── tests/                     # Developer tests: node --test (not needed to use the wiki)
-├── data/
-│   └── example-wiki/          # Example content: choose Open folder -> this directory
+├── data/                      # Sample wikis: choose Open folder -> one of these directories
+│   ├── cisco-catalyst-wiki/   # Mock campus network runbook (Cisco Catalyst 9000, IOS XE)
+│   ├── dell-xr5610-wiki/      # Mock edge server runbook (Dell PowerEdge XR5610, iDRAC9)
+│   └── example-wiki/          # Short tour of the editor's features
 │       ├── wiki.json         # Index only (name, page IDs, filenames)
 │       └── pages/
 │           ├── welcome.json
@@ -96,7 +98,7 @@ A wiki folder can be anywhere on your disk, independently of the app directory. 
 ## Getting started
 
 1. Extract the ZIP, then open `index.html` in Brave (or another Chromium-based desktop browser).
-2. Click **Open folder** and select `data/example-wiki` to see the included sample, **or** click the `+` button to create your own pages.
+2. Click **Open folder** and select one of the samples in `data/` (`example-wiki` tours the editor; `cisco-catalyst-wiki` and `dell-xr5610-wiki` are realistic mock runbooks), **or** click the `+` button to create your own pages. The mock wikis use invented names, addresses and versions; check vendor documentation before using their procedures. Opening a sample with write access means edits are saved into it; use **Save to folder…** to work on a copy.
 3. Edit titles, tags, parent relationships, and Markdown as before. Page width can be changed to 75%, 90%, or 100%; 90% is the default.
 4. Click **Save changes** (or **Save to folder…**) and choose a writable directory. From then on, **changes are saved automatically** to that folder about 2 seconds after you stop editing (at least every 15 seconds while typing, and when you switch away from the tab). The status in the top bar shows *Saving…* and *Saved at …*. **Save changes** still saves immediately.
 5. To make a complete portable backup, click **Export wiki ZIP…**. The downloaded ZIP contains `wiki.json` and the individual `pages/*.json` files. Extract that ZIP and open its extracted folder to work with it later.

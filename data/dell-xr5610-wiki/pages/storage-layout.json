@@ -1,0 +1,13 @@
+{
+  "id": "storage-layout",
+  "title": "Storage layout",
+  "parentId": "setup-guides",
+  "tags": [
+    "storage",
+    "raid"
+  ],
+  "content": "# Storage layout\n\n| Purpose | Drives | Layout |\n| --- | --- | --- |\n| Operating system | 2 × M.2 SSD | Hardware mirror (RAID 1) on the boot controller |\n| Container data | 4 × 1.92 TB SSD | Presented individually, pooled by the OS as two mirrored pairs |\n\n## Check what the server sees\n\n```\nracadm storage get controllers\nracadm storage get vdisks\nracadm storage get pdisks -o -p State\n```\n\nAll physical disks should be **Online** or **Ready**, and the boot virtual disk should be **Online**.\n\n## Replacing a data drive\n\n1. Identify the failed drive with `racadm storage get pdisks` and the drive LEDs.\n2. Replace it with the same model and size.\n3. Add the new drive back to its mirror in the OS, and confirm the rebuild finishes.\n4. Record the swap in the [[Maintenance log]].\n\nNext: [[OS installation]].",
+  "icon": "icon:database",
+  "createdAt": "2026-09-06T09:00:00.000Z",
+  "updatedAt": "2026-09-28T15:30:00.000Z"
+}
