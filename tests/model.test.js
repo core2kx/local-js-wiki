@@ -28,6 +28,12 @@ test('findLinkTarget prefers IDs, then case-insensitive titles', () => {
   assert.equal(model.findLinkTarget(pages, 'missing'), undefined);
 });
 
+test('linkTargetFor uses the title unless it would break the link syntax', () => {
+  assert.equal(model.linkTargetFor(page('welcome', 'Welcome')), 'Welcome');
+  assert.equal(model.linkTargetFor(page('a-b', 'A | B')), 'a-b');
+  assert.equal(model.linkTargetFor(page('c', 'Use [x]')), 'c');
+});
+
 test('tree helpers', () => {
   const pages = [page('a', 'A'), page('b', 'B', 'a'), page('c', 'C', 'b'), page('d', 'D')];
   assert.deepEqual([...model.descendantsOf(pages, 'a')].sort(), ['a', 'b', 'c']);

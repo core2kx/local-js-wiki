@@ -84,5 +84,61 @@
     return parts;
   }
 
-  LW.search = {searchTerms, queryPhrase, scorePage, searchPages, snippetParts};
+  // --- Picking a page by title (the link dialog) --------------------------------------------------
+  // Does term occur in text at the start of a word?
+  function startsWord(text, term) {
+    for (let i = text.indexOf(term); i >= 0; i = text.indexOf(term, i + 1)) {
+      if (i === 0 || !/[\p{L}\p{N}]/u.test(text[i - 1])) return true;
+    }
+    return false;
+  }
+  // The title as [{text, mark}] parts, with matches of the terms marked (merged where they overlap).
+  function titleParts(title, terms) {
+    const body = foldForSearch(title);
+    const ranges = [];
+    for (const term of terms) {
+      for (let i = body.folded.indexOf(term); i >= 0; i = body.folded.indexOf(term, i + term.length)) ranges.push(originalRange(body, i, term.length));
+    }
+    ranges.sort((a, b) => a[0] - b[0]);
+    const merged = [];
+    for (const range of ranges) {
+      const last = merged[merged.length - 1];
+      if (last && range[0] <= last[1]) last[1] = Math.max(last[1], range[1]); else merged.push([...range]);
+    }
+    const parts = [];
+    let cursor = 0;
+    for (const [start, end] of merged) {
+      if (start > cursor) parts.push({text: title.slice(cursor, start), mark: false});
+      parts.push({text: title.slice(start, end), mark: true});
+      cursor = end;
+    }
+    if (cursor < title.length || !parts.length) parts.push({text: title.slice(cursor), mark: false});
+    return parts;
+  }
+  // Pages whose title, tags or ID match every term, best first: titles that start a word with a term,
+  // then titles that contain it, then tags, then IDs. An empty query lists every page alphabetically.
+  // Returns {terms, results: [{p, parts}]}.
+  function pickPages(pages, raw) {
+    const terms = searchTerms(raw);
+    const phrase = queryPhrase(raw);
+    const byTitle = (a, b) => a.p.title.localeCompare(b.p.title, undefined, {sensitivity: 'base', numeric: true});
+    const scored = [];
+    for (const p of pages) {
+      if (!terms.length) { scored.push({p, score: 0}); continue; }
+      const title = searchFold(p.title), tags = searchFold(p.tags.join(' ')), id = searchFold(p.id);
+      let score = 0;
+      for (const term of terms) {
+        const best = startsWord(title, term) ? 5 : title.includes(term) ? 4 : tags.includes(term) ? 2 : id.includes(term) ? 1 : 0;
+        if (!best) { score = -1; break; }
+        score += best;
+      }
+      if (score < 0) continue;
+      if (title === phrase) score += 10;
+      scored.push({p, score});
+    }
+    scored.sort((a, b) => b.score - a.score || byTitle(a, b));
+    return {terms, results: scored.map(({p}) => ({p, parts: titleParts(p.title, terms)}))};
+  }
+
+  LW.search = {searchTerms, queryPhrase, scorePage, searchPages, snippetParts, titleParts, pickPages};
 })();

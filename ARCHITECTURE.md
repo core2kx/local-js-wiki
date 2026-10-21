@@ -31,7 +31,7 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 | **Pure logic** | `icon-library.js`, `palettes.js`, `text.js`, `model.js`, `markdown.js`, `zip.js`, `html-to-markdown.js`, `search.js` | Functions that take data and return data. They never touch the page, so they also run under Node and are covered by the tests. |
 | **State** | `folder.js`, `state.js` | Helpers for reading and writing folder files; the open wiki (`LocalWiki.state`) and change tracking (`LocalWiki.store`). |
 | **Features** | `revisions.js`, `history.js`, `pages.js`, `storage.js` | Operations: saved page history, undo/redo, page editing and renaming, opening/saving/autosave/export. They change state and then ask the UI to redraw. They never touch HTML elements directly. |
-| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/appearance.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/visual-editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js`, `ui/settings.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
+| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/appearance.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/visual-editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/link-picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js`, `ui/settings.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
 | **Start** | `app.js` | Wires the remaining controls to features, restores the browser draft and preferences, draws the first screen. |
 
 ### Files at a glance
@@ -44,7 +44,7 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 | `js/markdown.js` | The Markdown renderer (with backslash escapes), table parsing and writing, rewriting `[[links]]` on rename |
 | `js/html-to-markdown.js` | Converting the Visual editor's HTML back to Markdown, escaping typed characters |
 | `js/zip.js` | The ZIP writer used by "Export wiki ZIP" |
-| `js/search.js` | Query parsing, ranking, result snippets |
+| `js/search.js` | Query parsing, ranking, result snippets, and the page picker's filtering (`pickPages`) |
 | `js/folder.js` | Reading, writing, deleting and listing files in a folder handle |
 | `js/state.js` | Every field of the open wiki's state, `markDirty`/`touchPage`, the crash-recovery draft |
 | `js/revisions.js` | Saved page history: when a version is kept, thinning, line diff, following renames and deletes |
@@ -52,6 +52,7 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 | `js/pages.js` | Create/select/delete pages, editing fields, committing renames |
 | `js/storage.js` | Folder format, tolerant loading, saving, autosave, export, new wiki |
 | `js/ui/appearance.js`, `js/ui/settings.js` | Applying the palette, app name, icon and favicon; the Wiki settings dialog |
+| `js/ui/link-picker.js` | The Insert link dialog: page search and list, web addresses; callers insert the result |
 | `js/ui/visual-editor.js` | The Visual editor: rendering, toolbar actions, link and table bars, code-block Enter |
 | `js/ui/*.js` | Everything you see; one file per area of the screen |
 | `js/app.js` | Which control triggers which operation; startup |

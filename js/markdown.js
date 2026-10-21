@@ -151,6 +151,27 @@
     return [row(values[0]), row(values[0].map(() => '---')), ...values.slice(1).map(row)].join('\n');
   }
 
+  // --- Writing links ------------------------------------------------------------------------------
+  // The Markdown for a link. kind 'wiki': [[target]] or [[target|label]]; kind 'web': [label](address).
+  // Characters that would break the syntax are replaced by spaces.
+  const tidy = text => String(text || '').replace(/[\[\]|\n]/g, ' ').replace(/\s+/g, ' ').trim();
+  function linkMarkdown(kind, target, label) {
+    if (kind === 'wiki') {
+      const to = tidy(target), text = tidy(label);
+      return '[[' + to + (text && text !== to ? '|' + text : '') + ']]';
+    }
+    const address = String(target).trim().replace(/\s/g, '%20').replace(/\)/g, '%29');
+    return '[' + (tidy(label) || address) + '](' + address + ')';
+  }
+  // A web address the wiki can link to: http, https or mailto. "example.com" gets https:// added.
+  // Returns the cleaned address, or null if it is not one.
+  function webAddress(text) {
+    const value = String(text || '').trim();
+    if (/^(https?:\/\/|mailto:)\S+$/i.test(value)) return value;
+    if (/^[^\s/@:]+\.[^\s/@:]{2,}(\/\S*)?$/.test(value)) return 'https://' + value;
+    return null;
+  }
+
   // --- Link rewriting -----------------------------------------------------------------------------
   // Rewrites [[target]] and [[target|label]] links outside code. isTarget(target) returns a truthy
   // "kind" for links to rewrite; newTarget(kind) gives the replacement target. Labels are kept.
@@ -171,5 +192,5 @@
     }).join('\n');
   }
 
-  LW.markdown = {toHtml, cells, tableDivider, findTableAt, lineOffset, tableMarkdown, rewriteLinks};
+  LW.markdown = {toHtml, cells, tableDivider, findTableAt, lineOffset, tableMarkdown, linkMarkdown, webAddress, rewriteLinks};
 })();

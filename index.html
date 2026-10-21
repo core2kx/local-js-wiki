@@ -34,6 +34,7 @@
   <script defer src="js/ui/visual-editor.js"></script>
   <script defer src="js/ui/table-builder.js"></script>
   <script defer src="js/ui/picker.js"></script>
+  <script defer src="js/ui/link-picker.js"></script>
   <script defer src="js/ui/problems.js"></script>
   <script defer src="js/ui/revisions.js"></script>
   <script defer src="js/ui/folder-help.js"></script>
@@ -159,6 +160,23 @@
     <input id="picker-search" class="picker-search" type="search" placeholder="Search by name…" aria-label="Search icons or symbols" autocomplete="off">
     <div id="picker-results" class="picker-results" aria-live="polite"></div>
     <div class="dialog-foot"><span id="picker-hint" class="dialog-hint">Choose an item to insert it.</span><button type="button" id="picker-clear" class="btn btn-sm" hidden>Remove page icon</button><button type="button" id="picker-cancel" class="btn">Cancel</button></div>
+  </dialog>
+  <dialog id="link-dialog" class="wiki-dialog link-dialog" aria-labelledby="link-title">
+    <div class="dialog-head"><h2 id="link-title">Insert link</h2><button type="button" id="link-close" class="dialog-close" aria-label="Close">×</button></div>
+    <div class="picker-tabs" role="group" aria-label="Link type">
+      <button type="button" class="picker-tab" data-link-tab="wiki">Wiki page</button>
+      <button type="button" class="picker-tab" data-link-tab="web">Web address</button>
+    </div>
+    <div id="link-wiki-panel">
+      <input id="link-search" class="picker-search" type="text" role="combobox" aria-expanded="true" aria-controls="link-list" aria-autocomplete="list" aria-label="Search pages" placeholder="Search pages by title or tag…" autocomplete="off" spellcheck="false" dir="auto">
+    </div>
+    <div id="link-web-panel" hidden>
+      <input id="link-url" class="picker-search" type="text" aria-label="Web address" placeholder="https://example.com" autocomplete="off" spellcheck="false">
+    </div>
+    <label class="link-text-row"><span>Link text</span><input id="link-text" type="text" autocomplete="off" dir="auto"></label>
+    <ul id="link-list" class="link-list" role="listbox" aria-label="Pages"></ul>
+    <p id="link-error" class="link-error" role="alert" hidden></p>
+    <div class="dialog-foot"><span id="link-hint" class="dialog-hint"></span><button type="button" id="link-cancel" class="btn">Cancel</button><button type="button" id="link-confirm" class="btn btn-primary">Insert link</button></div>
   </dialog>
   <dialog id="revisions-dialog" class="wiki-dialog revisions-dialog" aria-labelledby="revisions-title">
     <div class="dialog-head"><h2 id="revisions-title" dir="auto">Page history</h2><button type="button" id="revisions-close" class="dialog-close" aria-label="Close">×</button></div>

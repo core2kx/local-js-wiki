@@ -241,3 +241,20 @@ mark { background: var(--highlight); color: var(--highlight-text); border-radius
 .palette-name { font-weight: 650; font-size: 13px; }
 .palette-sample { font-size: 11px; font-weight: 650; border-radius: 5px; padding: 2px 8px; }
 @media (max-width: 600px) { .settings-grid { grid-template-columns: 1fr; } }
+.link-dialog { width: min(640px, calc(100vw - 32px)); }
+.link-text-row { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.link-text-row input { flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px; background: var(--input); color: var(--text); font-size: 13px; font-weight: 400; }
+.link-list { list-style: none; margin: 0; padding: 0; max-height: 40vh; overflow: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--input); }
+.link-list[hidden] { display: none; }
+.link-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.link-row:last-child { border-bottom: 0; }
+.link-row:hover, .link-row.active { background: var(--accent-soft); }
+.link-row.active { box-shadow: inset 3px 0 0 var(--accent); }
+.link-row-icon { flex: 0 0 20px; width: 20px; display: grid; place-items: center; color: var(--accent); font-size: 15px; }
+.link-row-icon .wiki-svg-icon { width: 17px; height: 17px; }
+.link-row-main { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.link-row-title { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.link-row-path { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.link-row-new .link-row-title { font-weight: 500; }
+.link-note { padding: 9px 12px; font-size: 12px; color: var(--muted); }
+.link-error { color: var(--warning); font-size: 12px; margin: 8px 0 0; }

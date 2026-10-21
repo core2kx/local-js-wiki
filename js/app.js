@@ -50,6 +50,7 @@
     // Dialogs wire their own buttons.
     ui.installTableBuilder();
     ui.installPicker();
+    ui.installLinkPicker();
     ui.installProblems();
     ui.installRevisions();
     ui.installFolderHelp();

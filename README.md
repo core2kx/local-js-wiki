@@ -31,6 +31,15 @@ The page editor has three views (remembered per browser):
 - **Markdown**: edit the Markdown text directly; the same toolbar inserts Markdown around the selection.
 - **Split**: Markdown and Visual side by side; typing in either updates the other.
 
+### Inserting links
+
+The link buttons (`[[]]` for a wiki page, `↗` for a web address) open an **Insert link** dialog in every view, and the link bar's **Edit** reopens it for an existing link:
+
+- **Wiki page:** a search field over all pages with a live list below it (every page, alphabetical, when the field is empty). Typing filters by title, tag or page ID, ignoring case and accents, with words in any order; titles starting a word with your text come first, and the match is highlighted. Each row shows the page's icon and parent path. **↑ / ↓** move, **Enter** or a click picks. If what you typed matches no page, a last row links to that name anyway; it shows as a dashed missing link until you create the page (clicking it offers to).
+- **Web address:** `https://…`, `mailto:…`, or just `example.com` (https is added). Anything else is refused with a message.
+- **Link text** is optional and starts as your selected text; empty means the page title (or the address).
+- Wiki links are written by title (`[[Page title]]`, or `[[Page title|link text]]`), so they follow renames. A page whose title contains `[`, `]` or `|` is linked by its ID instead. Each inserted link is one undo step; Cancel or Esc changes nothing.
+
 Pages are always saved as Markdown, whichever view you use, so undo, autosave, page history, renaming and search work the same. Characters you type in Visual stay exactly as typed: `*`, `[[`, `#` or `|` become backslash-escaped in the Markdown (`\*`) instead of turning into formatting. Visual editing writes the page in a consistent Markdown style (for example `-` for bullets), so a page written by hand may be tidied slightly the first time it is edited visually; what it displays does not change.
 
 ## Name, icon and colors

@@ -46,6 +46,21 @@ test('tables render, can be found by line, and round-trip through tableMarkdown'
   assert.equal(markdown.tableMarkdown(found.values), '| A | B \\| C |\n| --- | --- |\n| 1 | 2 |');
 });
 
+test('linkMarkdown writes wiki and web links; webAddress cleans up addresses', () => {
+  assert.equal(markdown.linkMarkdown('wiki', 'Switch inventory', 'Switch inventory'), '[[Switch inventory]]');
+  assert.equal(markdown.linkMarkdown('wiki', 'Switch inventory', ''), '[[Switch inventory]]');
+  assert.equal(markdown.linkMarkdown('wiki', 'switch-inventory', 'the switches'), '[[switch-inventory|the switches]]');
+  assert.equal(markdown.linkMarkdown('wiki', 'A | B', 'x [y]'), '[[A B|x y]]'); // syntax characters become spaces
+  assert.equal(markdown.linkMarkdown('web', 'https://dell.com/a b)', 'Dell'), '[Dell](https://dell.com/a%20b%29)');
+  assert.equal(markdown.linkMarkdown('web', 'https://dell.com', ''), '[https://dell.com](https://dell.com)');
+  assert.equal(markdown.webAddress(' https://dell.com/x '), 'https://dell.com/x');
+  assert.equal(markdown.webAddress('mailto:me@example.com'), 'mailto:me@example.com');
+  assert.equal(markdown.webAddress('dell.com/support'), 'https://dell.com/support');
+  for (const bad of ['', 'javascript:alert(1)', 'not a link', 'ftp://x.test', 'http://', 'a b.com']) assert.equal(markdown.webAddress(bad), null, bad);
+  // What is written must render as the intended link.
+  assert.ok(render(markdown.linkMarkdown('wiki', 'Home', 'start')).includes('data-wiki-target="Home">start</a>'));
+});
+
 test('rewriteLinks changes links outside code and keeps labels', () => {
   const content = 'See [[Old]] and [[old-id|label]].\n`[[Old]]` in code\n```\n[[Old]]\n```\n[[Other]]';
   const isTarget = target => (target === 'Old' ? 'title' : target === 'old-id' ? 'id' : null);

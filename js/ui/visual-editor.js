@@ -4,12 +4,12 @@
    change it is converted back with htmlToMarkdown and saved through pages.editContent (so undo,
    autosave, renames and history work exactly as with the Markdown editor).
 
-   Toolbar buttons format the selection. A small context bar appears for links (Open, Edit,
-   Remove) and inside tables (add/remove rows and columns, delete the table). Paste inserts plain
+   Toolbar buttons format the selection; the link buttons open the link dialog (ui/link-picker.js).
+   A small context bar appears for links (Open, Edit, Remove) and inside tables (add/remove rows and columns, delete the table). Paste inserts plain
    text, so formatting from other sites cannot sneak in.
 
    Depends on: model.js, markdown.js, html-to-markdown.js, state.js, history.js, pages.js,
-               ui/elements.js
+               ui/elements.js, ui/link-picker.js
    Provides:   LocalWiki.ui.renderVisual, visualFormat, visualInsertText, visualInsertIcon,
                saveVisualSelection, installVisualEditor */
 (() => {
@@ -95,6 +95,7 @@
   // kind: a toolbar button's data-format value. Each action is one undo step.
   function visualFormat(kind) {
     if (!currentPage()) return;
+    if (kind === 'link' || kind === 'wiki') { insertLink(kind === 'wiki' ? 'wiki' : 'web'); return; } // records its own step
     editor().focus();
     if (!selectionRange()) placeCaret(editor(), true);
     LW.history.record('formatting');
@@ -108,8 +109,6 @@
       case 'quote': toggleBlock('BLOCKQUOTE'); break;
       case 'codeblock': toggleBlock('PRE'); break;
       case 'code': inlineCode(); break;
-      case 'link': insertLink(false); break;
-      case 'wiki': insertLink(true); break;
       case 'table': insertTable(); break;
       default: return;
     }
@@ -128,27 +127,62 @@
     range.deleteContents(); range.insertNode(code);
     if (range.collapsed) placeCaret(code); else { const after = document.createRange(); after.setStartAfter(code); after.collapse(true); getSelection().removeAllRanges(); getSelection().addRange(after); }
   }
-  function insertLink(wiki) {
+  // The <a> for a chosen link: a wiki link (data-wiki-target) or an external one.
+  function anchorFor(kind, target, label) {
+    const a = document.createElement('a');
+    if (kind === 'wiki') {
+      a.href = '#'; a.className = 'wiki-link' + (linkExists(target) ? '' : ' missing-link');
+      a.dataset.wikiTarget = target;
+    } else {
+      a.href = target; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    }
+    a.textContent = label;
+    return a;
+  }
+  // A collapsed range at the end of the page (inside the last paragraph, if the page ends with one).
+  function endRange() {
+    const range = document.createRange();
+    const last = editor().lastElementChild;
+    range.selectNodeContents(last && /^(P|DIV|H[1-6]|LI|BLOCKQUOTE)$/.test(last.nodeName) ? last : editor());
+    range.collapse(false);
+    return range;
+  }
+  // Toolbar link buttons: choose the target in the link dialog, then insert at the saved selection
+  // (the selected text becomes the link text).
+  function insertLink(kind) {
+    editor().focus();
     saveVisualSelection();
     const selected = savedRange ? savedRange.toString().trim() : '';
-    const target = prompt(wiki ? 'Link to page (title):' : 'Link address:', wiki ? selected : 'https://');
-    restoreSelection();
-    if (!target || !target.trim() || (!wiki && !/^(https?:\/\/|mailto:)/i.test(target.trim()))) {
-      if (target && !wiki) ui.toast('Links must start with http://, https:// or mailto:');
-      return;
-    }
-    const range = selectionRange(); if (!range) return;
-    const a = document.createElement('a');
-    if (wiki) {
-      a.href = '#'; a.className = 'wiki-link' + (linkExists(target.trim()) ? '' : ' missing-link');
-      a.dataset.wikiTarget = target.trim();
-    } else {
-      a.href = target.trim(); a.target = '_blank'; a.rel = 'noopener noreferrer';
-    }
-    a.textContent = selected || target.trim();
-    range.deleteContents(); range.insertNode(a);
-    const after = document.createRange(); after.setStartAfter(a); after.collapse(true);
-    getSelection().removeAllRanges(); getSelection().addRange(after);
+    ui.openLinkDialog({
+      kind, text: selected,
+      onChoose: ({kind: chosen, target, label}) => {
+        restoreSelection();
+        LW.history.record('inserting a link');
+        const range = selectionRange() || endRange();
+        const a = anchorFor(chosen, target, label);
+        range.deleteContents(); range.insertNode(a);
+        const after = document.createRange(); after.setStartAfter(a); after.collapse(true);
+        getSelection().removeAllRanges(); getSelection().addRange(after);
+        changed();
+      },
+      onCancel: restoreSelection
+    });
+  }
+  // The link bar's Edit button: the same dialog, for an existing link.
+  function editLink(link) {
+    const wiki = link.classList.contains('wiki-link');
+    ui.openLinkDialog({
+      kind: wiki ? 'wiki' : 'web', editing: true, text: link.textContent,
+      target: wiki ? link.dataset.wikiTarget : link.getAttribute('href'),
+      onChoose: ({kind, target, label}) => {
+        if (!link.isConnected) return;
+        LW.history.record('editing a link');
+        const a = anchorFor(kind, target, label);
+        link.replaceWith(a);
+        editor().focus(); placeCaret(a, true);
+        changed();
+      }
+    });
   }
   function emptyRow(cells, header = false) {
     const tr = document.createElement('tr');
@@ -232,16 +266,7 @@
         if (wiki) LW.pages.openLink(link.dataset.wikiTarget);
         else window.open(link.getAttribute('href'), '_blank', 'noopener');
       }),
-      button('Edit', 'Change where the link goes', () => {
-        const current = wiki ? link.dataset.wikiTarget : link.getAttribute('href');
-        const next = prompt(wiki ? 'Link to page (title):' : 'Link address:', current);
-        if (!next || !next.trim() || next.trim() === current) return;
-        if (!wiki && !/^(https?:\/\/|mailto:)/i.test(next.trim())) { ui.toast('Links must start with http://, https:// or mailto:'); return; }
-        LW.history.record('editing a link');
-        if (wiki) { link.dataset.wikiTarget = next.trim(); link.classList.toggle('missing-link', !linkExists(next.trim())); }
-        else link.setAttribute('href', next.trim());
-        changed();
-      }),
+      button('Edit', 'Change the link or its text', () => editLink(link)),
       button('Remove', 'Keep the text, remove the link', () => {
         LW.history.record('removing a link');
         link.replaceWith(...link.childNodes);

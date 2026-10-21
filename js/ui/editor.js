@@ -4,7 +4,7 @@
    Also inserts text at the Markdown caret (used by the symbol/icon picker and the table builder).
    Stored page content is always plain Markdown.
 
-   Depends on: state.js, history.js, ui/elements.js, ui/page.js, ui/sidebar.js
+   Depends on: markdown.js, state.js, history.js, ui/elements.js, ui/page.js, ui/sidebar.js, ui/link-picker.js
    Provides:   LocalWiki.ui.formatSelection, insertAtCaret */
 (() => {
   'use strict';
@@ -19,6 +19,7 @@
     if (ui.activeSurface() === 'visual') { ui.visualFormat(kind); return; }
     if (kind === 'table') { ui.openTableBuilder(); return; }
     ui.ensureEditable();
+    if (kind === 'link' || kind === 'wiki') { insertLink(kind === 'wiki' ? 'wiki' : 'web'); return; }
     const input = els.content;
     const start = input.selectionStart, end = input.selectionEnd;
     const selected = input.value.substring(start, end);
@@ -32,8 +33,6 @@
       case 'olist': before = '1. '; placeholder = 'List item'; break;
       case 'quote': before = '> '; placeholder = 'Quote'; break;
       case 'codeblock': before = '```\n'; after = '\n```'; placeholder = 'code'; break;
-      case 'link': before = '['; after = '](https://example.com)'; placeholder = 'Link text'; break;
-      case 'wiki': before = '[['; after = ']]'; placeholder = 'Page title'; break;
       case 'code': before = '`'; after = '`'; break;
       default: return;
     }
@@ -45,6 +44,25 @@
     input.focus();
     // With nothing selected, select the placeholder so typing replaces it.
     if (!selected && placeholder) input.setSelectionRange(start + before.length, start + before.length + placeholder.length);
+  }
+
+  // Markdown editor links: choose the target in the link dialog, then write the link over the
+  // selection (the selected text becomes the link text).
+  function insertLink(kind) {
+    const input = els.content;
+    const start = input.selectionStart, end = input.selectionEnd;
+    ui.openLinkDialog({
+      kind, text: input.value.substring(start, end).trim(),
+      onChoose: ({kind: chosen, target, label}) => {
+        const page = currentPage(); if (!page) return;
+        LW.history.record('inserting a link');
+        input.focus();
+        input.setRangeText(LW.markdown.linkMarkdown(chosen, target, label), start, end, 'end');
+        page.content = input.value;
+        touchPage(page); ui.renderMarkdown(); ui.renderTree(); ui.renderPageStats();
+      },
+      onCancel: () => { input.focus(); input.setSelectionRange(start, end); }
+    });
   }
 
   function insertAtCaret(text, caret = els.content.selectionStart) {

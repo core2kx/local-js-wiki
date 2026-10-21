@@ -38,6 +38,9 @@
     const key = titleKey(title);
     return pages.find(p => p.id !== selfId && titleKey(p.title) === key);
   }
+  // What to write inside [[ ]] to link to a page: its title, or its ID when the title contains
+  // characters that would break the link syntax ([, ] or |).
+  function linkTargetFor(page) { return /[\[\]|\n]/.test(page.title) ? page.id : page.title; }
   // What a [[link]] points to: a page ID first, otherwise a case-insensitive title.
   function findLinkTarget(pages, target) {
     return pages.find(p => p.id === target) || pages.find(p => titleKey(p.title) === titleKey(target));
@@ -155,7 +158,7 @@
   }
 
   LW.model = {
-    isoNow, pathFor, PAGE_PATH, uniqueId, pageWithTitle, findLinkTarget, sortByTitle,
+    isoNow, pathFor, PAGE_PATH, uniqueId, pageWithTitle, findLinkTarget, linkTargetFor, sortByTitle,
     descendantsOf, ancestors, normalizePage, repairStructure, normalizeWiki,
     DEFAULT_APP_NAME, LOGO_PATH, defaultAppearance, normalizeAppearance
   };

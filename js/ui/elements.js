@@ -36,6 +36,11 @@
     // Icon/symbol picker dialog
     pickerDialog: $('picker-dialog'), pickerSearch: $('picker-search'), pickerResults: $('picker-results'),
     pickerClear: $('picker-clear'), pickerHint: $('picker-hint'), pickerClose: $('picker-close'), pickerCancel: $('picker-cancel'),
+    // Link dialog
+    linkDialog: $('link-dialog'), linkTitle: $('link-title'), linkClose: $('link-close'), linkWikiPanel: $('link-wiki-panel'),
+    linkSearch: $('link-search'), linkWebPanel: $('link-web-panel'), linkUrl: $('link-url'), linkText: $('link-text'),
+    linkList: $('link-list'), linkError: $('link-error'), linkHint: $('link-hint'), linkCancel: $('link-cancel'),
+    linkConfirm: $('link-confirm'),
     // Page history dialog
     revisionsDialog: $('revisions-dialog'), revisionsTitle: $('revisions-title'), revisionsList: $('revisions-list'),
     revisionsSummary: $('revisions-summary'), revisionsDiff: $('revisions-diff'), revisionsRestore: $('revisions-restore'),
