@@ -24,6 +24,7 @@
     tableAddCol: $('table-add-col'), tableRemoveCol: $('table-remove-col'),
     pickerDialog: $('picker-dialog'), pickerSearch: $('picker-search'),
     pickerResults: $('picker-results'), pickerClear: $('picker-clear'), pickerHint: $('picker-hint'),
+    undo: $('undo-btn'), redo: $('redo-btn'),
     problemsDialog: $('problems-dialog'), problemsList: $('problems-list'), problemsButton: $('problems-btn')
   };
   const DRAFT_KEY = 'localwiki:draft';
@@ -37,6 +38,16 @@
   let indexDirty = false;
   let changeVersion = 0;
   let saving = false;
+  let lastSavedAt = null;
+  let autosaveTimer = null;
+  let dirtySince = 0;        // when the oldest unsaved change was made (for the autosave ceiling)
+  const AUTOSAVE_DELAY = 2000, AUTOSAVE_MAX_WAIT = 15000;
+  // Session undo/redo: each entry is the whole wiki before (undo) or after (redo) one step.
+  // Pages are stored as JSON strings; unchanged pages share the same string between entries.
+  let undoStack = [], redoStack = [];
+  let undoGroup = null;      // {key, started, last} for coalescing bursts of typing
+  const UNDO_LIMIT = 200, UNDO_PAUSE = 1000, UNDO_MAX_GROUP = 10000;
+  const pageText = new WeakMap(); // page object -> JSON string; cleared by touchPage
   let changedIds = new Set();
   let diskPaths = new Set(); // page files known to exist in the linked folder
   let renameFrom = null;     // {id, title} while the title field has an uncommitted edit
@@ -266,18 +277,112 @@
     catch (err) { console.warn('Local draft recovery unavailable:', err); }
   }
   function markDirty() {
+    if (!dirtySince) dirtySince = Date.now();
     dirty = true;
     changeVersion++;
     wiki.updatedAt = isoNow();
     setSaveStatus();
     backupDraft();
+    scheduleAutosave();
   }
   function setSaveStatus() {
-    els.status.textContent = dirty ? '● Unsaved changes' : (folderHandle ? '✓ Saved to folder' : '◌ No linked folder');
-    els.status.classList.toggle('is-dirty', dirty);
-    els.fileLabel.textContent = folderName + (folderHandle ? ' · Linked folder' : ' · Not linked');
+    const time = lastSavedAt ? new Intl.DateTimeFormat(undefined, {timeStyle: 'short'}).format(lastSavedAt) : '';
+    els.status.textContent = saving ? '◌ Saving…' : dirty ? '● Unsaved changes' :
+      folderHandle ? (time ? '✓ Saved at ' + time : '✓ Saved to folder') : '◌ No linked folder';
+    els.status.classList.toggle('is-dirty', dirty && !saving);
+    els.fileLabel.textContent = folderName + (folderHandle ? ' · Linked folder · Autosave on' : ' · Not linked');
   }
-  function touchPage(page) { page.updatedAt = isoNow(); changedIds.add(page.id); markDirty(); }
+  function touchPage(page) { page.updatedAt = isoNow(); pageText.delete(page); changedIds.add(page.id); markDirty(); }
+
+  // Autosave: only into a linked, writable folder; waits for a pause in editing (with a ceiling for
+  // continuous typing) and never saves a half-typed title.
+  function scheduleAutosave(delay = AUTOSAVE_DELAY) {
+    clearTimeout(autosaveTimer);
+    if (!folderHandle || !dirty) return;
+    const wait = Math.max(0, Math.min(delay, dirtySince + AUTOSAVE_MAX_WAIT - Date.now()));
+    autosaveTimer = setTimeout(autosave, wait);
+  }
+  function autosave() {
+    if (!folderHandle || !dirty) return;
+    if (saving || renameFrom) { scheduleAutosave(); return; }
+    saveChanges({auto: true});
+  }
+
+  // Undo/redo.
+  function serializePage(page) {
+    let text = pageText.get(page);
+    if (text === undefined) { text = JSON.stringify(page); pageText.set(page, text); }
+    return text;
+  }
+  function snapshot(label) {
+    return {label, name: wiki.name, currentId, pages: wiki.pages.map(serializePage)};
+  }
+  function sameState(a, b) {
+    return a.name === b.name && a.pages.length === b.pages.length && a.pages.every((text, i) => text === b.pages[i]);
+  }
+  // Call before changing anything. Changes with the same key in quick succession (typing) share one step.
+  function recordUndo(label, key = null) {
+    const now = Date.now();
+    const g = undoGroup;
+    if (key && g && g.key === key && now - g.last < UNDO_PAUSE && now - g.started < UNDO_MAX_GROUP) { g.last = now; return; }
+    undoGroup = key ? {key, started: now, last: now} : null;
+    const entry = snapshot(label);
+    if (undoStack.length && sameState(undoStack[undoStack.length - 1], entry)) return;
+    undoStack.push(entry);
+    if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+    redoStack = [];
+    renderUndoButtons();
+  }
+  function restore(entry) {
+    const before = new Map(wiki.pages.map(page => [page.id, serializePage(page)]));
+    const pages = entry.pages.map(text => { const page = JSON.parse(text); pageText.set(page, text); return page; });
+    const ids = new Set(pages.map(page => page.id));
+    if (wiki.name !== entry.name || before.size !== ids.size || [...ids].some(id => !before.has(id))) indexDirty = true;
+    wiki.name = entry.name;
+    wiki.pages = pages;
+    // Rewrite every page that differs from what was there; undone deletions are written back too.
+    for (const page of pages) if (before.get(page.id) !== pageText.get(page)) changedIds.add(page.id);
+    currentId = pageById(entry.currentId) ? entry.currentId : (pageById(currentId) ? currentId : pages[0]?.id || null);
+    renameFrom = null; undoGroup = null;
+    markDirty();
+    renderAll();
+  }
+  function stepHistory(from, to, verb) {
+    commitTitle();
+    const entry = from.pop();
+    if (!entry) return;
+    to.push(snapshot(entry.label));
+    const oldContent = currentPage()?.content;
+    restore(entry);
+    // Put the caret where the text changed, if the step changed the open page's text.
+    const page = currentPage();
+    if (page && oldContent !== undefined && oldContent !== page.content) {
+      let i = 0;
+      while (i < page.content.length && page.content[i] === oldContent[i]) i++;
+      els.content.setSelectionRange(i, i);
+    }
+    renderUndoButtons();
+    toast(verb + ' ' + entry.label + '.');
+  }
+  function undo() { stepHistory(undoStack, redoStack, 'Undid'); }
+  function redo() { stepHistory(redoStack, undoStack, 'Redid'); }
+  // A title edit that ended up changing nothing (rejected, or retyped as before) should not linger as
+  // a no-op undo step. Typing touched the page's updatedAt, so restore that from the step first.
+  function dropNoopUndo(page) {
+    const top = undoStack[undoStack.length - 1];
+    const i = wiki.pages.indexOf(page);
+    if (!top || top.pages.length !== wiki.pages.length || i < 0) return;
+    const previous = JSON.parse(top.pages[i]);
+    if (previous.id !== page.id) return;
+    page.updatedAt = previous.updatedAt; pageText.delete(page);
+    if (sameState(top, snapshot(top.label))) { undoStack.pop(); renderUndoButtons(); }
+  }
+  function clearHistory() { undoStack = []; redoStack = []; undoGroup = null; renderUndoButtons(); }
+  function renderUndoButtons() {
+    const u = undoStack[undoStack.length - 1], r = redoStack[redoStack.length - 1];
+    els.undo.disabled = !u; els.undo.title = u ? 'Undo ' + u.label : 'Nothing to undo';
+    els.redo.disabled = !r; els.redo.title = r ? 'Redo ' + r.label : 'Nothing to redo';
+  }
   function sorted(list) { return [...list].sort((a, b) => a.title.localeCompare(b.title, undefined, {sensitivity:'base', numeric:true})); }
 
   // Query terms are whitespace-separated words or "quoted phrases" (an unclosed quote runs to the
@@ -475,6 +580,7 @@
     const existing = new Set(wiki.pages.map(p => titleKey(p.title)));
     let title = desiredTitle;
     for (let i = 2; existing.has(titleKey(title)); i++) title = desiredTitle + ' (' + i + ')';
+    recordUndo(`creating "${title}"`);
     const page = {id: uniqueId(title), title, parentId, tags: [], content: '', icon: '', createdAt: isoNow(), updatedAt: isoNow()};
     wiki.pages.push(page);
     indexDirty = true;
@@ -490,14 +596,15 @@
     commitTitle();
     const p = currentPage(); if (!p) return;
     const ids = descendantsOf(p.id);
-    const message = ids.size === 1 ? `Delete "${p.title}"? This cannot be undone.` :
-      `Delete "${p.title}" and its ${ids.size - 1} child page(s)? This cannot be undone.`;
+    const message = ids.size === 1 ? `Delete "${p.title}"? You can restore it with Undo.` :
+      `Delete "${p.title}" and its ${ids.size - 1} child page(s)? You can restore them with Undo.`;
     if (!confirm(message)) return;
+    recordUndo(`deleting "${p.title}"` + (ids.size > 1 ? ` and ${ids.size - 1} child page(s)` : ''));
     for (const id of ids) changedIds.delete(id);
     wiki.pages = wiki.pages.filter(x => !ids.has(x.id));
     indexDirty = true;
     currentId = p.parentId && pageById(p.parentId) ? p.parentId : (wiki.pages[0]?.id || null);
-    markDirty(); renderAll(); toast('Page deleted. Save changes to update the folder.');
+    markDirty(); renderAll(); toast('Page deleted. Use Undo to restore it.');
   }
 
   // Renames are committed when the title field is left (or Enter is pressed), not per keystroke,
@@ -526,13 +633,13 @@
     if (!page) return;
     const title = page.title.trim().normalize('NFC');
     const reject = message => {
-      page.title = oldTitle; touchPage(page); renderAfterRename(); toast(message);
+      page.title = oldTitle; touchPage(page); dropNoopUndo(page); renderAfterRename(); toast(message);
     };
     if (!title) { reject('A page title cannot be empty.'); return; }
     const clash = pageWithTitle(title, oldId);
     if (clash) { reject(`Another page is already titled "${clash.title}".`); return; }
     page.title = title;
-    if (title === oldTitle) { renderAfterRename(); return; }
+    if (title === oldTitle) { touchPage(page); dropNoopUndo(page); renderAfterRename(); return; }
     const newId = uniqueId(title, oldId);
     // Links resolve by ID first, then by case-insensitive title (see inlineMarkdown). A target that
     // is both this page's ID and its title (e.g. [[welcome]]) is rewritten as a title link.
@@ -697,6 +804,7 @@
       default: return;
     }
     const insertion = before + (selected || placeholder) + after;
+    recordUndo('formatting');
     input.setRangeText(insertion, start, end, 'end');
     p.content = input.value;
     touchPage(p); renderMarkdown(); renderTree(); renderPageStats();
@@ -710,6 +818,7 @@
     if (mode === 'preview') setMode('edit');
     const textarea = els.content;
     caret = Math.max(0, Math.min(caret, textarea.value.length));
+    recordUndo('inserting text');
     textarea.setRangeText(text, caret, caret, 'end');
     page.content = textarea.value;
     touchPage(page); renderMarkdown(); renderPageStats();
@@ -743,6 +852,7 @@
       button.addEventListener('click', () => {
         if (pickerTarget === 'page') {
           const page = currentPage(); if (!page) return;
+          recordUndo('changing the page icon');
           page.icon = item.glyph;
           touchPage(page);
           fillPageIcon(els.pageIconDisplay, page);
@@ -832,6 +942,7 @@
     const old = els.content.value;
     if (mode === 'preview') setMode('edit');
     if (tableDraft.startLine !== null) {
+      recordUndo('editing a table');
       const lines = old.split('\n');
       const start = lineOffset(lines,tableDraft.startLine);
       // A table can end at EOF; ensure we do not include unrelated text in the replacement.
@@ -996,6 +1107,7 @@
     folderName = name;
     dirty = changedIds.size > 0;
     els.search.value = '';
+    clearHistory(); clearTimeout(autosaveTimer); lastSavedAt = null; dirtySince = 0;
     renderAll(); renderProblems(); backupDraft();
     const count = loadProblems.length;
     toast('Opened ' + folderName + ': ' + wiki.pages.length + ' page(s)' + (count ? `, ${count} problem(s) found.` : '.'));
@@ -1086,17 +1198,19 @@
       console.error(err); toast('Could not choose save folder: ' + err.message);
     }
   }
-  async function saveChanges() {
+  async function saveChanges({auto = false} = {}) {
     if (saving) return;
     commitTitle();
+    clearTimeout(autosaveTimer);
     if (!folderHandle) {
+      if (auto) return;
       if (typeof window.showDirectoryPicker === 'function') { await saveToFolder(); return; }
       toast('Choose Export wiki ZIP (direct folder saving is unavailable in this browser).'); return;
     }
     const keep = new Set([...wiki.pages, ...setAside].map(p => pathFor(p.id)));
     const stale = [...diskPaths].filter(path => !keep.has(path));
-    if (!dirty && !indexDirty && !changedIds.size && !stale.length && !copySetAside) { toast('No changes to save.'); return; }
-    saving = true;
+    if (!dirty && !indexDirty && !changedIds.size && !stale.length && !copySetAside) { if (!auto) toast('No changes to save.'); return; }
+    saving = true; setSaveStatus();
     // Snapshot everything up front so edits made during the async writes cannot mix states.
     const version = changeVersion;
     const pending = wiki.pages.filter(p => changedIds.has(p.id)).map(p => [pathFor(p.id), jsonText(p)]);
@@ -1121,15 +1235,20 @@
       // Repairs and index clean-ups are now on disk; only set-aside and informational notes still apply.
       loadProblems = loadProblems.filter(item => item.kind === 'set-aside' || item.kind === 'info');
       renderProblems();
+      lastSavedAt = new Date();
       if (version === changeVersion) {
-        changedIds.clear(); indexDirty = false; dirty = false;
-        backupDraft(); setSaveStatus();
-        toast('Saved ' + pending.length + ' page file(s)' + (indexText ? ' and wiki.json' : '') + ' to ' + folderName + '.');
-      } else {
-        toast('Files saved, but more edits were made while saving. Save again.');
+        changedIds.clear(); indexDirty = false; dirty = false; dirtySince = 0;
+        backupDraft();
+        if (!auto) toast('Saved ' + pending.length + ' page file(s)' + (indexText ? ' and wiki.json' : '') + ' to ' + folderName + '.');
       }
-    } catch (err) { console.error(err); toast('Save failed: ' + err.message); }
-    finally { saving = false; }
+      // Otherwise edits arrived during the save; they are still marked and autosave picks them up.
+    } catch (err) {
+      console.error(err);
+      toast((auto ? 'Autosave failed: ' : 'Save failed: ') + err.message);
+    } finally {
+      saving = false; setSaveStatus();
+      if (dirty) scheduleAutosave();
+    }
   }
   function newWiki() {
     if (dirty && !confirm('Create a new wiki? Your unsaved edits will be replaced.')) return;
@@ -1139,6 +1258,7 @@
     currentId = null; folderHandle = null; folderName = 'No folder selected'; dirty = false;
     diskPaths.clear(); changedIds.clear(); renameFrom = null; indexDirty = true; changeVersion++;
     setAside = []; loadProblems = []; copySetAside = false; renderProblems();
+    clearHistory(); clearTimeout(autosaveTimer); lastSavedAt = null; dirtySince = 0;
     els.search.value = '';
     renderAll(); backupDraft(); toast('New wiki created. Use + to add a page.');
   }
@@ -1159,7 +1279,8 @@
     els.search.addEventListener('input', renderTree);
     els.title.addEventListener('input', () => {
       const p = currentPage(); if (!p) return;
-      if (!renameFrom) renameFrom = {id: p.id, title: p.title};
+      // The whole title edit, including the rename it commits, is one undo step.
+      if (!renameFrom) { recordUndo(`renaming "${p.title}"`); renameFrom = {id: p.id, title: p.title}; }
       p.title = els.title.value; touchPage(p);
       renderTree(); renderBreadcrumbs(p); els.name.textContent = wiki.name;
     });
@@ -1167,6 +1288,7 @@
     els.title.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); commitTitle(); } });
     els.tags.addEventListener('input', () => {
       const p = currentPage(); if (!p) return;
+      recordUndo('tag edits', 'tags:' + p.id);
       p.tags = [...new Set(els.tags.value.split(',').map(s => s.trim()).filter(Boolean))];
       touchPage(p); if (els.search.value) renderTree();
     });
@@ -1174,11 +1296,13 @@
       const p = currentPage(); if (!p) return;
       const next = els.parent.value || null;
       if (next && descendantsOf(p.id).has(next)) { toast('Cannot move a page inside itself.'); renderParentChoices(p); return; }
+      recordUndo(`moving "${p.title}"`);
       p.parentId = next; touchPage(p);
       renderTree(); renderBreadcrumbs(p); renderParentChoices(p);
     });
     els.content.addEventListener('input', () => {
       const p = currentPage(); if (!p) return;
+      recordUndo('typing', 'content:' + p.id);
       p.content = els.content.value; touchPage(p);
       renderPageStats(); renderMarkdown();
       if (els.search.value) renderTree();
@@ -1201,10 +1325,15 @@
     $('picker-cancel').addEventListener('click', () => els.pickerDialog.close());
     els.pickerClear.addEventListener('click', () => {
       const page = currentPage(); if (!page) return;
+      recordUndo('removing the page icon');
       page.icon = ''; touchPage(page); fillPageIcon(els.pageIconDisplay,page); renderTree();
       els.pickerDialog.close();
     });
     els.problemsButton.addEventListener('click', showProblems);
+    els.undo.addEventListener('click', undo);
+    els.redo.addEventListener('click', redo);
+    // Save right away when the user switches tabs or minimizes; the page may be closed next.
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autosave(); });
     $('problems-close').addEventListener('click', () => els.problemsDialog.close());
     $('problems-ok').addEventListener('click', () => els.problemsDialog.close());
     $('table-close').addEventListener('click', () => els.tableDialog.close());
@@ -1235,6 +1364,7 @@
     els.rename.addEventListener('click', () => {
       const name = prompt('Wiki name:', wiki.name);
       if (name === null || !name.trim() || wiki.name === name.trim()) return;
+      recordUndo('renaming the wiki');
       wiki.name = name.trim().slice(0, 140);
       indexDirty = true; markDirty(); renderAll();
     });
@@ -1283,7 +1413,7 @@
       applyPageWidth(ui?.pageWidth);
     } catch (_) {}
     applyPageWidth(pageWidth);
-    installEvents(); setMode(mode); commitTitle(); renderAll(); backupDraft();
+    installEvents(); setMode(mode); commitTitle(); renderAll(); renderUndoButtons(); backupDraft();
     if (recoveredUnsaved) toast('Recovered unsaved changes from this browser. Save changes to write them to a folder.');
   }
   function pageByIdIn(model, id) { return model.pages.find(p => p.id === id); }

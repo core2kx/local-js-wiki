@@ -92,10 +92,14 @@ A wiki folder can be anywhere on your disk, independently of the app directory. 
 1. Extract the ZIP, then open `index.html` in Brave (or another Chromium-based desktop browser).
 2. Click **Open folder** and select `data/example-wiki` to see the included sample, **or** click the `+` button to create your own pages.
 3. Edit titles, tags, parent relationships, and Markdown as before. Page width can be changed to 75%, 90%, or 100%; 90% is the default.
-4. Click **Save changes** (or **Save to folder…**) and choose a writable directory. In supported browsers, subsequent saves in the same session update the changed page JSON files and the index in that directory.
+4. Click **Save changes** (or **Save to folder…**) and choose a writable directory. From then on, **changes are saved automatically** to that folder about 2 seconds after you stop editing (at least every 15 seconds while typing, and when you switch away from the tab). The status in the top bar shows *Saving…* and *Saved at …*. **Save changes** still saves immediately.
 5. To make a complete portable backup, click **Export wiki ZIP…**. The downloaded ZIP contains `wiki.json` and the individual `pages/*.json` files. Extract that ZIP and open its extracted folder to work with it later.
 
 **You must select the wiki folder again after reopening the HTML page.** A local `file://` webpage cannot silently enumerate disk folders on startup without being granted permission. Browser local storage is used only as a temporary draft-recovery cache; it is not the master copy.
+
+### Undo and redo
+
+**↶ Undo** and **↷ Redo** in the top bar step through every change made in this session: typing (grouped into bursts), formatting, tables, icons, tags, moves, new pages, deletes, and renames. Undoing a rename also restores the links it rewrote and the old filename; undoing a delete brings back the page and its children. Undone changes are written to the folder by autosave like any other change. Hover a button to see which step it will undo or redo. History holds the last 200 steps and is cleared when you open or create a different wiki or reload the page.
 
 ### Browser permissions and saving
 
