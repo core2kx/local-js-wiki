@@ -1,0 +1,113 @@
+# LocalWiki 1.3 — tables, icons and symbols (one JSON file per page)
+
+A browser-only wiki that works offline. **No runtime server, database, Python, Node.js, CDN, package manager, or internet connection is required.** Double-click `index.html` in Brave/Chrome/Edge.
+
+## What's new
+
+As of v1.2, **each page has its own JSON file**. The wiki's small `wiki.json` index stores the wiki name and stable page file locations. Page content, titles, tags, and parent IDs live in those individual JSON files. Renaming or moving a page does **not** change its filename. Page search still searches titles, tags, and content across the opened pages (held in memory by the browser).
+
+## New in v1.3 — visual table builder and offline icons
+
+- **Create tables:** Switch to Edit/Split and choose **▦ Table**. Edit header and data cells directly in the dialog. Add/remove rows or columns (maximum 12 columns and 40 data rows), then click **Insert table**.
+- **Edit an existing table:** In Preview/Split mode, choose **✎ Edit table** directly above the rendered table. Changes are written back to the same Markdown table while keeping the surrounding page intact. You can also put the text cursor inside a Markdown table and choose **▦ Table**.
+- **Insert symbols:** Choose **Ω Symbols**; search names (e.g. `ohm`, `arrow`, `check`, `degree`), then click an entry to insert the Unicode character at the editor cursor.
+- **Insert icons:** Choose **☆ Icons**; choose from 32 local scalable SVG icons or switch to emoji. Search is included. SVG icons are saved as text markers such as `:icon[server]:`. The local `js/icon-library.js` file supplies their artwork, so no icon fonts or extra CSS framework are required. Symbols and emoji are saved as plain Unicode text.
+- **Assign a page icon:** Click the square icon beside the page title to choose an icon, emoji, or symbol. The selection appears on the page and in the navigation sidebar; it is stored as an optional `icon` value in that page's JSON file. Existing v1.2 pages without an `icon` still work.
+- **Data layout unchanged:** There is still one `wiki.json` manifest and one JSON per wiki page. No database, new services, CDN, internet access, or build tools.
+
+Note: Tables are saved as **Markdown**, not separate structured table objects. This keeps JSON easy to read and edit, but it is not a spreadsheet and does not include merged cells, formulas, sorting, or CSV import.
+
+## Folder layout
+
+```text
+localwiki/
+├── index.html                  # Browser application
+├── css/
+│   ├── bootstrap.min.css      # Pinned, local Bootstrap 5.3.6
+│   └── wiki.css               # Wiki-specific appearance; editable
+├── js/
+│   ├── icon-library.js        # Bundled SVG icons; optional to extend
+│   └── wiki.js                # Wiki editor and file handling
+├── data/
+│   └── example-wiki/          # Example content: choose Open folder -> this directory
+│       ├── wiki.json         # Index only (name, page IDs, filenames)
+│       └── pages/
+│           ├── welcome.json
+│           ├── editing-guide.json
+│           └── project-notes.json
+└── README.md
+```
+
+A wiki folder can be anywhere on your disk, independently of the app directory. **Make a new empty folder for your own wiki** (e.g. `Documents/TechWiki`). The editor writes `wiki.json` and creates `pages/` within that chosen folder.
+
+### Example index, `wiki.json`
+
+```json
+{
+  "schemaVersion": 2,
+  "type": "localwiki-index",
+  "name": "Example Wiki",
+  "pages": [
+    { "id": "welcome", "file": "pages/welcome.json" },
+    { "id": "editing-guide", "file": "pages/editing-guide.json" }
+  ]
+}
+```
+
+### Example page, `pages/welcome.json`
+
+```json
+{
+  "id": "welcome",
+  "title": "Welcome",
+  "icon": "icon:home",
+  "parentId": null,
+  "tags": ["getting started"],
+  "content": "# Welcome\n\nYour wiki content goes here.",
+  "createdAt": "2026-10-20T10:00:00.000Z",
+  "updatedAt": "2026-10-20T10:00:00.000Z"
+}
+```
+
+`parentId` connects nested pages; `null` is a top-level page. Both internal links (e.g. `[[Welcome]]`) and search continue to work across all loaded pages.
+
+## Getting started
+
+1. Extract the ZIP, then open `index.html` in Brave (or another Chromium-based desktop browser).
+2. Click **Open folder** and select `data/example-wiki` to see the included sample, **or** click the `+` button to create your own pages.
+3. Edit titles, tags, parent relationships, and Markdown as before. Page width can be changed to 75%, 90%, or 100%; 90% is the default.
+4. Click **Save changes** (or **Save to folder…**) and choose a writable directory. In supported browsers, subsequent saves in the same session update the changed page JSON files and the index in that directory.
+5. To make a complete portable backup, click **Export wiki ZIP…**. The downloaded ZIP contains `wiki.json` and the individual `pages/*.json` files. Extract that ZIP and open its extracted folder to work with it later.
+
+**You must select the wiki folder again after reopening the HTML page.** A local `file://` webpage cannot silently enumerate disk folders on startup without being granted permission. Browser local storage is used only as a temporary draft-recovery cache; it is not the master copy.
+
+### Browser permissions and saving
+
+- In browsers with the File System Access API (recent Brave/Chrome/Edge versions), **Open folder** grants access to the selected directory, and **Save changes** writes the index and changed page files in place. The browser may prompt for read/write permission.
+- If writable folder access is missing or denied, **Open folder** falls back to a folder input, which can *read* the chosen folder but cannot overwrite it. Use **Export wiki ZIP** to save all pages as one downloadable ZIP; extract it to obtain separate JSON files.
+- **Save to folder…** lets you choose a new destination. If the destination already contains a different `wiki.json`, the app warns before replacing its index. Use a new empty folder for safe copies.
+- **Export wiki ZIP…** works without a server or outside libraries. It uses standard, uncompressed ZIP entries, so archives are larger but compatible with normal extraction tools.
+- **Ctrl/Cmd+S** saves, **Ctrl/Cmd+K** focuses search, **Ctrl/Cmd+N** creates a page.
+
+### Convert a v1.0 / v1.1 single-file wiki
+
+Choose **Import old wiki JSON…** in the sidebar and select the old JSON containing a `pages` array. All page IDs, titles, nesting, tags, and text are preserved. Then choose **Save changes** and select an empty folder. The wiki will create its v2 `wiki.json` and one file per page. Your original single-file JSON is not modified.
+
+## Other features
+
+- Create, edit, nest, rename, move, and delete pages.
+- Full text / tag / title search across all opened wiki pages.
+- Markdown edit, preview, and split views; visual table builder/editor; Unicode symbols, emoji, inline SVG tokens; internal links `[[Page title]]` and `[[page-id|Text]]`.
+- Light/dark mode, responsive sidebar and 75%/90%/100% page width.
+- All assets are local. Bootstrap 5.3.6 is pinned and requires no routine updates. Layout customizations belong in `css/wiki.css`.
+- Safe Markdown renderer escapes HTML and does not execute scripts from wiki content.
+
+## Limits
+
+- Designed for one editor at a time. It does not lock files, compare versions, merge edits, or provide database transactions.
+- The browser loads all pages into memory for search and navigation. Very large wikis may take longer to open.
+- Saving is a sequence of individual file writes, not a transactional operation. Keep backups. If a save is interrupted, reopen the wiki to inspect its state.
+- Delete removes the page and its descendants from the index. When saving to a linked writable folder, their old JSON files are removed after the index is updated. Files not referenced by the index are ignored.
+- Browser restrictions prevent unattended opening of `wiki.json` and `pages/*.json` through relative `file://` paths. Always use the **Open folder** button.
+- The Markdown renderer is a lightweight subset of Markdown, not a full CommonMark editor. Very complicated tables and nested formatting are not supported.
+- SVG pictograms are selected from a bundled allowlist; arbitrary SVG or HTML in page content is not executed. If you export pages as JSON, the icon markup `:icon[name]:` is intended for LocalWiki rendering. Unicode symbols and emoji remain portable to other editors.

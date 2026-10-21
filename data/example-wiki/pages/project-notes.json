@@ -1,0 +1,12 @@
+{
+  "id": "project-notes",
+  "title": "Project notes",
+  "parentId": null,
+  "tags": [
+    "example"
+  ],
+  "content": "# Project notes\n\nThis is an example second section. Rename, edit, move, or delete this page to organize your own information.\n\nCreate a child page here with **+ Child page**, or set the parent for any page with the **Parent** dropdown.",
+  "createdAt": "2026-10-20T13:00:00.000Z",
+  "updatedAt": "2026-10-20T13:00:00.000Z",
+  "icon": "icon:file"
+}

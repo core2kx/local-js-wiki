@@ -1,0 +1,13 @@
+{
+  "id": "editing-guide",
+  "title": "Editing guide",
+  "parentId": "welcome",
+  "tags": [
+    "help",
+    "editor"
+  ],
+  "content": "# Editing guide\n\nUse the toolbar to insert common **Markdown** formatting.\n\n## Formatting\n\n- `# Heading` for a heading.\n- `**bold**` and `*italic*` for emphasis.\n- `- item` to make a list.\n- `> quote` for a quotation.\n- `` `code` `` for inline code.\n- **▦ Table** opens a visual table builder; **Edit table** above a preview table changes its cells.\n- **Ω Symbols** opens a searchable character picker.\n- **☆ Icons** opens the bundled vector icons and emoji picker.\n- Click the icon beside the title to assign a page icon.\n\nSee [[Tables, symbols and icons]] for examples.\n\n## Page links\n\nWrite `[[Project notes]]` to make an internal link. Clicking an unknown page link offers to create it.\n\n## JSON saving\n\n**Open folder** loads a wiki folder containing wiki.json and pages/*.json. **Save changes** writes updated page files. **Export wiki ZIP** makes a portable backup.\n\nChanges are also cached in this browser for draft recovery, but the page JSON files and wiki.json index are the portable source of truth.",
+  "createdAt": "2026-10-20T13:00:00.000Z",
+  "updatedAt": "2026-10-20T13:00:00.000Z",
+  "icon": "icon:book"
+}

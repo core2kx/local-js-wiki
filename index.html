@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>LocalWiki — Offline Wiki</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%232d5b55'/%3E%3Cpath d='M16 16h25l7 7v25H16z' fill='none' stroke='white' stroke-width='4'/%3E%3Cpath d='M24 30h16M24 38h16' stroke='white' stroke-width='4'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/wiki.css">
+  <script defer src="js/icon-library.js"></script>
+  <script defer src="js/wiki.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="LocalWiki home"><div class="brand-icon">◫</div><span>Local<span class="brand-accent">Wiki</span></span></div>
+      <span class="brand-divider" aria-hidden="true"></span>
+      <span id="wiki-name" class="wiki-name">My Wiki</span>
+      <div class="topbar-actions">
+        <span id="save-status" class="save-status" aria-live="polite">Ready</span>
+        <button class="btn btn-ghost btn-sm" id="open-btn" title="Open a folder containing wiki.json and pages/*.json">Open folder</button>
+        <button class="btn btn-primary btn-sm" id="save-btn" title="Save changed page JSON files to the linked folder">Save changes</button>
+        <button class="btn btn-icon btn-ghost btn-sm" id="theme-btn" title="Toggle light/dark theme" aria-label="Toggle theme">◐</button>
+      </div>
+    </header>
+    <div class="workspace">
+      <aside class="sidebar" aria-label="Wiki navigation">
+        <div class="sidebar-top">
+          <label class="search-wrap"><span class="visually-hidden">Search all pages</span><span class="search-icon">⌕</span><input type="search" id="search" placeholder="Search pages..." autocomplete="off"><kbd>Ctrl K</kbd></label>
+          <div class="sidebar-heading"><span id="sidebar-heading">Pages</span><button id="new-page-btn" class="btn btn-icon btn-primary btn-small-square" title="New top-level page" aria-label="New page">+</button></div>
+        </div>
+        <nav class="page-nav" id="page-nav" aria-label="Pages"></nav>
+        <div class="sidebar-bottom">
+          <button class="sidebar-action" id="new-wiki-btn">✧ &nbsp; New wiki</button>
+          <button class="sidebar-action" id="save-as-btn">▣ &nbsp; Save to folder…</button>
+          <button class="sidebar-action" id="export-zip-btn">⇩ &nbsp; Export wiki ZIP…</button>
+          <button class="sidebar-action" id="import-legacy-btn">↥ &nbsp; Import old wiki JSON…</button>
+          <button class="sidebar-action" id="rename-wiki-btn">✎ &nbsp; Rename wiki</button>
+          <div class="file-label" id="file-label">Working locally · No server</div>
+        </div>
+      </aside>
+      <main id="content" class="content-area">
+        <section id="empty-state" class="empty-state" hidden>
+          <div class="empty-symbol">▤</div>
+          <h2>Your wiki is empty</h2>
+          <p>Create a page to start writing, or choose <strong>Open folder</strong> to load a saved wiki. Each page is stored in its own JSON file.</p>
+          <button id="empty-create-btn" class="btn btn-primary">Create first page</button>
+        </section>
+        <div class="page-wrap">
+          <div class="page-header">
+            <div id="breadcrumbs" class="breadcrumbs"></div>
+            <div class="page-tools">
+              <label class="page-width-control" for="page-width-select">Page width
+                <select id="page-width-select" title="Set page width (relative to the area beside the sidebar)" aria-label="Page width">
+                  <option value="75">75%</option>
+                  <option value="90" selected>90%</option>
+                  <option value="100">100%</option>
+                </select>
+              </label>
+              <button class="btn btn-ghost btn-sm" id="new-child-btn" title="Add a nested child page">+ Child page</button>
+              <button class="btn btn-ghost btn-sm" id="delete-page-btn" title="Delete the selected page">Delete</button>
+            </div>
+          </div>
+          <section class="editor-heading">
+            <div class="page-title-row"><button type="button" id="page-icon-btn" class="page-icon-btn" title="Choose page icon" aria-label="Choose page icon"><span id="page-icon-display">▤</span></button><input id="page-title" class="title-input" type="text" maxlength="140" aria-label="Page title" placeholder="Untitled page"></div>
+            <div class="page-info"><span id="page-modified"></span><span class="info-divider">·</span><span id="page-word-count">0 words</span></div>
+            <div class="metadata-row">
+              <label class="metadata-field"><span>Parent</span><select id="parent-select" aria-label="Parent page"></select></label>
+              <label class="metadata-field metadata-tags"><span>Tags</span><input id="tags-input" type="text" placeholder="Comma-separated tags" aria-label="Page tags"></label>
+            </div>
+          </section>
+          <div class="editor-card">
+            <div class="editor-topbar">
+              <div class="segmented" role="group" aria-label="Page view mode">
+                <button class="segment" id="preview-tab" data-mode="preview">Preview</button>
+                <button class="segment" id="edit-tab" data-mode="edit">Edit</button>
+                <button class="segment" id="split-tab" data-mode="split">Split</button>
+              </div>
+              <div id="editor-toolbar" class="editor-toolbar" aria-label="Editor formatting tools">
+                <button type="button" class="format-btn" data-format="heading" title="Heading">H</button>
+                <button type="button" class="format-btn format-bold" data-format="bold" title="Bold">B</button>
+                <button type="button" class="format-btn format-italic" data-format="italic" title="Italic">I</button>
+                <button type="button" class="format-btn" data-format="list" title="Bulleted list">☷</button>
+                <button type="button" class="format-btn" data-format="link" title="External link">↗</button>
+                <button type="button" class="format-btn" data-format="wiki" title="Internal wiki link">[[]]</button>
+                <button type="button" class="format-btn" data-format="code" title="Code">{ }</button>
+                <button type="button" class="format-btn" data-format="table" title="Create or edit a table">▦ Table</button>
+                <button type="button" class="format-btn" id="symbols-btn" title="Insert a symbol or special character">Ω Symbols</button>
+                <button type="button" class="format-btn" id="icons-btn" title="Insert an SVG icon or emoji">☆ Icons</button>
+              </div>
+            </div>
+            <div class="editor-content" id="editor-content">
+              <label class="visually-hidden" for="content-input">Markdown page editor</label>
+              <textarea id="content-input" spellcheck="true" placeholder="Write in Markdown…"></textarea>
+              <article id="preview" class="markdown-body"></article>
+            </div>
+          </div>
+          <div class="editor-footer"><span>Markdown supported · Link between pages with <code>[[Page title]]</code></span><span id="page-id-short"></span></div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <input type="file" id="file-input" accept=".json,application/json" hidden>
+  <input type="file" id="folder-input" webkitdirectory multiple hidden>
+  <dialog id="table-dialog" class="wiki-dialog" aria-labelledby="table-dialog-title">
+    <div class="dialog-head"><h2 id="table-dialog-title">Insert table</h2><button type="button" id="table-close" class="dialog-close" aria-label="Close">×</button></div>
+    <p class="dialog-hint">Type into the cells below. The first row is the table header. Tables are saved as readable Markdown inside the page JSON.</p>
+    <div class="table-builder-actions">
+      <button type="button" id="table-add-row" class="btn btn-sm">+ Row</button>
+      <button type="button" id="table-remove-row" class="btn btn-sm">− Row</button>
+      <button type="button" id="table-add-col" class="btn btn-sm">+ Column</button>
+      <button type="button" id="table-remove-col" class="btn btn-sm">− Column</button>
+      <span id="table-size" class="dialog-hint"></span>
+    </div>
+    <div class="table-builder-scroll"><div id="table-builder-grid" class="table-builder-grid"></div></div>
+    <div class="dialog-foot"><button type="button" id="table-cancel" class="btn">Cancel</button><button type="button" id="table-confirm" class="btn btn-primary">Insert table</button></div>
+  </dialog>
+  <dialog id="picker-dialog" class="wiki-dialog picker-dialog" aria-labelledby="picker-title">
+    <div class="dialog-head"><h2 id="picker-title">Insert icon or symbol</h2><button type="button" id="picker-close" class="dialog-close" aria-label="Close">×</button></div>
+    <div class="picker-tabs" role="group" aria-label="Choose character type"><button type="button" data-picker-tab="icons" class="picker-tab">SVG icons</button><button type="button" data-picker-tab="symbols" class="picker-tab">Symbols</button><button type="button" data-picker-tab="emoji" class="picker-tab">Emoji</button></div>
+    <input id="picker-search" class="picker-search" type="search" placeholder="Search by name…" aria-label="Search icons or symbols" autocomplete="off">
+    <div id="picker-results" class="picker-results" aria-live="polite"></div>
+    <div class="dialog-foot"><span id="picker-hint" class="dialog-hint">Choose an item to insert it.</span><button type="button" id="picker-clear" class="btn btn-sm" hidden>Remove page icon</button><button type="button" id="picker-cancel" class="btn">Cancel</button></div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 2,
+  "type": "localwiki-index",
+  "name": "Example Wiki",
+  "updatedAt": "2026-10-20T13:00:00.000Z",
+  "pages": [
+    {
+      "id": "welcome",
+      "file": "pages/welcome.json"
+    },
+    {
+      "id": "editing-guide",
+      "file": "pages/editing-guide.json"
+    },
+    {
+      "id": "project-notes",
+      "file": "pages/project-notes.json"
+    },
+    {
+      "id": "tables-and-icons",
+      "file": "pages/tables-and-icons.json"
+    }
+  ]
+}

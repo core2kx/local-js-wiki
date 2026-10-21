@@ -1,0 +1,15 @@
+{
+  "id": "tables-and-icons",
+  "title": "Tables, symbols and icons",
+  "parentId": "editing-guide",
+  "tags": [
+    "tables",
+    "symbols",
+    "icons",
+    "examples"
+  ],
+  "icon": "icon:table",
+  "content": "# Tables, symbols and icons\n\nYou can build a table by choosing **▦ Table** in Edit or Split view. Change the number of rows and columns, then fill in the cells. Use **Edit table** above the table in Preview or Split view to modify it later.\n\n## Example equipment table\n\n| Device | Status | Purpose |\n| --- | --- | --- |\n| :icon[server]: Server | ✅ Online | File storage |\n| :icon[network]: Switch | ⚠️ Maintenance | Internal network |\n| :icon[database]: Database | ✓ Ready | Knowledge index |\n\n## Symbols\n\nSelect **Ω Symbols** in the editor toolbar. Examples: Δ, Ω, µ, ±, ≥, ≤, →, ←, ✓, ✕.\n\n## Icons and emoji\n\nSelect **☆ Icons** to insert local vector icons, or switch to the Emoji tab. Example scalable SVG icons: :icon[star]: :icon[warning]: :icon[rocket]: :icon[book]: :icon[globe]:.\n\nThe editor stores vector icons using a plain-text token such as `:icon[server]:`, which is displayed as an SVG icon by the wiki. An emoji like 📡 or 🔒 is stored directly as text.\n\nClick the icon next to the title to set a page-specific icon that also appears in the sidebar.\n\n[[Editing guide|Return to editing guide]].",
+  "createdAt": "2026-10-20T14:15:00.000Z",
+  "updatedAt": "2026-10-20T14:15:00.000Z"
+}
