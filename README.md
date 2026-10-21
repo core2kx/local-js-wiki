@@ -1,19 +1,18 @@
-# LocalWiki 1.3 — tables, icons and symbols (one JSON file per page)
+# LocalWiki — an offline wiki, one JSON file per page
 
 A browser-only wiki that works offline. **No runtime server, database, Python, Node.js, CDN, package manager, or internet connection is required.** Double-click `index.html` in Brave/Chrome/Edge.
 
-## What's new
+## How it stores data
 
-As of v1.2, **each page has its own JSON file**. The wiki's small `wiki.json` index stores the wiki name and stable page file locations. Page content, titles, tags, and parent IDs live in those individual JSON files. Renaming or moving a page does **not** change its filename. Page search still searches titles, tags, and content across the opened pages (held in memory by the browser).
+**Each page has its own JSON file.** The wiki's small `wiki.json` index stores the wiki name and stable page file locations. Page content, titles, tags, icons, and parent IDs live in the individual page files. Renaming or moving a page does **not** change its filename. Search covers titles, tags, and content across all opened pages (held in memory by the browser).
 
-## New in v1.3 — visual table builder and offline icons
+## Tables, symbols and icons
 
 - **Create tables:** Switch to Edit/Split and choose **▦ Table**. Edit header and data cells directly in the dialog. Add/remove rows or columns (maximum 12 columns and 40 data rows), then click **Insert table**.
 - **Edit an existing table:** In Preview/Split mode, choose **✎ Edit table** directly above the rendered table. Changes are written back to the same Markdown table while keeping the surrounding page intact. You can also put the text cursor inside a Markdown table and choose **▦ Table**.
 - **Insert symbols:** Choose **Ω Symbols**; search names (e.g. `ohm`, `arrow`, `check`, `degree`), then click an entry to insert the Unicode character at the editor cursor.
-- **Insert icons:** Choose **☆ Icons**; choose from 32 local scalable SVG icons or switch to emoji. Search is included. SVG icons are saved as text markers such as `:icon[server]:`. The local `js/icon-library.js` file supplies their artwork, so no icon fonts or extra CSS framework are required. Symbols and emoji are saved as plain Unicode text.
-- **Assign a page icon:** Click the square icon beside the page title to choose an icon, emoji, or symbol. The selection appears on the page and in the navigation sidebar; it is stored as an optional `icon` value in that page's JSON file. Existing v1.2 pages without an `icon` still work.
-- **Data layout unchanged:** There is still one `wiki.json` manifest and one JSON per wiki page. No database, new services, CDN, internet access, or build tools.
+- **Insert icons:** Choose **☆ Icons**; choose from 32 local scalable SVG icons or switch to emoji. Search is included. SVG icons are saved as text markers such as `:icon[server]:`. The local `js/icon-library.js` file supplies their artwork, so no icon fonts or CSS framework are required. Symbols and emoji are saved as plain Unicode text.
+- **Assign a page icon:** Click the square icon beside the page title to choose an icon, emoji, or symbol. The selection appears on the page and in the navigation sidebar, and is stored as the `icon` value in that page's JSON file.
 
 Note: Tables are saved as **Markdown**, not separate structured table objects. This keeps JSON easy to read and edit, but it is not a spreadsheet and does not include merged cells, formulas, sorting, or CSV import.
 
@@ -44,7 +43,7 @@ A wiki folder can be anywhere on your disk, independently of the app directory. 
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 1,
   "type": "localwiki-index",
   "name": "Example Wiki",
   "pages": [
@@ -88,10 +87,6 @@ A wiki folder can be anywhere on your disk, independently of the app directory. 
 - **Save to folder…** lets you choose a new destination. If the destination already contains a different `wiki.json`, the app warns before replacing its index. Use a new empty folder for safe copies.
 - **Export wiki ZIP…** works without a server or outside libraries. It uses standard, uncompressed ZIP entries, so archives are larger but compatible with normal extraction tools.
 - **Ctrl/Cmd+S** saves, **Ctrl/Cmd+K** focuses search, **Ctrl/Cmd+N** creates a page.
-
-### Convert a v1.0 / v1.1 single-file wiki
-
-Choose **Import old wiki JSON…** in the sidebar and select the old JSON containing a `pages` array. All page IDs, titles, nesting, tags, and text are preserved. Then choose **Save changes** and select an empty folder. The wiki will create its v2 `wiki.json` and one file per page. Your original single-file JSON is not modified.
 
 ## Other features
 

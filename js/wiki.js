@@ -6,8 +6,8 @@
   const $ = id => document.getElementById(id);
   const els = {
     name: $('wiki-name'), status: $('save-status'), open: $('open-btn'), save: $('save-btn'),
-    saveAs: $('save-as-btn'), exportZip: $('export-zip-btn'), importLegacy: $('import-legacy-btn'),
-    fileInput: $('file-input'), folderInput: $('folder-input'), newWiki: $('new-wiki-btn'),
+    saveAs: $('save-as-btn'), exportZip: $('export-zip-btn'),
+    folderInput: $('folder-input'), newWiki: $('new-wiki-btn'),
     rename: $('rename-wiki-btn'), theme: $('theme-btn'), fileLabel: $('file-label'),
     search: $('search'), sidebarHeading: $('sidebar-heading'), nav: $('page-nav'),
     newPage: $('new-page-btn'), newChild: $('new-child-btn'), del: $('delete-page-btn'),
@@ -25,10 +25,9 @@
     pickerDialog: $('picker-dialog'), pickerSearch: $('picker-search'),
     pickerResults: $('picker-results'), pickerClear: $('picker-clear'), pickerHint: $('picker-hint')
   };
-  const DRAFT_KEY = 'offlinewiki:draft:2';
-  const LEGACY_DRAFT_KEY = 'offlinewiki:draft:1';
-  const UI_KEY = 'offlinewiki:ui:1';
-  const SCHEMA_VERSION = 1;
+  const DRAFT_KEY = 'localwiki:draft';
+  const UI_KEY = 'localwiki:ui';
+  const SCHEMA_VERSION = 1; // wiki.json format version
   let wiki;
   let currentId;
   let folderHandle = null;
@@ -116,10 +115,7 @@
   }
   function normalizeWiki(input) {
     if (!input || typeof input !== 'object' || Array.isArray(input) || !Array.isArray(input.pages)) {
-      throw new Error('Not a wiki JSON file. Expected an object containing a pages array.');
-    }
-    if (input.schemaVersion !== undefined && input.schemaVersion !== SCHEMA_VERSION) {
-      throw new Error('Unsupported wiki schema version: ' + input.schemaVersion);
+      throw new Error('Invalid wiki data. Expected an object containing a pages array.');
     }
     if (input.pages.length > 20000) throw new Error('File contains too many pages (limit 20,000).');
     const ids = new Set();
@@ -156,7 +152,6 @@
       }
     }
     return {
-      schemaVersion: SCHEMA_VERSION,
       name: typeof input.name === 'string' && input.name.trim() ? input.name.trim().slice(0, 140) : 'Untitled Wiki',
       pages
     };
@@ -633,7 +628,7 @@
     els.tableDialog.close();
   }
 
-  // Storage format v2: wiki.json is a tiny manifest; each page has its own JSON file.
+  // Storage format: wiki.json is a tiny manifest; each page has its own JSON file.
   // IDs remain stable as pages are renamed or moved. A stored pathname never changes.
   function pathForNewPage(pageId) {
     const base = filenameSafe(pageId).replace(/[^a-zA-Z0-9._-]/g, '-').replace(/^\.+/, '').slice(0, 70) || 'page';
@@ -648,7 +643,7 @@
   function indexObject() {
     assignPaths();
     return {
-      schemaVersion: 2, type: 'localwiki-index', name: wiki.name,
+      schemaVersion: SCHEMA_VERSION, type: 'localwiki-index', name: wiki.name,
       updatedAt: wiki.updatedAt || isoNow(),
       pages: wiki.pages.map(p => ({id: p.id, file: pagePaths.get(p.id)}))
     };
@@ -715,9 +710,9 @@
     catch (err) { try { await writer.abort(); } catch (_) {} throw err; }
   }
   function validateIndex(index) {
-    if (!index || index.schemaVersion !== 2 || index.type !== 'localwiki-index' ||
+    if (!index || index.schemaVersion !== SCHEMA_VERSION || index.type !== 'localwiki-index' ||
         typeof index.name !== 'string' || !Array.isArray(index.pages)) {
-      throw new Error('Missing or invalid v2 wiki.json index.');
+      throw new Error('Missing or invalid wiki.json index.');
     }
     if (index.pages.length > 20000) throw new Error('Too many wiki pages (limit 20,000).');
     const ids = new Set(), paths = new Set();
@@ -739,7 +734,7 @@
       if (page.id !== entry.id) throw new Error(`Page ID mismatch in ${entry.file}`);
       pages.push(page);
     }
-    return {index, normalized: normalizeWiki({schemaVersion: 1, name: index.name, pages})};
+    return {index, normalized: normalizeWiki({name: index.name, pages})};
   }
   function acceptLoadedFolder(result, name, handle) {
     wiki = result.normalized;
@@ -863,40 +858,11 @@
     } catch (err) { console.error(err); toast('Save failed: ' + err.message); }
     finally { saving = false; }
   }
-  async function acceptOldJsonText(text, name) {
-    const normalized = normalizeWiki(JSON.parse(text));
-    wiki = normalized;
-    currentId = wiki.pages[0]?.id || null;
-    pagePaths.clear(); changedIds = new Set(wiki.pages.map(p => p.id)); removedPaths.clear(); indexDirty = true;
-    folderHandle = null; folderName = 'Imported: ' + name;
-    dirty = true; changeVersion++;
-    els.search.value = '';
-    renderAll(); backupDraft();
-    toast('Imported ' + wiki.pages.length + ' pages. Choose Save changes to create the new folder format.');
-  }
-  async function importLegacyJson() {
-    if (dirty && !confirm('Import a different wiki? Your unsaved edits will be replaced.')) return;
-    if (typeof window.showOpenFilePicker === 'function') {
-      try {
-        const handles = await window.showOpenFilePicker({multiple:false, types:[{description:'Legacy wiki JSON', accept:{'application/json':['.json']}}]});
-        if (!handles?.length) return;
-        const file = await handles[0].getFile();
-        await acceptOldJsonText(await file.text(), file.name);
-        return;
-      } catch (err) {
-        if (isCancellation(err)) return;
-        if (!['SecurityError','NotAllowedError','TypeError'].includes(err.name)) {
-          toast('Import failed: ' + err.message); return;
-        }
-      }
-    }
-    els.fileInput.click();
-  }
   function newWiki() {
     if (dirty && !confirm('Create a new wiki? Your unsaved edits will be replaced.')) return;
     const name = prompt('Name your new wiki:', 'My Wiki');
     if (name === null) return;
-    wiki = normalizeWiki({schemaVersion: SCHEMA_VERSION, name: name.trim() || 'My Wiki', pages: []});
+    wiki = normalizeWiki({name: name.trim() || 'My Wiki', pages: []});
     currentId = null; folderHandle = null; folderName = 'No folder selected'; dirty = false;
     pagePaths.clear(); changedIds.clear(); removedPaths.clear(); indexDirty = true; changeVersion++;
     els.search.value = '';
@@ -986,21 +952,12 @@
     els.save.addEventListener('click', saveChanges);
     els.saveAs.addEventListener('click', saveToFolder);
     els.exportZip.addEventListener('click', exportZip);
-    els.importLegacy.addEventListener('click', importLegacyJson);
     els.newWiki.addEventListener('click', newWiki);
     els.rename.addEventListener('click', () => {
       const name = prompt('Wiki name:', wiki.name);
       if (name === null || !name.trim() || wiki.name === name.trim()) return;
       wiki.name = name.trim().slice(0, 140);
       indexDirty = true; markDirty(); renderAll();
-    });
-    els.fileInput.addEventListener('change', async () => {
-      const file = els.fileInput.files?.[0];
-      if (file) {
-        try { await acceptOldJsonText(await file.text(), file.name); }
-        catch (err) { toast('Invalid old wiki JSON: ' + err.message); }
-      }
-      els.fileInput.value = '';
     });
     els.folderInput.addEventListener('change', async () => {
       if (els.folderInput.files?.length) {
@@ -1029,19 +986,18 @@
     window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
   }
   function init() {
-    wiki = normalizeWiki({schemaVersion: SCHEMA_VERSION, name:'My Wiki', pages:[]});
+    wiki = normalizeWiki({name:'My Wiki', pages:[]});
     currentId = null;
     let recoveredUnsaved = false;
     try {
-      const recovered = JSON.parse(localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY) || 'null');
+      const recovered = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
       if (recovered?.wiki) {
         wiki = normalizeWiki(recovered.wiki);
         currentId = pageByIdIn(wiki, recovered.currentId)?.id || wiki.pages[0]?.id || null;
         pagePaths = new Map(Array.isArray(recovered.pagePaths) ? recovered.pagePaths : []);
         // Directory permissions are not retained across reloads. This is a browser copy only.
         folderName = recovered.folderName || 'Recovered browser draft';
-        // Respect the saved flag; drafts from older versions lack it and stay dirty.
-        dirty = recovered.dirty !== false;
+        dirty = recovered.dirty === true;
         changedIds = new Set(dirty ? wiki.pages.map(p => p.id) : []);
         indexDirty = dirty;
         recoveredUnsaved = dirty && wiki.pages.length > 0;
