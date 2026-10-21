@@ -1,13 +1,14 @@
 /* LocalWiki — ui/page.js
-   Draws the open page: title and icon, breadcrumbs, parent and tags fields, editor text,
-   rendered preview, and page info. Also owns the view preferences (Preview/Edit/Split mode,
-   page width, light/dark theme), which are remembered in browser storage.
+   Draws the open page: title and icon, breadcrumbs, parent and tags fields, the Markdown editor's
+   text, the Visual editor (ui/visual-editor.js), and page info. Also owns the view preferences
+   (Visual / Markdown / Split, page width, light/dark theme), remembered in browser storage, and
+   knows which editor the user is working in (activeSurface).
 
-   Depends on: text.js, model.js, markdown.js, state.js, pages.js, ui/elements.js
+   Depends on: text.js, model.js, state.js, pages.js, ui/elements.js, ui/visual-editor.js
    Provides:   LocalWiki.ui.renderAll, renderPage, renderAfterRename, renderPageStats, renderBreadcrumbs,
                renderParentChoices, renderMarkdown, renderPageIcon, fillPageIcon, focusTitle,
-               moveCaretToChange, setMode, getMode, ensureEditable, applyPageWidth, loadPreferences,
-               savePreferences, toggleTheme */
+               moveCaretToChange, setMode, getMode, activeSurface, setSurface, ensureEditable,
+               applyPageWidth, loadPreferences, savePreferences, toggleTheme */
 (() => {
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
@@ -15,10 +16,11 @@
   const els = LW.els;
   const state = LW.state;
   const {wordCount} = LW.text;
-  const {pathFor, findLinkTarget, descendantsOf, ancestors, sortByTitle} = LW.model;
+  const {pathFor, descendantsOf, ancestors, sortByTitle} = LW.model;
   const {pageById, currentPage} = LW.store;
   const UI_KEY = 'localwiki:ui';
-  let mode = 'split';        // 'preview' | 'edit' | 'split'
+  let mode = 'visual';       // 'visual' | 'markdown' | 'split'
+  let surface = 'visual';    // the editor last used: 'visual' or 'markdown' (both are shown in Split)
   let pageWidth = '90';      // percent of the space beside the sidebar
 
   function shortDate(iso) {
@@ -47,7 +49,7 @@
     renderParentChoices(p);
     renderBreadcrumbs(p);
     renderPageStats();
-    renderMarkdown();
+    ui.renderVisual(true);
   }
   // Like renderPage, but leaves the editor's caret alone unless the content itself changed.
   function renderAfterRename() {
@@ -93,10 +95,8 @@
     }
     els.parent.value = pageById(p.parentId) ? p.parentId : '';
   }
-  function renderMarkdown() {
-    const page = currentPage();
-    els.preview.innerHTML = page ? LW.markdown.toHtml(page.content, {linkExists: target => !!findLinkTarget(state.wiki.pages, target)}) : '';
-  }
+  // The formatted page is the Visual editor; it skips the redraw when it made the change itself.
+  function renderMarkdown() { ui.renderVisual(); }
   // Shows a page icon: a bundled SVG ("icon:name"), or an emoji/symbol as text.
   function fillPageIcon(element, page) {
     element.replaceChildren();
@@ -109,10 +109,10 @@
   }
   function renderPageIcon(page) { fillPageIcon(els.pageIconDisplay, page); }
   function focusTitle() { els.title.focus(); els.title.select(); }
-  // After undo/redo: put the caret where the open page's text changed (if it did).
+  // After undo/redo: put the Markdown editor's caret where the text changed (if it did).
   function moveCaretToChange(oldContent) {
     const page = currentPage();
-    if (!page || oldContent === undefined || oldContent === page.content) return;
+    if (surface !== 'markdown' || !page || oldContent === undefined || oldContent === page.content) return;
     let i = 0;
     while (i < page.content.length && page.content[i] === oldContent[i]) i++;
     els.content.setSelectionRange(i, i);
@@ -120,19 +120,22 @@
 
   // --- View preferences ---------------------------------------------------------------------------
   function setMode(next) {
-    mode = next;
-    els.card.classList.remove('mode-preview', 'mode-edit', 'mode-split');
-    els.card.classList.add('mode-' + next);
+    mode = ['visual', 'markdown', 'split'].includes(next) ? next : 'visual';
+    els.card.classList.remove('mode-visual', 'mode-markdown', 'mode-split');
+    els.card.classList.add('mode-' + mode);
     for (const btn of document.querySelectorAll('[data-mode]')) {
-      btn.classList.toggle('active', btn.dataset.mode === next);
-      btn.setAttribute('aria-pressed', String(btn.dataset.mode === next));
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+      btn.setAttribute('aria-pressed', String(btn.dataset.mode === mode));
     }
-    els.toolbar.style.visibility = next === 'preview' ? 'hidden' : 'visible';
+    if (mode !== 'split') surface = mode;
     savePreferences();
   }
   function getMode() { return mode; }
-  // Editing tools switch from Preview to Edit so the change is visible.
-  function ensureEditable() { if (mode === 'preview') setMode('edit'); }
+  // Which editor toolbar actions apply to: the one shown, or in Split the one last used.
+  function activeSurface() { return surface; }
+  function setSurface(which) { surface = which; }
+  // Markdown-only tools (the table dialog) make sure the Markdown editor is visible.
+  function ensureEditable() { if (mode === 'visual') setMode('markdown'); }
   function applyPageWidth(value) {
     pageWidth = ['75', '90', '100'].includes(String(value)) ? String(value) : '90';
     document.documentElement.style.setProperty('--page-width', pageWidth + '%');
@@ -151,7 +154,7 @@
     try {
       const saved = JSON.parse(localStorage.getItem(UI_KEY) || 'null');
       if (saved?.theme === 'dark') document.documentElement.dataset.theme = 'dark';
-      if (['edit', 'preview', 'split'].includes(saved?.mode)) mode = saved.mode;
+      if (['visual', 'markdown', 'split'].includes(saved?.mode)) mode = saved.mode;
       applyPageWidth(saved?.pageWidth);
     } catch (_) {}
     applyPageWidth(pageWidth);
@@ -161,6 +164,6 @@
   Object.assign(ui, {
     renderAll, renderPage, renderAfterRename, renderPageStats, renderBreadcrumbs, renderParentChoices,
     renderMarkdown, renderPageIcon, fillPageIcon, focusTitle, moveCaretToChange,
-    setMode, getMode, ensureEditable, applyPageWidth, loadPreferences, savePreferences, toggleTheme
+    setMode, getMode, activeSurface, setSurface, ensureEditable, applyPageWidth, loadPreferences, savePreferences, toggleTheme
   });
 })();

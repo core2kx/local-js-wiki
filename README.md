@@ -23,10 +23,20 @@ Titles, filenames, links, and search work in any script. IDs are lowercase and k
 - Search ignores case and accents: `cafe` finds `Café`, `strasse` finds `Straße`, `αθηνα` finds `Αθήνα`, `елка` finds `ёлка`. Vowel signs in scripts such as Hindi, Thai, Arabic, and Hebrew still count, and Russian `й` stays distinct from `и`. The matched text is highlighted in the result snippet.
 - Word counts handle languages written without spaces (Chinese, Japanese, Thai).
 
+## Editing pages
+
+The page editor has three views (remembered per browser):
+
+- **Visual** (the default): edit the formatted page directly, like a word processor. The toolbar formats the selection: heading, bold, italic, strikethrough, bulleted and numbered lists, quote, inline code, code block, external link, link to a wiki page, and table. Click inside a link for **Open / Edit / Remove**; click inside a table for **+ Row / + Column / − Row / − Column / Delete table**. Pasting inserts plain text. In a code block, Enter adds a line and Enter on an empty last line leaves the block.
+- **Markdown**: edit the Markdown text directly; the same toolbar inserts Markdown around the selection.
+- **Split**: Markdown and Visual side by side; typing in either updates the other.
+
+Pages are always saved as Markdown, whichever view you use, so undo, autosave, page history, renaming and search work the same. Characters you type in Visual stay exactly as typed: `*`, `[[`, `#` or `|` become backslash-escaped in the Markdown (`\*`) instead of turning into formatting. Visual editing writes the page in a consistent Markdown style (for example `-` for bullets), so a page written by hand may be tidied slightly the first time it is edited visually; what it displays does not change.
+
 ## Tables, symbols and icons
 
-- **Create tables:** Switch to Edit/Split and choose **▦ Table**. Edit header and data cells directly in the dialog. Add/remove rows or columns (maximum 12 columns and 40 data rows), then click **Insert table**.
-- **Edit an existing table:** In Preview/Split mode, choose **✎ Edit table** directly above the rendered table. Changes are written back to the same Markdown table while keeping the surrounding page intact. You can also put the text cursor inside a Markdown table and choose **▦ Table**.
+- **Create tables:** In Visual, choose **▦ Table** to insert a table, then type into the cells and use the table bar to add or remove rows and columns. In Markdown, **▦ Table** opens a grid dialog. Tables have no size limit.
+- **Edit an existing table:** In Visual, click into it and edit the cells directly. In Markdown, put the text cursor inside the table and choose **▦ Table**; changes are written back to the same Markdown table while keeping the surrounding page intact.
 - **Insert symbols:** Choose **Ω Symbols**; search names (e.g. `ohm`, `arrow`, `check`, `degree`), then click an entry to insert the Unicode character at the editor cursor.
 - **Insert icons:** Choose **☆ Icons**; choose from 32 local scalable SVG icons or switch to emoji. Search is included. SVG icons are saved as text markers such as `:icon[server]:`. The local `js/icon-library.js` file supplies their artwork, so no icon fonts or CSS framework are required. Symbols and emoji are saved as plain Unicode text.
 - **Assign a page icon:** Click the square icon beside the page title to choose an icon, emoji, or symbol. The selection appears on the page and in the navigation sidebar, and is stored as the `icon` value in that page's JSON file.
@@ -154,7 +164,7 @@ New pages never take the filename of a set-aside file.
 
 - Create, edit, nest, rename, move, and delete pages.
 - Search across titles, tags, and text of all opened pages. Each word is matched separately and in any order (`lisbon friday` finds pages containing both words); put words in quotes for an exact phrase (`"lisbon trip"`). Results with words in the title rank first, and matched words are highlighted.
-- Markdown edit, preview, and split views; visual table builder/editor; Unicode symbols, emoji, inline SVG tokens; internal links `[[Page title]]` and `[[page-id|Text]]`.
+- Visual (WYSIWYG), Markdown and split editing; tables edited in place or with the grid dialog; Unicode symbols, emoji, inline SVG tokens; internal links `[[Page title]]` and `[[page-id|Text]]`.
 - Light/dark mode, responsive sidebar and 75%/90%/100% page width.
 - All assets are local and there are no third-party libraries or CSS frameworks. Layout customizations belong in `css/wiki.css`.
 - Safe Markdown renderer escapes HTML and does not execute scripts from wiki content.
@@ -168,7 +178,7 @@ New pages never take the filename of a set-aside file.
 - Old files are only cleaned up in a folder opened (or first saved) in the current session. If you recover a browser draft and save it with **Save to folder…**, files from pages renamed or deleted in that draft stay behind; they are harmless because the index no longer references them.
 - Links to a deleted page are not removed; they show as missing links.
 - Browser restrictions prevent unattended opening of `wiki.json` and `pages/*.json` through relative `file://` paths. Always use the **Open folder** button.
-- The Markdown renderer is a lightweight subset of Markdown, not a full CommonMark editor. Very complicated tables and nested formatting are not supported.
+- The Markdown renderer is a lightweight subset of Markdown, not a full CommonMark editor. Very complicated tables and nested formatting are not supported. Lists have one level (nested lists made in Visual are flattened), and there are no images, colors or underlining.
 - SVG pictograms are selected from a bundled allowlist; arbitrary SVG or HTML in page content is not executed. If you export pages as JSON, the icon markup `:icon[name]:` is intended for LocalWiki rendering. Unicode symbols and emoji remain portable to other editors.
 
 ## For developers

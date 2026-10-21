@@ -28,10 +28,10 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 
 | Layer | Files | Role |
 |---|---|---|
-| **Pure logic** | `icon-library.js`, `text.js`, `model.js`, `markdown.js`, `zip.js`, `search.js` | Functions that take data and return data. They never touch the page, so they also run under Node and are covered by the tests. |
+| **Pure logic** | `icon-library.js`, `text.js`, `model.js`, `markdown.js`, `zip.js`, `html-to-markdown.js`, `search.js` | Functions that take data and return data. They never touch the page, so they also run under Node and are covered by the tests. |
 | **State** | `folder.js`, `state.js` | Helpers for reading and writing folder files; the open wiki (`LocalWiki.state`) and change tracking (`LocalWiki.store`). |
 | **Features** | `revisions.js`, `history.js`, `pages.js`, `storage.js` | Operations: saved page history, undo/redo, page editing and renaming, opening/saving/autosave/export. They change state and then ask the UI to redraw. They never touch HTML elements directly. |
-| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
+| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/visual-editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
 | **Start** | `app.js` | Wires the remaining controls to features, restores the browser draft and preferences, draws the first screen. |
 
 ### Files at a glance
@@ -40,7 +40,8 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 |---|---|
 | `js/text.js` | Filename slugs, title comparison, accent-insensitive search folding, word count |
 | `js/model.js` | What a page is, validation and repair of damaged pages, the parent/child tree, IDs and paths |
-| `js/markdown.js` | The Markdown renderer, table parsing and writing, rewriting `[[links]]` on rename |
+| `js/markdown.js` | The Markdown renderer (with backslash escapes), table parsing and writing, rewriting `[[links]]` on rename |
+| `js/html-to-markdown.js` | Converting the Visual editor's HTML back to Markdown, escaping typed characters |
 | `js/zip.js` | The ZIP writer used by "Export wiki ZIP" |
 | `js/search.js` | Query parsing, ranking, result snippets |
 | `js/folder.js` | Reading, writing, deleting and listing files in a folder handle |
@@ -49,6 +50,7 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 | `js/history.js` | Undo/redo snapshots and grouping (session only; `revisions.js` is the saved history) |
 | `js/pages.js` | Create/select/delete pages, editing fields, committing renames |
 | `js/storage.js` | Folder format, tolerant loading, saving, autosave, export, new wiki |
+| `js/ui/visual-editor.js` | The Visual editor: rendering, toolbar actions, link and table bars, code-block Enter |
 | `js/ui/*.js` | Everything you see; one file per area of the screen |
 | `js/app.js` | Which control triggers which operation; startup |
 
@@ -81,6 +83,10 @@ Other operations follow the same pattern: **record undo → change state → tou
   exports or undoes calls `pages.commitTitle()` first.
 - **Page text is never trusted as HTML.** The Markdown renderer escapes everything; only bundled
   icons become SVG.
+- **Pages are stored as Markdown, even when edited visually.** The Visual editor shows
+  `markdown.toHtml` output and saves `htmlToMarkdown` of what it contains. Anything new the renderer
+  outputs must be understood by `html-to-markdown.js`; the round-trip test in
+  `tests/html-to-markdown.test.js` guards this.
 - **Set-aside files are never written or deleted.** See `storage.js` and `state.setAside`. The same
   goes for a `revisions/` file that cannot be parsed.
 - **Renames must be reported to revisions.** Anything that changes a page ID calls
@@ -99,4 +105,6 @@ node --test
 stand-ins for browser features. The tests cover the pure-logic files plus `tests/workflow.test.js`,
 which runs open → rename → save → undo → delete against an in-memory folder and checks exactly which
 files are written and deleted, and `tests/revisions.test.js`, which covers the page-history rules and
-lifecycle (moving the clock forward instead of waiting). The screen itself (`ui/*.js`) is checked by hand in a browser.
+lifecycle (moving the clock forward instead of waiting). `tests/html-to-markdown.test.js` checks that
+Markdown → HTML → Markdown is lossless (using the tiny HTML parser in `tests/mini-dom.js`) and that text
+typed in the Visual editor stays literal. The screen itself (`ui/*.js`) is checked by hand in a browser.

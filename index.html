@@ -14,6 +14,7 @@
   <script defer src="js/model.js"></script>
   <script defer src="js/markdown.js"></script>
   <script defer src="js/zip.js"></script>
+  <script defer src="js/html-to-markdown.js"></script>
   <script defer src="js/search.js"></script>
   <!-- Folder access, the open wiki, and the operations on it -->
   <script defer src="js/folder.js"></script>
@@ -28,6 +29,7 @@
   <script defer src="js/ui/page.js"></script>
   <script defer src="js/ui/sidebar.js"></script>
   <script defer src="js/ui/editor.js"></script>
+  <script defer src="js/ui/visual-editor.js"></script>
   <script defer src="js/ui/table-builder.js"></script>
   <script defer src="js/ui/picker.js"></script>
   <script defer src="js/ui/problems.js"></script>
@@ -101,19 +103,23 @@
           <div class="editor-card">
             <div class="editor-topbar">
               <div class="segmented" role="group" aria-label="Page view mode">
-                <button class="segment" id="preview-tab" data-mode="preview">Preview</button>
-                <button class="segment" id="edit-tab" data-mode="edit">Edit</button>
-                <button class="segment" id="split-tab" data-mode="split">Split</button>
+                <button class="segment" data-mode="visual" title="Edit the formatted page">Visual</button>
+                <button class="segment" data-mode="markdown" title="Edit the Markdown text">Markdown</button>
+                <button class="segment" data-mode="split" title="Markdown and the formatted page side by side">Split</button>
               </div>
               <div id="editor-toolbar" class="editor-toolbar" aria-label="Editor formatting tools">
                 <button type="button" class="format-btn" data-format="heading" title="Heading">H</button>
                 <button type="button" class="format-btn format-bold" data-format="bold" title="Bold">B</button>
                 <button type="button" class="format-btn format-italic" data-format="italic" title="Italic">I</button>
+                <button type="button" class="format-btn format-strike" data-format="strike" title="Strikethrough">S</button>
                 <button type="button" class="format-btn" data-format="list" title="Bulleted list">☷</button>
+                <button type="button" class="format-btn" data-format="olist" title="Numbered list">1.</button>
+                <button type="button" class="format-btn" data-format="quote" title="Quote">❝</button>
+                <button type="button" class="format-btn" data-format="code" title="Inline code">{ }</button>
+                <button type="button" class="format-btn" data-format="codeblock" title="Code block">&lt;/&gt;</button>
                 <button type="button" class="format-btn" data-format="link" title="External link">↗</button>
-                <button type="button" class="format-btn" data-format="wiki" title="Internal wiki link">[[]]</button>
-                <button type="button" class="format-btn" data-format="code" title="Code">{ }</button>
-                <button type="button" class="format-btn" data-format="table" title="Create or edit a table">▦ Table</button>
+                <button type="button" class="format-btn" data-format="wiki" title="Link to a wiki page">[[]]</button>
+                <button type="button" class="format-btn" data-format="table" title="Insert a table (in Markdown: create or edit the table at the cursor)">▦ Table</button>
                 <button type="button" class="format-btn" id="symbols-btn" title="Insert a symbol or special character">Ω Symbols</button>
                 <button type="button" class="format-btn" id="icons-btn" title="Insert an SVG icon or emoji">☆ Icons</button>
               </div>
@@ -121,10 +127,11 @@
             <div class="editor-content" id="editor-content">
               <label class="visually-hidden" for="content-input">Markdown page editor</label>
               <textarea id="content-input" dir="auto" spellcheck="true" placeholder="Write in Markdown…"></textarea>
-              <article id="preview" class="markdown-body"></article>
+              <div id="visual-editor" class="markdown-body visual-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Page editor (visual)" data-placeholder="Start writing…"></div>
+              <div id="visual-context" class="visual-context" role="toolbar" aria-label="Link and table actions" hidden></div>
             </div>
           </div>
-          <div class="editor-footer"><span>Markdown supported · Link between pages with <code>[[Page title]]</code></span><span id="page-id-short"></span></div>
+          <div class="editor-footer"><span>Saved as Markdown · Link between pages with the [[]] button</span><span id="page-id-short"></span></div>
         </div>
       </main>
     </div>

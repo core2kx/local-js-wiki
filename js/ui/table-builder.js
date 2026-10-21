@@ -1,7 +1,8 @@
 /* LocalWiki — ui/table-builder.js
-   The "Insert table" / "Edit table" dialog: a grid of cells that is written back into the page as a
-   Markdown table. Opened from the toolbar (edits the table at the caret, or inserts a new one) or
-   from the "Edit table" button above a table in the preview.
+   The "Insert table" / "Edit table" dialog for the Markdown editor: a grid of cells written back
+   into the page as a Markdown table. Opened from the toolbar; edits the table at the caret or
+   inserts a new one. Tables have no size limit; the grid scrolls. (In the Visual editor, tables
+   are edited directly in the page instead.)
 
    Depends on: markdown.js, state.js, history.js, ui/elements.js, ui/page.js, ui/editor.js
    Provides:   LocalWiki.ui.openTableBuilder, installTableBuilder */
@@ -12,8 +13,6 @@
   const els = LW.els;
   const {currentPage, touchPage} = LW.store;
   const {findTableAt, lineOffset, tableMarkdown} = LW.markdown;
-  const MAX_COLUMNS = 12, MAX_ROWS = 41; // 41 rows = header + 40 data rows
-
   // {startLine, endLine, caret, values}: startLine is null for a new table; values[0] is the header.
   let tableDraft = null;
 
@@ -48,8 +47,6 @@
     els.tableSize.textContent = cols + ' column' + (cols===1?'':'s') + ' × ' + (rows-1) + ' data row' + (rows===2?'':'s');
     els.tableRemoveRow.disabled = rows <= 2;
     els.tableRemoveCol.disabled = cols <= 1;
-    els.tableAddRow.disabled = rows >= MAX_ROWS;
-    els.tableAddCol.disabled = cols >= MAX_COLUMNS;
   }
   // Writes the table into the page: replaces the edited table, or inserts a new one at the caret.
   function commitTable() {
@@ -83,7 +80,6 @@
     els.tableCancel.addEventListener('click', () => els.tableDialog.close());
     els.tableConfirm.addEventListener('click', commitTable);
     els.tableAddRow.addEventListener('click', () => {
-      if (tableDraft.values.length >= MAX_ROWS) return;
       tableDraft.values.push(tableDraft.values[0].map(() => '')); renderTableGrid();
     });
     els.tableRemoveRow.addEventListener('click', () => {
@@ -91,7 +87,6 @@
       tableDraft.values.pop(); renderTableGrid();
     });
     els.tableAddCol.addEventListener('click', () => {
-      if (tableDraft.values[0].length >= MAX_COLUMNS) return;
       tableDraft.values.forEach((row,idx) => row.push(idx === 0 ? 'Column ' + (row.length+1):''));
       renderTableGrid();
     });

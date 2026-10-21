@@ -45,7 +45,6 @@
     state.currentId = page.id;
     ui.clearSearch();
     markDirty(); ui.renderAll();
-    ui.setMode('edit');
     ui.focusTitle();
     return page;
   }

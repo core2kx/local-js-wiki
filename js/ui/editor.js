@@ -1,6 +1,7 @@
 /* LocalWiki — ui/editor.js
-   The Markdown editor's toolbar: wrapping the selection in formatting (bold, link, ...) and
-   inserting text at the caret (used by the symbol/icon picker and the table builder).
+   The editor toolbar. Actions go to the editor in use (ui.activeSurface): the Visual editor
+   (ui/visual-editor.js), or the Markdown editor, where they insert Markdown around the selection.
+   Also inserts text at the Markdown caret (used by the symbol/icon picker and the table builder).
    Stored page content is always plain Markdown.
 
    Depends on: state.js, history.js, ui/elements.js, ui/page.js, ui/sidebar.js
@@ -15,6 +16,7 @@
   // kind: a toolbar button's data-format value.
   function formatSelection(kind) {
     const p = currentPage(); if (!p) return;
+    if (ui.activeSurface() === 'visual') { ui.visualFormat(kind); return; }
     if (kind === 'table') { ui.openTableBuilder(); return; }
     ui.ensureEditable();
     const input = els.content;
@@ -25,7 +27,11 @@
       case 'heading': before = '## '; placeholder = 'Heading'; break;
       case 'bold': before = '**'; after = '**'; break;
       case 'italic': before = '*'; after = '*'; break;
+      case 'strike': before = '~~'; after = '~~'; break;
       case 'list': before = '- '; placeholder = 'List item'; break;
+      case 'olist': before = '1. '; placeholder = 'List item'; break;
+      case 'quote': before = '> '; placeholder = 'Quote'; break;
+      case 'codeblock': before = '```\n'; after = '\n```'; placeholder = 'code'; break;
       case 'link': before = '['; after = '](https://example.com)'; placeholder = 'Link text'; break;
       case 'wiki': before = '[['; after = ']]'; placeholder = 'Page title'; break;
       case 'code': before = '`'; after = '`'; break;

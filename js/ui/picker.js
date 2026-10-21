@@ -67,8 +67,12 @@
         if (pickerTarget === 'page') {
           LW.pages.setIcon(item.glyph);
         } else {
-          const text = item.glyph.startsWith('icon:') ? ':icon[' + item.glyph.slice(5) + ']:' : item.glyph;
-          ui.insertAtCaret(text, pickerCaret);
+          if (ui.activeSurface() === 'visual') {
+            if (item.glyph.startsWith('icon:')) ui.visualInsertIcon(item.glyph.slice(5)); else ui.visualInsertText(item.glyph);
+          } else {
+            const text = item.glyph.startsWith('icon:') ? ':icon[' + item.glyph.slice(5) + ']:' : item.glyph;
+            ui.insertAtCaret(text, pickerCaret);
+          }
         }
         els.pickerDialog.close();
       });
@@ -81,6 +85,7 @@
     if (!LW.store.currentPage()) return;
     pickerTarget = target; pickerTab = tab;
     pickerCaret = els.content.selectionStart || 0;
+    if (ui.activeSurface() === 'visual') ui.saveVisualSelection(); // the dialog takes the focus
     els.pickerSearch.value = '';
     renderPicker();
     els.pickerDialog.showModal();

@@ -5,6 +5,9 @@
    The renderer is deliberately a safe, compact subset of Markdown, not a full CommonMark engine.
    All page text is HTML-escaped; the only markup produced is the fixed set of tags below, plus
    SVG icons from the bundled allowlist (icon-library.js). Scripts in page content never run.
+   A backslash makes the next character literal (\* shows *, \[\[ shows [[); the visual editor
+   relies on this to keep typed characters from turning into formatting (see html-to-markdown.js).
+   The visual editor edits this same HTML, so html-to-markdown.js must understand every tag here.
 
    Pure functions: no page (DOM) access; runs under Node.
    Depends on: text.js, icon-library.js
@@ -16,6 +19,8 @@
   const icons = LW.icons;
 
   // --- Rendering ----------------------------------------------------------------------------------
+  // Characters a backslash can make literal.
+  const ESCAPABLE = /\\([\\`*_~\[\]|#>+.:-])/g;
   // options.linkExists(target) tells whether a [[target]] resolves to a page (missing links are styled).
   function inlineMarkdown(input, options) {
     // Code spans, icons and links are rendered first and swapped for placeholders, so the
@@ -23,9 +28,12 @@
     const tokens = [];
     const protect = html => { const n = tokens.push(html) - 1; return '' + n + ''; };
     let s = String(input);
-    s = s.replace(/`([^`\n]+)`/g, (_m, code) => protect('<code>' + escapeHtml(code) + '</code>'));
+    s = s.replace(ESCAPABLE, (_m, ch) => protect(escapeHtml(ch)));
+    // Code spans: `code`, or ``code with ` inside`` (one space inside the ticks is padding).
+    s = s.replace(/(`+)(?!`)(.+?)(?<!`)\1(?!`)/g, (_m, _ticks, code) =>
+      protect('<code>' + escapeHtml(/^ .* $/.test(code) && code.trim() ? code.slice(1, -1) : code) + '</code>'));
     s = s.replace(/:icon\[([a-z0-9-]+)\]:/g, (literal, name) => icons.has(name)
-      ? protect('<span class="inline-wiki-icon" role="img" aria-label="' + escapeHtml(name) + '">' + icons.svg(name) + '</span>')
+      ? protect('<span class="inline-wiki-icon" role="img" aria-label="' + escapeHtml(name) + '" data-icon="' + escapeHtml(name) + '">' + icons.svg(name) + '</span>')
       : literal);
     s = s.replace(/\[\[([^\]\n]+)\]\]/g, (_m, descriptor) => {
       const sep = descriptor.indexOf('|');
@@ -71,25 +79,25 @@
       }
       if (/^\s*(?:---+|\*\*\*+)\s*$/.test(line)) { out.push('<hr>'); i++; continue; }
       if (line.includes('|') && i + 1 < lines.length && tableDivider(lines[i + 1])) {
-        // data-table-line lets the "Edit table" button find this table in the source text.
-        const tableStartLine = i;
         const headers = cells(line); i += 2;
         let table = '<table><thead><tr>' + headers.map(c => '<th dir="auto">' + inline(c) + '</th>').join('') + '</tr></thead><tbody>';
         while (i < lines.length && lines[i].includes('|') && lines[i].trim()) {
           const values = cells(lines[i++]);
           table += '<tr>' + headers.map((_h, j) => '<td dir="auto">' + inline(values[j] || '') + '</td>').join('') + '</tr>';
         }
-        out.push('<div class="table-block"><div class="table-block-actions"><button type="button" class="table-edit-btn" data-table-line="' + tableStartLine + '">✎ Edit table</button></div><div class="table-scroll">' + table + '</tbody></table></div></div>'); continue;
+        out.push('<div class="table-block"><div class="table-scroll">' + table + '</tbody></table></div></div>'); continue;
       }
       const listType = /^\s*[-*+] /.test(line) ? 'ul' : /^\s*\d+\. /.test(line) ? 'ol' : null;
       if (listType) {
+        // A numbered list keeps its first number (e.g. steps continued after a code block).
+        const start = listType === 'ol' ? parseInt(line, 10) : 1;
         const items = [];
         const itemRE = listType === 'ul' ? /^\s*[-*+] (.*)$/ : /^\s*\d+\. (.*)$/;
         while (i < lines.length && itemRE.test(lines[i])) {
           const item = lines[i++].match(itemRE)[1];
           items.push('<li dir="auto">' + inline(item) + '</li>');
         }
-        out.push('<' + listType + '>' + items.join('') + '</' + listType + '>'); continue;
+        out.push('<' + listType + (start !== 1 ? ' start="' + start + '"' : '') + '>' + items.join('') + '</' + listType + '>'); continue;
       }
       if (/^\s*>/.test(line)) {
         const quote = [];

@@ -40,14 +40,13 @@
 
     // Editor and preview
     els.content.addEventListener('input', () => pages.editContent(els.content.value));
+    els.content.addEventListener('focus', () => ui.setSurface('markdown'));
+    els.visual.addEventListener('focus', () => ui.setSurface('visual'));
     for (const btn of document.querySelectorAll('[data-mode]')) btn.addEventListener('click', () => ui.setMode(btn.dataset.mode));
+    // Toolbar buttons must not take the focus, or the editor would lose its selection.
+    for (const btn of els.toolbar.querySelectorAll('button')) btn.addEventListener('mousedown', event => event.preventDefault());
     for (const btn of document.querySelectorAll('[data-format]')) btn.addEventListener('click', () => ui.formatSelection(btn.dataset.format));
-    els.preview.addEventListener('click', event => {
-      const tableButton = event.target.closest('button[data-table-line]');
-      if (tableButton) { ui.openTableBuilder(Number(tableButton.dataset.tableLine)); return; }
-      const link = event.target.closest('a.wiki-link');
-      if (link) { event.preventDefault(); pages.openLink(link.dataset.wikiTarget); }
-    });
+    ui.installVisualEditor();
 
     // Dialogs wire their own buttons.
     ui.installTableBuilder();

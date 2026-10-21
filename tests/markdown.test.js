@@ -31,9 +31,15 @@ test('block elements', () => {
   }
 });
 
+test('numbered lists keep their first number; double backticks allow ` in code', () => {
+  assert.ok(render('3. third\n4. fourth').startsWith('<ol start="3">'));
+  assert.ok(render('1. first').startsWith('<ol>'));
+  assert.ok(render('Use `` `x` `` here').includes('<code>`x`</code>'));
+});
+
 test('tables render, can be found by line, and round-trip through tableMarkdown', () => {
   const source = 'intro\n\n| A | B \\| C |\n| --- | --- |\n| 1 | 2 |\n\nafter';
-  assert.match(render(source), /data-table-line="2"/);
+  assert.match(render(source), /<th dir="auto">B \| C<\/th>/);
   const found = markdown.findTableAt(source, 4);
   assert.deepEqual(found, {startLine: 2, endLine: 5, values: [['A', 'B | C'], ['1', '2']]});
   assert.equal(markdown.findTableAt(source, 0), null);

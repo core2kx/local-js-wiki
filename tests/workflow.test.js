@@ -120,3 +120,17 @@ test('an unusable wiki.json stops opening with a clear message', async () => {
   root.files.set('wiki.json', '{bad');
   await assert.rejects(storage.readFolderContents(async name => (await (await root.getFileHandle(name)).getFile()).text()), /not valid JSON/);
 });
+
+test('typing right after a toolbar action gets its own undo step', async () => {
+  const {root} = exampleFolder();
+  await open(root);
+  pages.selectPage('welcome');
+  const original = store.currentPage().content;
+  history.record('inserting an icon');     // a toolbar action records first...
+  pages.editContent(original + ' :icon[server]:'); // ...then saves its change like typing
+  pages.editContent(original + ' :icon[server]: typed'); // typing immediately afterwards
+  history.undo();
+  assert.equal(store.currentPage().content, original + ' :icon[server]:');
+  history.undo();
+  assert.equal(store.currentPage().content, original);
+});

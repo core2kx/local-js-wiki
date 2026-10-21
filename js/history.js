@@ -35,9 +35,11 @@
     const now = Date.now();
     const g = undoGroup;
     if (key && g && g.key === key && now - g.last < UNDO_PAUSE && now - g.started < UNDO_MAX_GROUP) { g.last = now; return; }
-    undoGroup = key ? {key, started: now, last: now} : null;
     const entry = snapshot(label);
-    if (undoStack.length && sameState(undoStack[undoStack.length - 1], entry)) return;
+    // Nothing changed since the last step (e.g. right after a toolbar action): no new step, and no
+    // group either, so the next typing starts its own step instead of joining that action.
+    if (undoStack.length && sameState(undoStack[undoStack.length - 1], entry)) { undoGroup = null; return; }
+    undoGroup = key ? {key, started: now, last: now} : null;
     undoStack.push(entry);
     if (undoStack.length > UNDO_LIMIT) undoStack.shift();
     redoStack = [];
