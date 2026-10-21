@@ -184,3 +184,8 @@ mark { background: #fbe8af; color: #3f351a; border-radius: 2px; }
 .picker-label { color: var(--muted); font-size: 10px; max-width: 86px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .picker-empty { grid-column: 1/-1; color: var(--muted); padding: 20px; text-align: center; font-size: 13px; }
 @media(max-width: 630px) { .wiki-dialog { padding: 15px; } .picker-results { grid-template-columns: repeat(auto-fill, minmax(73px, 1fr)); } .table-builder-actions .dialog-hint { margin: 4px 0 0; width: 100%; } }
+.problems-action { color: #a4671b; font-weight: 600; }
+.problems-dialog { width: min(640px, calc(100vw - 32px)); }
+.problems-list { max-height: 50vh; overflow: auto; margin: 0 0 14px; padding-left: 18px; }
+.problems-list li { margin-bottom: 8px; overflow-wrap: anywhere; }
+.problems-list code { font-size: .85em; background: var(--sidebar-bg); border-radius: 4px; padding: 1px 4px; }

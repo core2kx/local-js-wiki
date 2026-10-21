@@ -31,6 +31,7 @@
         </div>
         <nav class="page-nav" id="page-nav" aria-label="Pages"></nav>
         <div class="sidebar-bottom">
+          <button class="sidebar-action problems-action" id="problems-btn" hidden></button>
           <button class="sidebar-action" id="new-wiki-btn">✧ &nbsp; New wiki</button>
           <button class="sidebar-action" id="save-as-btn">▣ &nbsp; Save to folder…</button>
           <button class="sidebar-action" id="export-zip-btn">⇩ &nbsp; Export wiki ZIP…</button>
@@ -119,6 +120,12 @@
     <input id="picker-search" class="picker-search" type="search" placeholder="Search by name…" aria-label="Search icons or symbols" autocomplete="off">
     <div id="picker-results" class="picker-results" aria-live="polite"></div>
     <div class="dialog-foot"><span id="picker-hint" class="dialog-hint">Choose an item to insert it.</span><button type="button" id="picker-clear" class="btn btn-sm" hidden>Remove page icon</button><button type="button" id="picker-cancel" class="btn">Cancel</button></div>
+  </dialog>
+  <dialog id="problems-dialog" class="wiki-dialog problems-dialog" aria-labelledby="problems-title">
+    <div class="dialog-head"><h2 id="problems-title">Problems found while opening</h2><button type="button" id="problems-close" class="dialog-close" aria-label="Close">×</button></div>
+    <p class="dialog-hint">The rest of the wiki loaded normally. Set-aside files are never changed or deleted; fix them in a text editor, then open the folder again.</p>
+    <ul id="problems-list" class="problems-list"></ul>
+    <div class="dialog-foot"><button type="button" id="problems-ok" class="btn btn-primary">OK</button></div>
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>

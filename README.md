@@ -106,6 +106,20 @@ A wiki folder can be anywhere on your disk, independently of the app directory. 
 - **Export wiki ZIP…** works without a server or outside libraries. It uses standard, uncompressed ZIP entries, so archives are larger but compatible with normal extraction tools.
 - **Ctrl/Cmd+S** saves, **Ctrl/Cmd+K** focuses search, **Ctrl/Cmd+N** creates a page.
 
+### Damaged or hand-edited files
+
+Opening a folder only fails if `wiki.json` itself is missing or unusable. Problems with individual pages are listed in a dialog after opening (reopen it from **⚠ N load problems** in the sidebar), and the rest of the wiki loads normally:
+
+| Problem | What happens |
+|---|---|
+| Page file is not valid JSON, not a JSON object, or has a non-text title/content | **Set aside.** The file is never changed or deleted and stays in `wiki.json`; it is copied byte for byte by **Save to folder…** and **Export wiki ZIP…**. Fix it in a text editor and open the folder again. |
+| Page file is missing | Skipped; removed from `wiki.json` on the next save. |
+| `id` does not match the filename, missing title or content, duplicate title, pages that are each other's parent | **Repaired** in the app; the fix is written on the next save. |
+| Parent page did not load | Page is shown at the top level, but its `parentId` is kept so it nests again once the parent is fixed. |
+| Invalid or duplicate entry in `wiki.json` | Ignored and removed from `wiki.json` on the next save; no file is deleted. |
+
+New pages never take the filename of a set-aside file.
+
 ## Other features
 
 - Create, edit, nest, rename, move, and delete pages.

@@ -23,7 +23,8 @@
     tableConfirm: $('table-confirm'), tableAddRow: $('table-add-row'), tableRemoveRow: $('table-remove-row'),
     tableAddCol: $('table-add-col'), tableRemoveCol: $('table-remove-col'),
     pickerDialog: $('picker-dialog'), pickerSearch: $('picker-search'),
-    pickerResults: $('picker-results'), pickerClear: $('picker-clear'), pickerHint: $('picker-hint')
+    pickerResults: $('picker-results'), pickerClear: $('picker-clear'), pickerHint: $('picker-hint'),
+    problemsDialog: $('problems-dialog'), problemsList: $('problems-list'), problemsButton: $('problems-btn')
   };
   const DRAFT_KEY = 'localwiki:draft';
   const UI_KEY = 'localwiki:ui';
@@ -39,6 +40,12 @@
   let changedIds = new Set();
   let diskPaths = new Set(); // page files known to exist in the linked folder
   let renameFrom = null;     // {id, title} while the title field has an uncommitted edit
+  // Pages that could not be loaded: {id, file, text}. Their files are never written or deleted,
+  // they stay listed in wiki.json, and text (the raw file, or null if unreadable) is copied verbatim
+  // when the wiki is saved elsewhere or exported.
+  let setAside = [];
+  let copySetAside = false;  // true for a save to a new folder
+  let loadProblems = [];     // [{file, message, kind}] from the last open
   let mode = 'split';
   let pageWidth = '90';
   let toastTimeout;
@@ -148,12 +155,13 @@
     const base = slug(title);
     // Compare upper-cased so names that differ only in case (or final sigma) do not
     // collide on case-insensitive file systems.
-    const taken = new Set(wiki.pages.filter(p => p.id !== selfId).map(p => p.id.toUpperCase()));
+    const taken = new Set([...wiki.pages.filter(p => p.id !== selfId), ...setAside].map(p => p.id.toUpperCase()));
     let id = base;
     for (let i = 2; taken.has(id.toUpperCase()); i++) id = base + '-' + i;
     return id;
   }
   function pathFor(id) { return 'pages/' + id + '.json'; }
+  const PAGE_PATH = /^pages\/[\p{L}\p{N}][\p{L}\p{M}\p{N}._-]*\.json$/u;
   function pageWithTitle(title, selfId = null) {
     const key = titleKey(title);
     return wiki.pages.find(p => p.id !== selfId && titleKey(p.title) === key);
@@ -189,46 +197,61 @@
     const date = new Date(iso);
     return Number.isNaN(date.getTime()) ? 'Unknown' : new Intl.DateTimeFormat(undefined, {dateStyle: 'medium'}).format(date);
   }
-  function normalizeWiki(input) {
-    if (!input || typeof input !== 'object' || Array.isArray(input) || !Array.isArray(input.pages)) {
-      throw new Error('Invalid wiki data. Expected an object containing a pages array.');
-    }
-    if (input.pages.length > 20000) throw new Error('File contains too many pages (limit 20,000).');
-    const ids = new Set();
-    const pages = input.pages.map(p => {
-      if (!p || typeof p !== 'object' || typeof p.id !== 'string' || !p.id ||
-          typeof p.title !== 'string' || typeof p.content !== 'string') {
-        throw new Error('A page is missing its ID, title or content.');
-      }
-      if (ids.has(p.id)) throw new Error('Duplicate page ID: ' + p.id);
-      ids.add(p.id);
-      return {
-        id: p.id, title: p.title.slice(0, 140),
-        parentId: typeof p.parentId === 'string' && p.parentId ? p.parentId : null,
-        tags: Array.isArray(p.tags) ? p.tags.filter(t => typeof t === 'string').map(t => t.slice(0, 80)) : [],
-        content: p.content,
-        icon: typeof p.icon === 'string' ? p.icon.slice(0, 60) : '',
-        createdAt: typeof p.createdAt === 'string' ? p.createdAt : isoNow(),
-        updatedAt: typeof p.updatedAt === 'string' ? p.updatedAt : isoNow()
-      };
-    });
+  // Validates one page object. Throws (the page is set aside) when using it would lose data, e.g. a
+  // title or content that is not text. Missing fields get defaults and are reported as repairs.
+  function normalizePage(raw, id) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('is not a JSON object');
+    if (raw.title !== undefined && typeof raw.title !== 'string') throw new Error('has a "title" that is not text');
+    if (raw.content !== undefined && typeof raw.content !== 'string') throw new Error('has "content" that is not text');
+    const notes = [];
+    if (raw.id !== id) notes.push(raw.id === undefined ? 'its "id" was missing' : `its "id" (${JSON.stringify(raw.id)}) did not match the filename`);
+    let title = typeof raw.title === 'string' ? raw.title.trim().normalize('NFC') : '';
+    if (!title) { title = id; notes.push('it had no title, so the filename is used'); }
+    if (title.length > 140) { title = title.slice(0, 140); notes.push('its title was shortened to 140 characters'); }
+    if (raw.content === undefined) notes.push('it had no "content"');
+    const page = {
+      id, title,
+      parentId: typeof raw.parentId === 'string' && raw.parentId ? raw.parentId : null,
+      tags: Array.isArray(raw.tags) ? raw.tags.filter(t => typeof t === 'string').map(t => t.slice(0, 80)) : [],
+      content: raw.content ?? '',
+      icon: typeof raw.icon === 'string' ? raw.icon.slice(0, 60) : '',
+      createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : isoNow(),
+      updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : isoNow()
+    };
+    return {page, notes};
+  }
+  // Fixes cross-page problems in place. report(page, message, repaired): repaired pages need rewriting.
+  function repairStructure(pages, report) {
+    const titles = new Set();
     for (const p of pages) {
-      if (p.parentId && !ids.has(p.parentId)) throw new Error('Missing parent page for: ' + p.title);
-      if (p.parentId === p.id) throw new Error('Page cannot be its own parent: ' + p.title);
+      let title = p.title;
+      for (let i = 2; titles.has(titleKey(title)); i++) title = `${p.title} (${i})`;
+      if (title !== p.title) { report(p, `had the same title as another page, so it was renamed to "${title}"`, true); p.title = title; }
+      titles.add(titleKey(title));
     }
-    // Avoid importing a corrupt hierarchy that loops endlessly.
     const byId = new Map(pages.map(p => [p.id, p]));
     for (const p of pages) {
       const seen = new Set([p.id]);
-      let next = p.parentId;
-      while (next) {
-        if (seen.has(next)) throw new Error('Circular page hierarchy near: ' + p.title);
-        seen.add(next);
-        next = byId.get(next)?.parentId;
+      for (let q = p; q.parentId && byId.has(q.parentId); q = byId.get(q.parentId)) {
+        if (seen.has(q.parentId)) { report(q, 'was part of a parent loop, so it was moved to the top level', true); q.parentId = null; break; }
+        seen.add(q.parentId);
       }
     }
+    // A missing parent is kept in the data (it may be a set-aside page that gets fixed) and shown at top level.
+    for (const p of pages) {
+      if (p.parentId && !byId.has(p.parentId)) report(p, `has parent "${p.parentId}", which is not loaded, so it is shown at the top level`, false);
+    }
+  }
+  // For in-browser data (drafts, new wikis): drop anything invalid rather than failing.
+  function normalizeWiki(input) {
+    const pages = [], ids = new Set();
+    for (const raw of Array.isArray(input?.pages) ? input.pages : []) {
+      if (typeof raw?.id !== 'string' || !raw.id || ids.has(raw.id)) continue;
+      try { pages.push(normalizePage(raw, raw.id).page); ids.add(raw.id); } catch (_) { /* skip */ }
+    }
+    repairStructure(pages, () => {});
     return {
-      name: typeof input.name === 'string' && input.name.trim() ? input.name.trim().slice(0, 140) : 'Untitled Wiki',
+      name: typeof input?.name === 'string' && input.name.trim() ? input.name.trim().slice(0, 140) : 'Untitled Wiki',
       pages
     };
   }
@@ -239,7 +262,7 @@
     toastTimeout = setTimeout(() => els.toast.classList.remove('visible'), 4000);
   }
   function backupDraft() {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({wiki, currentId, folderName, dirty, renameFrom})); }
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({wiki, currentId, folderName, dirty, renameFrom, setAside})); }
     catch (err) { console.warn('Local draft recovery unavailable:', err); }
   }
   function markDirty() {
@@ -351,8 +374,9 @@
       els.nav.append(blank);
       return;
     }
+    const isRoot = p => !p.parentId || !pageById(p.parentId);
     const visit = (parentId, container) => {
-      for (const page of sorted(wiki.pages.filter(p => p.parentId === parentId))) {
+      for (const page of sorted(wiki.pages.filter(p => parentId === null ? isRoot(p) : p.parentId === parentId))) {
         const btn = document.createElement('button');
         btn.type = 'button'; btn.title = page.title;
         btn.className = 'nav-entry' + (page.id === currentId ? ' active' : '');
@@ -393,7 +417,7 @@
     for (const candidate of sorted(wiki.pages.filter(x => !unavailable.has(x.id)))) {
       els.parent.add(new Option('  '.repeat(Math.min(ancestors(candidate).length, 6)) + candidate.title, candidate.id));
     }
-    els.parent.value = p.parentId || '';
+    els.parent.value = pageById(p.parentId) ? p.parentId : '';
   }
   function wordCount(content) {
     // Word segmentation handles scripts written without spaces (Chinese, Japanese, Thai).
@@ -829,17 +853,20 @@
 
   // Storage format: wiki.json is a tiny manifest; each page has its own JSON file.
   // IDs remain stable as pages are renamed or moved. A stored pathname never changes.
-  function indexObject() {
+  // forCopy: the index for a new location, which only lists set-aside files we can copy there.
+  function indexObject(forCopy = false) {
+    const entries = [...wiki.pages, ...setAside.filter(entry => !forCopy || entry.text !== null)];
     return {
       schemaVersion: SCHEMA_VERSION, type: 'localwiki-index', name: wiki.name,
       updatedAt: wiki.updatedAt || isoNow(),
-      pages: [...wiki.pages].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map(p => ({id: p.id, file: pathFor(p.id)}))
+      pages: entries.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map(p => ({id: p.id, file: pathFor(p.id)}))
     };
   }
   function jsonText(value) { return JSON.stringify(value, null, 2) + '\n'; }
   function filesForExport() {
-    const files = [['wiki.json', jsonText(indexObject())]];
+    const files = [['wiki.json', jsonText(indexObject(true))]];
     for (const p of wiki.pages) files.push([pathFor(p.id), jsonText(p)]);
+    for (const entry of setAside) if (entry.text !== null) files.push([entry.file, entry.text]);
     return files;
   }
   function downloadBlob(blob, name) {
@@ -898,45 +925,93 @@
     try { await writer.write(text); await writer.close(); }
     catch (err) { try { await writer.abort(); } catch (_) {} throw err; }
   }
-  function validateIndex(index) {
-    if (!index || index.schemaVersion !== SCHEMA_VERSION || index.type !== 'localwiki-index' ||
-        typeof index.name !== 'string' || !Array.isArray(index.pages)) {
-      throw new Error('Missing or invalid wiki.json index.');
-    }
-    if (index.pages.length > 20000) throw new Error('Too many wiki pages (limit 20,000).');
-    const ids = new Set(), paths = new Set();
-    for (const entry of index.pages) {
-      if (!entry || typeof entry.id !== 'string' || !entry.id || typeof entry.file !== 'string' ||
-          !/^pages\/[\p{L}\p{N}][\p{L}\p{M}\p{N}._-]*\.json$/u.test(entry.file) ||
-          entry.file !== pathFor(entry.id) || ids.has(entry.id) || paths.has(entry.file)) {
-        throw new Error('Invalid or duplicate page entry in wiki.json.');
-      }
-      ids.add(entry.id); paths.add(entry.file);
-    }
-    return index;
-  }
+  // Opening is tolerant: only an unusable wiki.json stops it. Every page problem is collected,
+  // and the rest of the wiki loads.
   async function readFolderContents(getText) {
-    const index = validateIndex(JSON.parse(await getText('wiki.json')));
-    const pages = [];
-    for (const entry of index.pages) {
-      const page = JSON.parse(await getText(entry.file));
-      if (page.id !== entry.id) throw new Error(`Page ID mismatch in ${entry.file}`);
-      pages.push(page);
+    let index;
+    try { index = JSON.parse(await getText('wiki.json')); }
+    catch (err) {
+      if (err.name === 'NotFoundError') throw new Error('This folder has no wiki.json.');
+      throw new Error(err instanceof SyntaxError ? 'wiki.json is not valid JSON (' + err.message + ').' : 'Could not read wiki.json: ' + err.message);
     }
-    return {index, normalized: normalizeWiki({name: index.name, pages})};
+    if (!index || index.type !== 'localwiki-index' || !Array.isArray(index.pages)) throw new Error('wiki.json is not a LocalWiki index.');
+    if (index.schemaVersion !== SCHEMA_VERSION) throw new Error('Unsupported wiki.json version: ' + index.schemaVersion);
+    if (index.pages.length > 20000) throw new Error('Too many wiki pages (limit 20,000).');
+    const result = {name: 'Untitled Wiki', pages: [], setAside: [], problems: [], repairedIds: new Set(), indexNeedsRewrite: false};
+    const problem = (file, message, kind) => result.problems.push({file, message, kind});
+    if (typeof index.name === 'string' && index.name.trim()) result.name = index.name.trim().slice(0, 140);
+    else problem('wiki.json', 'The wiki has no name, so "Untitled Wiki" is used.', 'info');
+    const ids = new Set();
+    for (const entry of index.pages) {
+      const file = typeof entry?.file === 'string' ? entry.file : 'wiki.json';
+      if (!entry || typeof entry.id !== 'string' || typeof entry.file !== 'string' || !PAGE_PATH.test(entry.file) || entry.file !== pathFor(entry.id)) {
+        problem(file, 'Invalid entry in wiki.json (' + JSON.stringify(entry) + '). It was ignored and will be removed from wiki.json on the next save; no file is deleted.', 'ignored');
+        result.indexNeedsRewrite = true; continue;
+      }
+      if (ids.has(entry.id)) {
+        problem(file, 'Listed more than once in wiki.json. The duplicate entry was ignored.', 'ignored');
+        result.indexNeedsRewrite = true; continue;
+      }
+      ids.add(entry.id);
+      let text;
+      try { text = await getText(entry.file); }
+      catch (err) {
+        if (err.name === 'NotFoundError') {
+          problem(file, 'The file is missing. It will be removed from wiki.json on the next save.', 'missing');
+          result.indexNeedsRewrite = true;
+        } else {
+          result.setAside.push({id: entry.id, file, text: null});
+          problem(file, 'The file could not be read (' + err.message + '). It was set aside and left untouched.', 'set-aside');
+        }
+        continue;
+      }
+      try {
+        const {page, notes} = normalizePage(JSON.parse(text), entry.id);
+        if (notes.length) {
+          result.repairedIds.add(page.id);
+          problem(file, 'Repaired: ' + notes.join('; ') + '. The fix will be written on the next save.', 'repaired');
+        }
+        result.pages.push(page);
+      } catch (err) {
+        result.setAside.push({id: entry.id, file, text});
+        const reason = err instanceof SyntaxError ? 'is not valid JSON (' + err.message + ')' : err.message;
+        problem(file, `The file ${reason}. It was set aside and left untouched; fix it in a text editor and open the folder again.`, 'set-aside');
+      }
+    }
+    repairStructure(result.pages, (page, message, repaired) => {
+      if (repaired) result.repairedIds.add(page.id);
+      problem(pathFor(page.id), 'This page ' + message + (repaired ? '. The fix will be written on the next save.' : '.'), repaired ? 'repaired' : 'info');
+    });
+    return result;
   }
   function acceptLoadedFolder(result, name, handle) {
-    wiki = result.normalized;
+    wiki = {name: result.name, pages: result.pages};
     currentId = wiki.pages[0]?.id || null;
-    diskPaths = new Set(result.index.pages.map(entry => entry.file));
-    changedIds.clear(); renameFrom = null; indexDirty = false;
+    // Only files that loaded may ever be deleted as stale; set-aside files are never touched.
+    diskPaths = new Set(result.pages.map(p => pathFor(p.id)));
+    setAside = result.setAside; loadProblems = result.problems; copySetAside = false;
+    changedIds = new Set(result.repairedIds); renameFrom = null;
+    indexDirty = result.indexNeedsRewrite;
     folderHandle = handle;
     folderName = name;
-    dirty = false;
+    dirty = changedIds.size > 0;
     els.search.value = '';
-    renderAll(); backupDraft();
-    toast('Opened ' + folderName + ': ' + wiki.pages.length + ' page(s).');
+    renderAll(); renderProblems(); backupDraft();
+    const count = loadProblems.length;
+    toast('Opened ' + folderName + ': ' + wiki.pages.length + ' page(s)' + (count ? `, ${count} problem(s) found.` : '.'));
+    if (count) showProblems();
   }
+  function renderProblems() {
+    els.problemsButton.hidden = !loadProblems.length;
+    els.problemsButton.textContent = '⚠ \u00a0 ' + loadProblems.length + ' load problem' + (loadProblems.length === 1 ? '' : 's');
+    els.problemsList.replaceChildren(...loadProblems.map(({file, message}) => {
+      const item = document.createElement('li');
+      const name = document.createElement('code'); name.textContent = file;
+      item.append(name, ' ', message);
+      return item;
+    }));
+  }
+  function showProblems() { renderProblems(); if (loadProblems.length) els.problemsDialog.showModal(); }
   async function loadFromFolderHandle(handle) {
     const getText = async name => {
       const parts = name.split('/');
@@ -978,11 +1053,11 @@
     }
     const result = await readFolderContents(async path => {
       const file = fileMap.get(path.normalize('NFC'));
-      if (!file) throw new Error('Missing ' + path);
+      if (!file) throw new DOMException('Missing ' + path, 'NotFoundError');
       return file.text();
     });
     acceptLoadedFolder(result, name, null);
-    toast('Folder loaded read-only. Use Save to folder or Export ZIP to keep edits.');
+    if (!result.problems.length) toast('Folder loaded read-only. Use Save to folder or Export ZIP to keep edits.');
   }
   async function saveToFolder() {
     if (typeof window.showDirectoryPicker !== 'function') {
@@ -1003,6 +1078,7 @@
       folderHandle = handle; folderName = handle.name;
       changedIds = new Set(wiki.pages.map(p => p.id));
       diskPaths = new Set(); indexDirty = true; // never delete files we did not write here
+      copySetAside = setAside.length > 0;
       markDirty();
       await saveChanges();
     } catch (err) {
@@ -1017,20 +1093,23 @@
       if (typeof window.showDirectoryPicker === 'function') { await saveToFolder(); return; }
       toast('Choose Export wiki ZIP (direct folder saving is unavailable in this browser).'); return;
     }
-    const keep = new Set(wiki.pages.map(p => pathFor(p.id)));
+    const keep = new Set([...wiki.pages, ...setAside].map(p => pathFor(p.id)));
     const stale = [...diskPaths].filter(path => !keep.has(path));
-    if (!dirty && !indexDirty && !changedIds.size && !stale.length) { toast('No changes to save.'); return; }
+    if (!dirty && !indexDirty && !changedIds.size && !stale.length && !copySetAside) { toast('No changes to save.'); return; }
     saving = true;
     // Snapshot everything up front so edits made during the async writes cannot mix states.
     const version = changeVersion;
     const pending = wiki.pages.filter(p => changedIds.has(p.id)).map(p => [pathFor(p.id), jsonText(p)]);
-    const indexText = indexDirty ? jsonText(indexObject()) : null;
+    const copying = copySetAside ? setAside.filter(entry => entry.text !== null) : [];
+    const indexText = indexDirty ? jsonText(indexObject(copySetAside)) : null;
     try {
       const pagesDir = await folderHandle.getDirectoryHandle('pages', {create:true});
       for (const [path, text] of pending) {
         await writeJsonFile(await pagesDir.getFileHandle(path.split('/')[1], {create:true}), text);
         diskPaths.add(path);
       }
+      // Set-aside files are copied byte for byte, and are not added to diskPaths (never deleted).
+      for (const entry of copying) await writeJsonFile(await pagesDir.getFileHandle(entry.file.split('/')[1], {create:true}), entry.text);
       // The manifest is written after every page it references exists, and before stale files go.
       if (indexText) await writeJsonFile(await folderHandle.getFileHandle('wiki.json', {create:true}), indexText);
       for (const path of stale) {
@@ -1038,6 +1117,10 @@
         catch (err) { if (err.name !== 'NotFoundError') throw err; }
         diskPaths.delete(path);
       }
+      if (copySetAside) { setAside = setAside.filter(entry => entry.text !== null); copySetAside = false; }
+      // Repairs and index clean-ups are now on disk; only set-aside and informational notes still apply.
+      loadProblems = loadProblems.filter(item => item.kind === 'set-aside' || item.kind === 'info');
+      renderProblems();
       if (version === changeVersion) {
         changedIds.clear(); indexDirty = false; dirty = false;
         backupDraft(); setSaveStatus();
@@ -1055,6 +1138,7 @@
     wiki = normalizeWiki({name: name.trim() || 'My Wiki', pages: []});
     currentId = null; folderHandle = null; folderName = 'No folder selected'; dirty = false;
     diskPaths.clear(); changedIds.clear(); renameFrom = null; indexDirty = true; changeVersion++;
+    setAside = []; loadProblems = []; copySetAside = false; renderProblems();
     els.search.value = '';
     renderAll(); backupDraft(); toast('New wiki created. Use + to add a page.');
   }
@@ -1120,6 +1204,9 @@
       page.icon = ''; touchPage(page); fillPageIcon(els.pageIconDisplay,page); renderTree();
       els.pickerDialog.close();
     });
+    els.problemsButton.addEventListener('click', showProblems);
+    $('problems-close').addEventListener('click', () => els.problemsDialog.close());
+    $('problems-ok').addEventListener('click', () => els.problemsDialog.close());
     $('table-close').addEventListener('click', () => els.tableDialog.close());
     $('table-cancel').addEventListener('click', () => els.tableDialog.close());
     els.tableConfirm.addEventListener('click', commitTable);
@@ -1189,6 +1276,9 @@
         wiki = normalizeWiki(recovered.wiki);
         currentId = pageByIdIn(wiki, recovered.currentId)?.id || wiki.pages[0]?.id || null;
         if (recovered.renameFrom && pageByIdIn(wiki, recovered.renameFrom.id)) renameFrom = recovered.renameFrom;
+        setAside = (Array.isArray(recovered.setAside) ? recovered.setAside : []).filter(entry =>
+          typeof entry?.id === 'string' && entry.file === pathFor(entry.id) && PAGE_PATH.test(entry.file) &&
+          (typeof entry.text === 'string' || entry.text === null) && !pageByIdIn(wiki, entry.id));
         // Directory permissions are not retained across reloads. This is a browser copy only.
         folderName = recovered.folderName || 'Recovered browser draft';
         dirty = recovered.dirty === true;
