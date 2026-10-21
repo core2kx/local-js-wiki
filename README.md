@@ -111,3 +111,7 @@ Choose **Import old wiki JSON…** in the sidebar and select the old JSON contai
 - Browser restrictions prevent unattended opening of `wiki.json` and `pages/*.json` through relative `file://` paths. Always use the **Open folder** button.
 - The Markdown renderer is a lightweight subset of Markdown, not a full CommonMark editor. Very complicated tables and nested formatting are not supported.
 - SVG pictograms are selected from a bundled allowlist; arbitrary SVG or HTML in page content is not executed. If you export pages as JSON, the icon markup `:icon[name]:` is intended for LocalWiki rendering. Unicode symbols and emoji remain portable to other editors.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
