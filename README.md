@@ -4,7 +4,17 @@ A browser-only wiki that works offline. **No runtime server, database, Python, N
 
 ## How it stores data
 
-**Each page has its own JSON file.** The wiki's small `wiki.json` index stores the wiki name and stable page file locations. Page content, titles, tags, icons, and parent IDs live in the individual page files. Renaming or moving a page does **not** change its filename. Search covers titles, tags, and content across all opened pages (held in memory by the browser).
+**Each page has its own JSON file, named after its title.** A page titled "Network Setup" has the ID `network-setup` and lives in `pages/network-setup.json`. The wiki's small `wiki.json` index stores the wiki name and the list of pages (sorted by ID). Page content, titles, tags, icons, and parent IDs live in the individual page files. Search covers titles, tags, and content across all opened pages (held in memory by the browser).
+
+### Renaming pages
+
+Page titles are unique (ignoring case). When you rename a page (the change is applied when you leave the title field or press Enter), the wiki updates everything that depends on it:
+
+- Links to the page in every other page: `[[Old title]]` becomes `[[New title]]`, and `[[old-id|Text]]` becomes `[[new-id|Text]]` (custom link text is kept). Links inside `code` spans and code blocks are left alone.
+- The page ID and filename, and the `parentId` of its child pages.
+- On the next save, the new file is written, `wiki.json` is updated, and the old file is deleted.
+
+IDs are lowercase ASCII: accents are simplified (`Café` → `cafe`), other characters become hyphens, and clashes get a numeric suffix (`c`, `c-2`).
 
 ## Tables, symbols and icons
 
@@ -33,7 +43,7 @@ localwiki/
 │           ├── welcome.json
 │           ├── editing-guide.json
 │           ├── project-notes.json
-│           └── tables-and-icons.json
+│           └── tables-symbols-and-icons.json
 └── README.md
 ```
 
@@ -68,7 +78,7 @@ A wiki folder can be anywhere on your disk, independently of the app directory. 
 }
 ```
 
-`parentId` connects nested pages; `null` is a top-level page. Both internal links (e.g. `[[Welcome]]`) and search continue to work across all loaded pages.
+`id` always matches the filename. `parentId` connects nested pages; `null` is a top-level page.
 
 ## Getting started
 
@@ -103,6 +113,8 @@ A wiki folder can be anywhere on your disk, independently of the app directory. 
 - The browser loads all pages into memory for search and navigation. Very large wikis may take longer to open.
 - Saving is a sequence of individual file writes, not a transactional operation. Keep backups. If a save is interrupted, reopen the wiki to inspect its state.
 - Delete removes the page and its descendants from the index. When saving to a linked writable folder, their old JSON files are removed after the index is updated. Files not referenced by the index are ignored.
+- Old files are only cleaned up in a folder opened (or first saved) in the current session. If you recover a browser draft and save it with **Save to folder…**, files from pages renamed or deleted in that draft stay behind; they are harmless because the index no longer references them.
+- Links to a deleted page are not removed; they show as missing links.
 - Browser restrictions prevent unattended opening of `wiki.json` and `pages/*.json` through relative `file://` paths. Always use the **Open folder** button.
 - The Markdown renderer is a lightweight subset of Markdown, not a full CommonMark editor. Very complicated tables and nested formatting are not supported.
 - SVG pictograms are selected from a bundled allowlist; arbitrary SVG or HTML in page content is not executed. If you export pages as JSON, the icon markup `:icon[name]:` is intended for LocalWiki rendering. Unicode symbols and emoji remain portable to other editors.

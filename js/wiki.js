@@ -36,9 +36,9 @@
   let indexDirty = false;
   let changeVersion = 0;
   let saving = false;
-  let pagePaths = new Map();
   let changedIds = new Set();
-  let removedPaths = new Set();
+  let diskPaths = new Set(); // page files known to exist in the linked folder
+  let renameFrom = null;     // {id, title} while the title field has an uncommitted edit
   let mode = 'split';
   let pageWidth = '90';
   let toastTimeout;
@@ -72,17 +72,26 @@
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[ch]));
   }
-  function slug(value) {
-    return String(value || 'my-wiki').trim().toLowerCase().replace(/[^a-z0-9\u00c0-\u024f]+/g, '-').replace(/^-+|-+$/g, '') || 'my-wiki';
+  // Page IDs are ASCII slugs of the title; a page's file is always pages/<id>.json.
+  const RESERVED_NAMES = new Set(['con','prn','aux','nul','com1','com2','com3','com4','com5','com6','com7','com8','com9','lpt1','lpt2','lpt3','lpt4','lpt5','lpt6','lpt7','lpt8','lpt9']);
+  function slug(value, fallback = 'page') {
+    const base = String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+/, '').slice(0, 60).replace(/-+$/, '');
+    if (!base) return fallback;
+    return RESERVED_NAMES.has(base) ? base + '-page' : base;
   }
-  function filenameSafe(value) {
-    return String(value || 'wiki.json').replace(/[\\/:*?"<>|\x00-\x1f]/g, '-').trim().replace(/\.+$/, '') || 'wiki.json';
+  function uniqueId(title, selfId = null) {
+    const base = slug(title);
+    let id = base;
+    for (let i = 2; wiki.pages.some(p => p.id === id && p.id !== selfId); i++) id = base + '-' + i;
+    return id;
+  }
+  function pathFor(id) { return 'pages/' + id + '.json'; }
+  function pageWithTitle(title, selfId = null) {
+    const key = title.toLocaleLowerCase();
+    return wiki.pages.find(p => p.id !== selfId && p.title.toLocaleLowerCase() === key);
   }
   function isoNow() { return new Date().toISOString(); }
-  function newId() {
-    return (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
-      ? crypto.randomUUID() : 'p-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
-  }
   function pageById(id) { return wiki.pages.find(p => p.id === id); }
   function currentPage() { return pageById(currentId); }
   function descendantsOf(id) {
@@ -163,7 +172,7 @@
     toastTimeout = setTimeout(() => els.toast.classList.remove('visible'), 4000);
   }
   function backupDraft() {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({wiki, currentId, folderName, pagePaths: [...pagePaths], dirty})); }
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({wiki, currentId, folderName, dirty, renameFrom})); }
     catch (err) { console.warn('Local draft recovery unavailable:', err); }
   }
   function markDirty() {
@@ -297,7 +306,7 @@
     const words = wordCount(p.content);
     els.modified.textContent = 'Edited ' + shortDate(p.updatedAt);
     els.count.textContent = words.toLocaleString() + (words === 1 ? ' word' : ' words');
-    els.pageId.textContent = p.id.slice(0, 13);
+    els.pageId.textContent = pathFor(p.id);
   }
   function renderAll() {
     els.name.textContent = wiki.name;
@@ -307,16 +316,18 @@
     renderPage();
   }
   function selectPage(id) {
+    commitTitle();
     if (!pageById(id)) return;
     currentId = id;
     renderTree(); renderPage(); backupDraft();
   }
   function createPage(parentId = null, desiredTitle = 'New page') {
+    commitTitle();
     if (parentId && !pageById(parentId)) parentId = null;
     const existing = new Set(wiki.pages.map(p => p.title.toLocaleLowerCase()));
     let title = desiredTitle;
     for (let i = 2; existing.has(title.toLocaleLowerCase()); i++) title = desiredTitle + ' (' + i + ')';
-    const page = {id: newId(), title, parentId, tags: [], content: '', icon: '', createdAt: isoNow(), updatedAt: isoNow()};
+    const page = {id: uniqueId(title), title, parentId, tags: [], content: '', icon: '', createdAt: isoNow(), updatedAt: isoNow()};
     wiki.pages.push(page);
     indexDirty = true;
     changedIds.add(page.id);
@@ -328,21 +339,80 @@
     return page;
   }
   function deletePage() {
+    commitTitle();
     const p = currentPage(); if (!p) return;
     const ids = descendantsOf(p.id);
     const message = ids.size === 1 ? `Delete "${p.title}"? This cannot be undone.` :
       `Delete "${p.title}" and its ${ids.size - 1} child page(s)? This cannot be undone.`;
     if (!confirm(message)) return;
-    for (const id of ids) {
-      if (pagePaths.has(id)) removedPaths.add(pagePaths.get(id));
-      pagePaths.delete(id); changedIds.delete(id);
-    }
+    for (const id of ids) changedIds.delete(id);
     wiki.pages = wiki.pages.filter(x => !ids.has(x.id));
     indexDirty = true;
     currentId = p.parentId && pageById(p.parentId) ? p.parentId : (wiki.pages[0]?.id || null);
     markDirty(); renderAll(); toast('Page deleted. Save changes to update the folder.');
   }
 
+  // Renames are committed when the title field is left (or Enter is pressed), not per keystroke,
+  // so intermediate titles never capture links. Committing rewrites links and moves the page ID.
+  function rewriteLinks(content, isTarget, newTarget) {
+    let inFence = false;
+    return content.split('\n').map(line => {
+      if (/^\s*```/.test(line)) { inFence = !inFence; return line; }
+      if (inFence) return line;
+      // Odd-indexed parts are inline code spans, which never render as links.
+      return line.split(/(`[^`\n]+`)/).map((part, i) => i % 2 ? part :
+        part.replace(/\[\[([^\]\n]+)\]\]/g, (literal, descriptor) => {
+          const sep = descriptor.indexOf('|');
+          const target = (sep < 0 ? descriptor : descriptor.slice(0, sep)).trim();
+          const replacement = isTarget(target);
+          if (!replacement) return literal;
+          return '[[' + newTarget(replacement) + (sep < 0 ? '' : descriptor.slice(sep)) + ']]';
+        })).join('');
+    }).join('\n');
+  }
+  function commitTitle() {
+    if (!renameFrom) return;
+    const {id: oldId, title: oldTitle} = renameFrom;
+    renameFrom = null;
+    const page = pageById(oldId);
+    if (!page) return;
+    const title = page.title.trim();
+    const reject = message => {
+      page.title = oldTitle; touchPage(page); renderAfterRename(); toast(message);
+    };
+    if (!title) { reject('A page title cannot be empty.'); return; }
+    const clash = pageWithTitle(title, oldId);
+    if (clash) { reject(`Another page is already titled "${clash.title}".`); return; }
+    page.title = title;
+    if (title === oldTitle) { renderAfterRename(); return; }
+    const newId = uniqueId(title, oldId);
+    // Links resolve by ID first, then by case-insensitive title (see inlineMarkdown).
+    const isTarget = target => target === oldId ? 'id' :
+      (!pageById(target) && target.toLocaleLowerCase() === oldTitle.toLocaleLowerCase()) ? 'title' : null;
+    let relinked = 0;
+    for (const other of wiki.pages) {
+      const updated = rewriteLinks(other.content, isTarget, kind => kind === 'id' ? newId : title);
+      if (updated !== other.content) { other.content = updated; touchPage(other); relinked++; }
+    }
+    if (newId !== oldId) {
+      for (const child of wiki.pages) if (child.parentId === oldId) { child.parentId = newId; touchPage(child); }
+      changedIds.delete(oldId);
+      page.id = newId;
+      if (currentId === oldId) currentId = newId;
+      indexDirty = true;
+    }
+    touchPage(page);
+    renderAfterRename();
+    if (relinked) toast(`Renamed. Updated links in ${relinked} page(s).`);
+  }
+  // Like renderPage, but leaves the editor's caret alone unless the content itself changed.
+  function renderAfterRename() {
+    renderTree();
+    const p = currentPage(); if (!p) return;
+    els.title.value = p.title;
+    if (els.content.value !== p.content) els.content.value = p.content;
+    renderParentChoices(p); renderBreadcrumbs(p); renderPageStats(); renderMarkdown();
+  }
   function inlineMarkdown(input) {
     const tokens = [];
     const protect = html => { const n = tokens.push(html) - 1; return '\uE000' + n + '\uE001'; };
@@ -630,28 +700,17 @@
 
   // Storage format: wiki.json is a tiny manifest; each page has its own JSON file.
   // IDs remain stable as pages are renamed or moved. A stored pathname never changes.
-  function pathForNewPage(pageId) {
-    const base = filenameSafe(pageId).replace(/[^a-zA-Z0-9._-]/g, '-').replace(/^\.+/, '').slice(0, 70) || 'page';
-    const used = new Set([...pagePaths.values(), ...removedPaths]);
-    let path = 'pages/' + base + '.json';
-    for (let index = 2; used.has(path); index++) path = `pages/${base}-${index}.json`;
-    return path;
-  }
-  function assignPaths() {
-    for (const page of wiki.pages) if (!pagePaths.has(page.id)) pagePaths.set(page.id, pathForNewPage(page.id));
-  }
   function indexObject() {
-    assignPaths();
     return {
       schemaVersion: SCHEMA_VERSION, type: 'localwiki-index', name: wiki.name,
       updatedAt: wiki.updatedAt || isoNow(),
-      pages: wiki.pages.map(p => ({id: p.id, file: pagePaths.get(p.id)}))
+      pages: [...wiki.pages].sort((a, b) => a.id.localeCompare(b.id)).map(p => ({id: p.id, file: pathFor(p.id)}))
     };
   }
   function jsonText(value) { return JSON.stringify(value, null, 2) + '\n'; }
   function filesForExport() {
     const files = [['wiki.json', jsonText(indexObject())]];
-    for (const p of wiki.pages) files.push([pagePaths.get(p.id), jsonText(p)]);
+    for (const p of wiki.pages) files.push([pathFor(p.id), jsonText(p)]);
     return files;
   }
   function downloadBlob(blob, name) {
@@ -697,8 +756,9 @@
     return new Blob([...parts, ...central, end], {type:'application/zip'});
   }
   function exportZip() {
+    commitTitle();
     try {
-      const name = slug(wiki.name) + '.zip';
+      const name = slug(wiki.name, 'my-wiki') + '.zip';
       downloadBlob(makeZip(filesForExport()), name);
       toast('Exported ' + name + '. It contains wiki.json and every page JSON.');
     } catch (err) { console.error(err); toast('ZIP export failed: ' + err.message); }
@@ -719,7 +779,7 @@
     for (const entry of index.pages) {
       if (!entry || typeof entry.id !== 'string' || !entry.id || typeof entry.file !== 'string' ||
           !/^pages\/[a-zA-Z0-9][a-zA-Z0-9._-]*\.json$/.test(entry.file) ||
-          entry.file.split('/')[1].includes('..') || ids.has(entry.id) || paths.has(entry.file)) {
+          entry.file !== pathFor(entry.id) || ids.has(entry.id) || paths.has(entry.file)) {
         throw new Error('Invalid or duplicate page entry in wiki.json.');
       }
       ids.add(entry.id); paths.add(entry.file);
@@ -739,8 +799,8 @@
   function acceptLoadedFolder(result, name, handle) {
     wiki = result.normalized;
     currentId = wiki.pages[0]?.id || null;
-    pagePaths = new Map(result.index.pages.map(entry => [entry.id, entry.file]));
-    changedIds.clear(); removedPaths.clear(); indexDirty = false;
+    diskPaths = new Set(result.index.pages.map(entry => entry.file));
+    changedIds.clear(); renameFrom = null; indexDirty = false;
     folderHandle = handle;
     folderName = name;
     dirty = false;
@@ -813,7 +873,7 @@
       // When changing destination, copy all pages, not just previously edited pages.
       folderHandle = handle; folderName = handle.name;
       changedIds = new Set(wiki.pages.map(p => p.id));
-      removedPaths.clear(); indexDirty = true;
+      diskPaths = new Set(); indexDirty = true; // never delete files we did not write here
       markDirty();
       await saveChanges();
     } catch (err) {
@@ -823,35 +883,36 @@
   }
   async function saveChanges() {
     if (saving) return;
+    commitTitle();
     if (!folderHandle) {
       if (typeof window.showDirectoryPicker === 'function') { await saveToFolder(); return; }
       toast('Choose Export wiki ZIP (direct folder saving is unavailable in this browser).'); return;
     }
-    if (!dirty && !indexDirty && !changedIds.size && !removedPaths.size) { toast('No changes to save.'); return; }
+    const keep = new Set(wiki.pages.map(p => pathFor(p.id)));
+    const stale = [...diskPaths].filter(path => !keep.has(path));
+    if (!dirty && !indexDirty && !changedIds.size && !stale.length) { toast('No changes to save.'); return; }
     saving = true;
+    // Snapshot everything up front so edits made during the async writes cannot mix states.
     const version = changeVersion;
-    const indexWritten = indexDirty;
+    const pending = wiki.pages.filter(p => changedIds.has(p.id)).map(p => [pathFor(p.id), jsonText(p)]);
+    const indexText = indexDirty ? jsonText(indexObject()) : null;
     try {
-      assignPaths();
       const pagesDir = await folderHandle.getDirectoryHandle('pages', {create:true});
-      const pending = wiki.pages.filter(p => changedIds.has(p.id));
-      for (const page of pending) {
-        const path = pagePaths.get(page.id).split('/')[1];
-        await writeJsonFile(await pagesDir.getFileHandle(path, {create:true}), jsonText(page));
+      for (const [path, text] of pending) {
+        await writeJsonFile(await pagesDir.getFileHandle(path.split('/')[1], {create:true}), text);
+        diskPaths.add(path);
       }
-      // Only rewrite the manifest if page membership or wiki name changed.
-      // It is written last, after every newly referenced page exists.
-      if (indexDirty) {
-        await writeJsonFile(await folderHandle.getFileHandle('wiki.json', {create:true}), jsonText(indexObject()));
-      }
-      for (const path of removedPaths) {
+      // The manifest is written after every page it references exists, and before stale files go.
+      if (indexText) await writeJsonFile(await folderHandle.getFileHandle('wiki.json', {create:true}), indexText);
+      for (const path of stale) {
         try { await pagesDir.removeEntry(path.split('/')[1]); }
         catch (err) { if (err.name !== 'NotFoundError') throw err; }
+        diskPaths.delete(path);
       }
       if (version === changeVersion) {
-        changedIds.clear(); removedPaths.clear(); indexDirty = false; dirty = false;
+        changedIds.clear(); indexDirty = false; dirty = false;
         backupDraft(); setSaveStatus();
-        toast('Saved ' + pending.length + ' page file(s)' + (indexWritten ? ' and wiki.json' : '') + ' to ' + folderName + '.');
+        toast('Saved ' + pending.length + ' page file(s)' + (indexText ? ' and wiki.json' : '') + ' to ' + folderName + '.');
       } else {
         toast('Files saved, but more edits were made while saving. Save again.');
       }
@@ -864,7 +925,7 @@
     if (name === null) return;
     wiki = normalizeWiki({name: name.trim() || 'My Wiki', pages: []});
     currentId = null; folderHandle = null; folderName = 'No folder selected'; dirty = false;
-    pagePaths.clear(); changedIds.clear(); removedPaths.clear(); indexDirty = true; changeVersion++;
+    diskPaths.clear(); changedIds.clear(); renameFrom = null; indexDirty = true; changeVersion++;
     els.search.value = '';
     renderAll(); backupDraft(); toast('New wiki created. Use + to add a page.');
   }
@@ -885,10 +946,12 @@
     els.search.addEventListener('input', renderTree);
     els.title.addEventListener('input', () => {
       const p = currentPage(); if (!p) return;
+      if (!renameFrom) renameFrom = {id: p.id, title: p.title};
       p.title = els.title.value; touchPage(p);
       renderTree(); renderBreadcrumbs(p); els.name.textContent = wiki.name;
     });
-    els.title.addEventListener('change', () => { if (currentPage()) renderParentChoices(currentPage()); });
+    els.title.addEventListener('change', commitTitle);
+    els.title.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); commitTitle(); } });
     els.tags.addEventListener('input', () => {
       const p = currentPage(); if (!p) return;
       p.tags = [...new Set(els.tags.value.split(',').map(s => s.trim()).filter(Boolean))];
@@ -994,7 +1057,7 @@
       if (recovered?.wiki) {
         wiki = normalizeWiki(recovered.wiki);
         currentId = pageByIdIn(wiki, recovered.currentId)?.id || wiki.pages[0]?.id || null;
-        pagePaths = new Map(Array.isArray(recovered.pagePaths) ? recovered.pagePaths : []);
+        if (recovered.renameFrom && pageByIdIn(wiki, recovered.renameFrom.id)) renameFrom = recovered.renameFrom;
         // Directory permissions are not retained across reloads. This is a browser copy only.
         folderName = recovered.folderName || 'Recovered browser draft';
         dirty = recovered.dirty === true;
@@ -1010,7 +1073,7 @@
       applyPageWidth(ui?.pageWidth);
     } catch (_) {}
     applyPageWidth(pageWidth);
-    installEvents(); setMode(mode); renderAll(); backupDraft();
+    installEvents(); setMode(mode); commitTitle(); renderAll(); backupDraft();
     if (recoveredUnsaved) toast('Recovered unsaved changes from this browser. Save changes to write them to a folder.');
   }
   function pageByIdIn(model, id) { return model.pages.find(p => p.id === id); }

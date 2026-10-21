@@ -5,10 +5,6 @@
   "updatedAt": "2026-10-20T13:00:00.000Z",
   "pages": [
     {
-      "id": "welcome",
-      "file": "pages/welcome.json"
-    },
-    {
       "id": "editing-guide",
       "file": "pages/editing-guide.json"
     },
@@ -17,8 +13,12 @@
       "file": "pages/project-notes.json"
     },
     {
-      "id": "tables-and-icons",
-      "file": "pages/tables-and-icons.json"
+      "id": "tables-symbols-and-icons",
+      "file": "pages/tables-symbols-and-icons.json"
+    },
+    {
+      "id": "welcome",
+      "file": "pages/welcome.json"
     }
   ]
 }
