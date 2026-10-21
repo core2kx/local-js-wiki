@@ -1,7 +1,14 @@
-/* Compact, self-contained icon set for LocalWiki. No external fonts, CDN, or package dependencies.
-   All pictograms are stored locally as SVG strokes; extend ICONS to add another. */
+/* LocalWiki — icon-library.js
+   Compact, self-contained SVG icon set. No external fonts, CDN, or package dependencies.
+   All pictograms are stored locally as SVG strokes; extend ICONS to add another.
+   Page text refers to icons as :icon[name]: and page icons as "icon:name"; only names listed
+   here are ever turned into SVG.
+
+   Depends on: nothing.
+   Provides:   LocalWiki.icons {items, svg(name), has(name)} */
 (() => {
   'use strict';
+  const LW = (globalThis.LocalWiki ||= {});
   const ICONS = {
     "book": { label: "Book", art: "<path d=\"M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 0 4 22z\"/><path d=\"M4 5.5V20a2 2 0 0 1 2.5-2H20\"/>" },
     "file": { label: "File", art: "<path d=\"M6 3h8l4 4v14H6z\"/><path d=\"M14 3v5h5\"/>" },
@@ -36,11 +43,10 @@
     "users": { label: "Users", art: "<circle cx=\"9\" cy=\"8\" r=\"3\"/><path d=\"M2 21v-2a7 7 0 0 1 14 0v2M17 5a3 3 0 0 1 0 6m1 4a5 5 0 0 1 4 5\"/>" },
     "rocket": { label: "Rocket", art: "<path d=\"M5 15c0-7 7-12 16-13-1 9-6 16-13 16zM9 9l6 6M3 21l4-4m-2-4-3 1v4m11 2 1-3h4\"/>" }
   };
-  const safe = value => String(value).replace(/[&< >"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', ' ':' ', '"':'&quot;', "'":'&#39;'}[c]));
   function svg(name) {
     const entry = ICONS[name];
     if (!entry) return '';
     return '<svg class="wiki-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + entry.art + '</svg>';
   }
-  window.LocalWikiIcons = Object.freeze({items: Object.keys(ICONS).map(name => ({name, label: ICONS[name].label})), svg, has: name => Object.hasOwn(ICONS,name), safe});
+  LW.icons = Object.freeze({items: Object.keys(ICONS).map(name => ({name, label: ICONS[name].label})), svg, has: name => Object.hasOwn(ICONS,name)});
 })();

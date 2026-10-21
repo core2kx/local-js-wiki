@@ -40,9 +40,14 @@ localwiki/
 ├── index.html                  # Browser application
 ├── css/
 │   └── wiki.css               # All styling; self-contained and editable
-├── js/
+├── js/                        # Plain scripts, loaded in order by index.html
 │   ├── icon-library.js        # Bundled SVG icons; optional to extend
-│   └── wiki.js                # Wiki editor and file handling
+│   ├── text.js, model.js, markdown.js, zip.js, search.js   # Pure logic
+│   ├── state.js               # The open wiki and change tracking
+│   ├── history.js, pages.js, storage.js                     # Undo, page operations, files
+│   ├── ui/                    # Everything on screen, one file per area
+│   └── app.js                 # Wiring and startup
+├── tests/                     # Developer tests: node --test (not needed to use the wiki)
 ├── data/
 │   └── example-wiki/          # Example content: choose Open folder -> this directory
 │       ├── wiki.json         # Index only (name, page IDs, filenames)
@@ -51,6 +56,7 @@ localwiki/
 │           ├── editing-guide.json
 │           ├── project-notes.json
 │           └── tables-symbols-and-icons.json
+├── ARCHITECTURE.md            # How the code is organized
 └── README.md
 ```
 
@@ -142,6 +148,10 @@ New pages never take the filename of a set-aside file.
 - Browser restrictions prevent unattended opening of `wiki.json` and `pages/*.json` through relative `file://` paths. Always use the **Open folder** button.
 - The Markdown renderer is a lightweight subset of Markdown, not a full CommonMark editor. Very complicated tables and nested formatting are not supported.
 - SVG pictograms are selected from a bundled allowlist; arbitrary SVG or HTML in page content is not executed. If you export pages as JSON, the icon markup `:icon[name]:` is intended for LocalWiki rendering. Unicode symbols and emoji remain portable to other editors.
+
+## For developers
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for how the code is organized. Tests need Node 22 or newer and run with `node --test` from the project folder; nothing else is installed.
 
 ## License
 

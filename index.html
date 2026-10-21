@@ -7,8 +7,30 @@
   <title>LocalWiki — Offline Wiki</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%232d5b55'/%3E%3Cpath d='M16 16h25l7 7v25H16z' fill='none' stroke='white' stroke-width='4'/%3E%3Cpath d='M24 30h16M24 38h16' stroke='white' stroke-width='4'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/wiki.css">
+  <!-- Scripts load in this order; each file adds its part to window.LocalWiki. See ARCHITECTURE.md. -->
+  <!-- Pure logic: no page access (also used by the tests in tests/) -->
   <script defer src="js/icon-library.js"></script>
-  <script defer src="js/wiki.js"></script>
+  <script defer src="js/text.js"></script>
+  <script defer src="js/model.js"></script>
+  <script defer src="js/markdown.js"></script>
+  <script defer src="js/zip.js"></script>
+  <script defer src="js/search.js"></script>
+  <!-- The open wiki and the operations on it -->
+  <script defer src="js/state.js"></script>
+  <script defer src="js/history.js"></script>
+  <script defer src="js/pages.js"></script>
+  <script defer src="js/storage.js"></script>
+  <!-- Screen -->
+  <script defer src="js/ui/elements.js"></script>
+  <script defer src="js/ui/status.js"></script>
+  <script defer src="js/ui/page.js"></script>
+  <script defer src="js/ui/sidebar.js"></script>
+  <script defer src="js/ui/editor.js"></script>
+  <script defer src="js/ui/table-builder.js"></script>
+  <script defer src="js/ui/picker.js"></script>
+  <script defer src="js/ui/problems.js"></script>
+  <!-- Start -->
+  <script defer src="js/app.js"></script>
 </head>
 <body>
   <div class="app-shell">

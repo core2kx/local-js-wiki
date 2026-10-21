@@ -1,0 +1,93 @@
+/* LocalWiki — history.js
+   Session undo/redo. Each step is a snapshot of the whole wiki taken just before a change
+   (pages stored as JSON strings; unchanged pages share one string, so steps are cheap).
+
+   Usage: call record(label) BEFORE changing anything. Bursts of typing pass a key (e.g.
+   "content:<page id>") so quick successive edits share one step. A rename is one step: the
+   snapshot is taken when the title edit starts, before the rename rewrites links (see pages.js).
+
+   Restoring a step marks every page that differs as changed, so autosave writes the files back
+   (an undone delete re-creates its file; an undone rename moves it back).
+
+   Depends on: state.js; asks LocalWiki.ui to redraw.
+   Provides:   LocalWiki.history */
+(() => {
+  'use strict';
+  const LW = (globalThis.LocalWiki ||= {});
+  const state = LW.state;
+  const {pageById, markDirty, serializePage, rememberPageText, forgetPageText} = LW.store;
+  const ui = (LW.ui ||= {});
+  const UNDO_LIMIT = 200, UNDO_PAUSE = 1000, UNDO_MAX_GROUP = 10000;
+
+  let undoStack = [], redoStack = [];
+  let undoGroup = null;      // {key, started, last} for coalescing bursts of typing
+
+  function snapshot(label) {
+    return {label, name: state.wiki.name, currentId: state.currentId, pages: state.wiki.pages.map(serializePage)};
+  }
+  function sameState(a, b) {
+    return a.name === b.name && a.pages.length === b.pages.length && a.pages.every((text, i) => text === b.pages[i]);
+  }
+
+  // Call before changing anything. Changes with the same key in quick succession (typing) share one step.
+  function record(label, key = null) {
+    const now = Date.now();
+    const g = undoGroup;
+    if (key && g && g.key === key && now - g.last < UNDO_PAUSE && now - g.started < UNDO_MAX_GROUP) { g.last = now; return; }
+    undoGroup = key ? {key, started: now, last: now} : null;
+    const entry = snapshot(label);
+    if (undoStack.length && sameState(undoStack[undoStack.length - 1], entry)) return;
+    undoStack.push(entry);
+    if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+    redoStack = [];
+    ui.renderUndoButtons();
+  }
+
+  function restore(entry) {
+    const wiki = state.wiki;
+    const before = new Map(wiki.pages.map(page => [page.id, serializePage(page)]));
+    const pages = entry.pages.map(text => { const page = JSON.parse(text); rememberPageText(page, text); return page; });
+    const ids = new Set(pages.map(page => page.id));
+    if (wiki.name !== entry.name || before.size !== ids.size || [...ids].some(id => !before.has(id))) state.indexDirty = true;
+    wiki.name = entry.name;
+    wiki.pages = pages;
+    // Rewrite every page that differs from what was there; undone deletions are written back too.
+    for (const page of pages) if (before.get(page.id) !== serializePage(page)) state.changedIds.add(page.id);
+    state.currentId = pageById(entry.currentId) ? entry.currentId : (pageById(state.currentId) ? state.currentId : pages[0]?.id || null);
+    state.renameFrom = null; undoGroup = null;
+    markDirty();
+    ui.renderAll();
+  }
+  // Callers commit any pending title edit first (pages.commitTitle) so it becomes its own step.
+  function step(from, to, verb) {
+    const entry = from.pop();
+    if (!entry) return;
+    to.push(snapshot(entry.label));
+    const oldContent = pageById(state.currentId)?.content;
+    restore(entry);
+    ui.moveCaretToChange(oldContent);
+    ui.renderUndoButtons();
+    ui.toast(verb + ' ' + entry.label + '.');
+  }
+  function undo() { step(undoStack, redoStack, 'Undid'); }
+  function redo() { step(redoStack, undoStack, 'Redid'); }
+
+  // A title edit that ended up changing nothing (rejected, or retyped as before) should not linger as
+  // a no-op undo step. Typing touched the page's updatedAt, so restore that from the step first.
+  function dropNoop(page) {
+    const top = undoStack[undoStack.length - 1];
+    const i = state.wiki.pages.indexOf(page);
+    if (!top || top.pages.length !== state.wiki.pages.length || i < 0) return;
+    const previous = JSON.parse(top.pages[i]);
+    if (previous.id !== page.id) return;
+    page.updatedAt = previous.updatedAt; forgetPageText(page);
+    if (sameState(top, snapshot(top.label))) { undoStack.pop(); ui.renderUndoButtons(); }
+  }
+  function clear() { undoStack = []; redoStack = []; undoGroup = null; ui.renderUndoButtons(); }
+  // Labels of the steps Undo and Redo would apply next (null when there is none).
+  function peek() {
+    return {undo: undoStack[undoStack.length - 1]?.label ?? null, redo: redoStack[redoStack.length - 1]?.label ?? null};
+  }
+
+  LW.history = {record, undo, redo, dropNoop, clear, peek};
+})();

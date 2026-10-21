@@ -1,0 +1,42 @@
+/* LocalWiki — ui/elements.js
+   Looks up every HTML element the app uses (ids are defined in index.html), once, in one place.
+   Only ui/*.js and app.js use these; lower layers never touch the page directly.
+
+   Depends on: index.html (scripts are loaded with "defer", so the page is parsed before this runs).
+   Provides:   LocalWiki.els */
+(() => {
+  'use strict';
+  const LW = (globalThis.LocalWiki ||= {});
+  const $ = id => document.getElementById(id);
+
+  LW.els = {
+    // Top bar
+    name: $('wiki-name'), status: $('save-status'), open: $('open-btn'), save: $('save-btn'),
+    undo: $('undo-btn'), redo: $('redo-btn'), theme: $('theme-btn'),
+    // Sidebar
+    search: $('search'), sidebarHeading: $('sidebar-heading'), nav: $('page-nav'), newPage: $('new-page-btn'),
+    newWiki: $('new-wiki-btn'), saveAs: $('save-as-btn'), exportZip: $('export-zip-btn'),
+    rename: $('rename-wiki-btn'), fileLabel: $('file-label'), problemsButton: $('problems-btn'),
+    // Page header and metadata
+    empty: $('empty-state'), emptyCreate: $('empty-create-btn'), mainPage: document.querySelector('.page-wrap'),
+    breadcrumbs: $('breadcrumbs'), pageWidth: $('page-width-select'), newChild: $('new-child-btn'), del: $('delete-page-btn'),
+    pageIconButton: $('page-icon-btn'), pageIconDisplay: $('page-icon-display'), title: $('page-title'),
+    modified: $('page-modified'), count: $('page-word-count'), parent: $('parent-select'), tags: $('tags-input'),
+    // Editor
+    card: $('editor-content'), toolbar: $('editor-toolbar'), content: $('content-input'), preview: $('preview'),
+    symbolsButton: $('symbols-btn'), iconsButton: $('icons-btn'), pageId: $('page-id-short'),
+    // Table dialog
+    tableDialog: $('table-dialog'), tableTitle: $('table-dialog-title'), tableGrid: $('table-builder-grid'),
+    tableSize: $('table-size'), tableConfirm: $('table-confirm'), tableCancel: $('table-cancel'), tableClose: $('table-close'),
+    tableAddRow: $('table-add-row'), tableRemoveRow: $('table-remove-row'),
+    tableAddCol: $('table-add-col'), tableRemoveCol: $('table-remove-col'),
+    // Icon/symbol picker dialog
+    pickerDialog: $('picker-dialog'), pickerSearch: $('picker-search'), pickerResults: $('picker-results'),
+    pickerClear: $('picker-clear'), pickerHint: $('picker-hint'), pickerClose: $('picker-close'), pickerCancel: $('picker-cancel'),
+    // Load-problems dialog
+    problemsDialog: $('problems-dialog'), problemsList: $('problems-list'),
+    problemsClose: $('problems-close'), problemsOk: $('problems-ok'),
+    // Hidden folder input (read-only fallback) and notifications
+    folderInput: $('folder-input'), toast: $('toast')
+  };
+})();
