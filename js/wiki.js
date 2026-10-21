@@ -79,6 +79,13 @@
   const utf8 = new TextEncoder();
   const graphemeSegmenter = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, {granularity: 'grapheme'}) : null;
   const wordSegmenter = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, {granularity: 'word'}) : null;
+  // Nearest grapheme start at or before offset, so snippets never cut a character in half.
+  function graphemeBoundary(text, offset) {
+    if (offset <= 0 || offset >= text.length) return offset;
+    let start = 0;
+    for (const char of graphemes(text)) { if (start + char.length > offset) break; start += char.length; }
+    return start;
+  }
   function graphemes(text) {
     return graphemeSegmenter ? Array.from(graphemeSegmenter.segment(text), part => part.segment) : Array.from(text);
   }
@@ -101,6 +108,42 @@
   // Case-insensitive key for titles: canonical Unicode form, locale-independent folding
   // (so "Straße"/"STRASSE" and "ΟΔΟΣ"/"οδος" match identically on every machine).
   function titleKey(title) { return String(title).normalize('NFC').toUpperCase().toLowerCase(); }
+  // Search folding: case- and accent-insensitive ("cafe" finds "Café", "αθηνα" finds "Αθήνα").
+  // Marks are only stripped from the general diacritics block, so Indic, Thai, Arabic and Hebrew
+  // vowel signs still count. Cyrillic keeps й (a distinct letter); only ё is folded to е.
+  const SEARCH_LETTERS = {'ø':'o', 'æ':'ae', 'œ':'oe', 'ł':'l', 'đ':'d', 'ð':'d', 'þ':'th'};
+  function foldGrapheme(char) {
+    const lower = char.normalize('NFC').toUpperCase().toLowerCase();
+    if (/^\p{Script=Cyrillic}/u.test(lower)) return lower.replace(/ё/g, 'е');
+    return lower.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[øæœłđðþ]/g, c => SEARCH_LETTERS[c]).normalize('NFC');
+  }
+  // Returns the folded text plus map[i] = offset in the original text of folded character i,
+  // so a match in folded text can be highlighted in the original.
+  const foldCache = new Map();
+  function foldForSearch(text) {
+    let result = foldCache.get(text);
+    if (result) return result;
+    let folded = '', offset = 0;
+    const map = [];
+    for (const char of graphemes(text)) {
+      const f = foldGrapheme(char);
+      folded += f;
+      for (let k = 0; k < f.length; k++) map.push(offset);
+      offset += char.length;
+    }
+    map.push(text.length);
+    result = {folded, map};
+    if (foldCache.size > 1000) foldCache.clear();
+    foldCache.set(text, result);
+    return result;
+  }
+  function searchFold(text) { return foldForSearch(text).folded; }
+  // Original [start, end) for a match at folded index i with folded length n.
+  function originalRange({map}, i, n) {
+    let j = i + n;
+    while (j < map.length - 1 && map[j] === map[j - 1]) j++; // end on a whole original character
+    return [map[i], map[j]];
+  }
   function uniqueId(title, selfId = null) {
     const base = slug(title);
     // Compare upper-cased so names that differ only in case (or final sigma) do not
@@ -215,18 +258,20 @@
   function sorted(list) { return [...list].sort((a, b) => a.title.localeCompare(b.title, undefined, {sensitivity:'base', numeric:true})); }
 
   function renderTree() {
-    const query = els.search.value.trim().toLocaleLowerCase();
-    els.sidebarHeading.textContent = query ? 'Search results' : 'Pages';
+    const raw = els.search.value.trim();
+    els.sidebarHeading.textContent = raw ? 'Search results' : 'Pages';
     els.nav.replaceChildren();
-    if (query) {
-      const matches = wiki.pages.map(p => {
-        const title = p.title.toLocaleLowerCase();
-        const tags = p.tags.join(' ').toLocaleLowerCase();
-        const body = p.content.toLocaleLowerCase();
-        const score = title.includes(query) ? (title === query ? 5 : 3) : tags.includes(query) ? 2 : body.includes(query) ? 1 : 0;
-        return {p, score, index: body.indexOf(query)};
+    if (raw) {
+      const query = searchFold(raw);
+      const matches = !query ? [] : wiki.pages.map(p => {
+        const title = searchFold(p.title);
+        const tags = searchFold(p.tags.join(' '));
+        const body = foldForSearch(p.content);
+        const index = body.folded.indexOf(query);
+        const score = title.includes(query) ? (title === query ? 5 : 3) : tags.includes(query) ? 2 : index >= 0 ? 1 : 0;
+        return {p, score, body, index};
       }).filter(result => result.score).sort((a,b) => b.score - a.score || a.p.title.localeCompare(b.p.title));
-      for (const {p, index} of matches) {
+      for (const {p, body, index} of matches) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'nav-entry nav-result' + (p.id === currentId ? ' active' : '');
@@ -235,8 +280,19 @@
         const path = document.createElement('span');
         path.className = 'nav-result-path'; path.textContent = ancestors(p).map(x => x.title).join(' / ') || 'Top-level';
         const snippet = document.createElement('span'); snippet.className = 'nav-result-snippet';
-        const cleaned = p.content.replace(/[#*`\[\]|]/g, '').replace(/\s+/g, ' ');
-        snippet.textContent = index >= 0 ? '…' + p.content.slice(Math.max(0, index - 30), index + 80).replace(/\s+/g, ' ') + '…' : (p.tags.join(', ') || cleaned.slice(0, 85));
+        snippet.dir = 'auto';
+        if (index >= 0) {
+          const [start, end] = originalRange(body, index, query.length);
+          const from = graphemeBoundary(p.content, Math.max(0, start - 30));
+          const to = graphemeBoundary(p.content, Math.min(p.content.length, end + 80));
+          const clean = text => text.replace(/\s+/g, ' ');
+          const mark = document.createElement('mark'); mark.textContent = p.content.slice(start, end);
+          snippet.append((from > 0 ? '…' : '') + clean(p.content.slice(from, start)), mark,
+            clean(p.content.slice(end, to)) + (to < p.content.length ? '…' : ''));
+        } else {
+          const cleaned = p.content.replace(/[#*`\[\]|]/g, '').replace(/\s+/g, ' ');
+          snippet.textContent = p.tags.join(', ') || graphemes(cleaned).slice(0, 85).join('');
+        }
         button.append(title, path, snippet);
         button.addEventListener('click', () => selectPage(p.id));
         els.nav.append(button);
@@ -604,8 +660,8 @@
       tab.classList.toggle('active', tab.dataset.pickerTab === pickerTab);
       tab.setAttribute('aria-pressed', String(tab.dataset.pickerTab === pickerTab));
     }
-    const query = els.pickerSearch.value.trim().toLocaleLowerCase();
-    const entries = pickerEntries().filter(item => item.label.toLocaleLowerCase().includes(query) || item.name.toLocaleLowerCase().includes(query));
+    const query = searchFold(els.pickerSearch.value.trim());
+    const entries = pickerEntries().filter(item => searchFold(item.label).includes(query) || searchFold(item.name).includes(query));
     els.pickerResults.replaceChildren();
     if (!entries.length) {
       const message = document.createElement('div'); message.className = 'picker-empty'; message.textContent = 'No matching items.';

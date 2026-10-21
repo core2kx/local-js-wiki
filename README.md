@@ -20,6 +20,7 @@ Titles, filenames, links, and search work in any script. IDs are lowercase and k
 
 - Title comparison (duplicates and links) ignores case the same way on every computer, regardless of the browser's language: `Straße` matches `STRASSE`, and differently-encoded accents count as equal.
 - Right-to-left text (Hebrew, Arabic) is displayed right-to-left in titles, the editor, the sidebar, and each rendered paragraph.
+- Search ignores case and accents: `cafe` finds `Café`, `strasse` finds `Straße`, `αθηνα` finds `Αθήνα`, `елка` finds `ёлка`. Vowel signs in scripts such as Hindi, Thai, Arabic, and Hebrew still count, and Russian `й` stays distinct from `и`. The matched text is highlighted in the result snippet.
 - Word counts handle languages written without spaces (Chinese, Japanese, Thai).
 - Keyboard shortcuts also work on non-Latin keyboard layouts.
 

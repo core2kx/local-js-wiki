@@ -69,6 +69,7 @@ kbd { margin-right: 7px; padding: 1px 4px; font-size: 10px; color: var(--muted);
 .nav-result-title { display: block; font-weight: 650; }
 .nav-result-snippet { display: block; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nav-result-path { display: block; font-size: 10px; color: var(--muted); }
+.nav-result-snippet mark { background: var(--accent-soft); color: var(--text); border-radius: 3px; padding: 0 1px; }
 .search-empty { color: var(--muted); padding: 12px; font-size: 12px; }
 mark { background: #fbe8af; color: #3f351a; border-radius: 2px; }
 .sidebar-bottom { border-top: 1px solid var(--border); padding: 12px 13px 17px; }
