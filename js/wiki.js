@@ -72,24 +72,48 @@
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[ch]));
   }
-  // Page IDs are ASCII slugs of the title; a page's file is always pages/<id>.json.
+  // Page IDs are slugs of the title in any script; a page's file is always pages/<id>.json.
+  // Latin accents are simplified (Café -> cafe); other scripts are kept as-is (Привет -> привет).
   const RESERVED_NAMES = new Set(['con','prn','aux','nul','com1','com2','com3','com4','com5','com6','com7','com8','com9','lpt1','lpt2','lpt3','lpt4','lpt5','lpt6','lpt7','lpt8','lpt9']);
+  const SLUG_MAX_CHARS = 60, SLUG_MAX_BYTES = 150; // well under the 255-byte filename limit
+  const utf8 = new TextEncoder();
+  const graphemeSegmenter = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, {granularity: 'grapheme'}) : null;
+  const wordSegmenter = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, {granularity: 'word'}) : null;
+  function graphemes(text) {
+    return graphemeSegmenter ? Array.from(graphemeSegmenter.segment(text), part => part.segment) : Array.from(text);
+  }
   function slug(value, fallback = 'page') {
-    const base = String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-').replace(/^-+/, '').slice(0, 60).replace(/-+$/, '');
+    const text = String(value || '').normalize('NFKD').toLowerCase()
+      .replace(/(\p{Script=Latin})\p{M}+/gu, '$1')
+      .normalize('NFC')
+      .replace(/[^\p{L}\p{M}\p{N}]+/gu, '-').replace(/^[-\p{M}]+/u, '');
+    // Truncate on whole characters (never splitting a letter from its marks) within the byte budget.
+    let base = '', bytes = 0, count = 0;
+    for (const char of graphemes(text)) {
+      const size = utf8.encode(char).length;
+      if (count >= SLUG_MAX_CHARS || bytes + size > SLUG_MAX_BYTES) break;
+      base += char; bytes += size; count++;
+    }
+    base = base.replace(/-+$/, '');
     if (!base) return fallback;
     return RESERVED_NAMES.has(base) ? base + '-page' : base;
   }
+  // Case-insensitive key for titles: canonical Unicode form, locale-independent folding
+  // (so "Straße"/"STRASSE" and "ΟΔΟΣ"/"οδος" match identically on every machine).
+  function titleKey(title) { return String(title).normalize('NFC').toUpperCase().toLowerCase(); }
   function uniqueId(title, selfId = null) {
     const base = slug(title);
+    // Compare upper-cased so names that differ only in case (or final sigma) do not
+    // collide on case-insensitive file systems.
+    const taken = new Set(wiki.pages.filter(p => p.id !== selfId).map(p => p.id.toUpperCase()));
     let id = base;
-    for (let i = 2; wiki.pages.some(p => p.id === id && p.id !== selfId); i++) id = base + '-' + i;
+    for (let i = 2; taken.has(id.toUpperCase()); i++) id = base + '-' + i;
     return id;
   }
   function pathFor(id) { return 'pages/' + id + '.json'; }
   function pageWithTitle(title, selfId = null) {
-    const key = title.toLocaleLowerCase();
-    return wiki.pages.find(p => p.id !== selfId && p.title.toLocaleLowerCase() === key);
+    const key = titleKey(title);
+    return wiki.pages.find(p => p.id !== selfId && titleKey(p.title) === key);
   }
   function isoNow() { return new Date().toISOString(); }
   function pageById(id) { return wiki.pages.find(p => p.id === id); }
@@ -207,7 +231,7 @@
         button.type = 'button';
         button.className = 'nav-entry nav-result' + (p.id === currentId ? ' active' : '');
         const title = document.createElement('span');
-        title.className = 'nav-result-title'; title.textContent = p.title || 'Untitled page';
+        title.className = 'nav-result-title'; title.dir = 'auto'; title.textContent = p.title || 'Untitled page';
         const path = document.createElement('span');
         path.className = 'nav-result-path'; path.textContent = ancestors(p).map(x => x.title).join(' / ') || 'Top-level';
         const snippet = document.createElement('span'); snippet.className = 'nav-result-snippet';
@@ -236,7 +260,7 @@
         btn.type = 'button'; btn.title = page.title;
         btn.className = 'nav-entry' + (page.id === currentId ? ' active' : '');
         const icon = document.createElement('span'); icon.className = 'nav-page-icon'; fillPageIcon(icon, page);
-        const name = document.createElement('span'); name.className = 'nav-title'; name.textContent = page.title || 'Untitled page';
+        const name = document.createElement('span'); name.className = 'nav-title'; name.dir = 'auto'; name.textContent = page.title || 'Untitled page';
         btn.append(icon, name);
         btn.addEventListener('click', () => selectPage(page.id));
         container.append(btn);
@@ -275,6 +299,8 @@
     els.parent.value = p.parentId || '';
   }
   function wordCount(content) {
+    // Word segmentation handles scripts written without spaces (Chinese, Japanese, Thai).
+    if (wordSegmenter) { let n = 0; for (const part of wordSegmenter.segment(content)) if (part.isWordLike) n++; return n; }
     return content.trim() ? content.trim().split(/\s+/u).length : 0;
   }
   function fillPageIcon(element, page) {
@@ -324,9 +350,10 @@
   function createPage(parentId = null, desiredTitle = 'New page') {
     commitTitle();
     if (parentId && !pageById(parentId)) parentId = null;
-    const existing = new Set(wiki.pages.map(p => p.title.toLocaleLowerCase()));
+    desiredTitle = desiredTitle.normalize('NFC');
+    const existing = new Set(wiki.pages.map(p => titleKey(p.title)));
     let title = desiredTitle;
-    for (let i = 2; existing.has(title.toLocaleLowerCase()); i++) title = desiredTitle + ' (' + i + ')';
+    for (let i = 2; existing.has(titleKey(title)); i++) title = desiredTitle + ' (' + i + ')';
     const page = {id: uniqueId(title), title, parentId, tags: [], content: '', icon: '', createdAt: isoNow(), updatedAt: isoNow()};
     wiki.pages.push(page);
     indexDirty = true;
@@ -376,7 +403,7 @@
     renameFrom = null;
     const page = pageById(oldId);
     if (!page) return;
-    const title = page.title.trim();
+    const title = page.title.trim().normalize('NFC');
     const reject = message => {
       page.title = oldTitle; touchPage(page); renderAfterRename(); toast(message);
     };
@@ -386,9 +413,14 @@
     page.title = title;
     if (title === oldTitle) { renderAfterRename(); return; }
     const newId = uniqueId(title, oldId);
-    // Links resolve by ID first, then by case-insensitive title (see inlineMarkdown).
-    const isTarget = target => target === oldId ? 'id' :
-      (!pageById(target) && target.toLocaleLowerCase() === oldTitle.toLocaleLowerCase()) ? 'title' : null;
+    // Links resolve by ID first, then by case-insensitive title (see inlineMarkdown). A target that
+    // is both this page's ID and its title (e.g. [[welcome]]) is rewritten as a title link.
+    const isTarget = target => {
+      const owner = pageById(target);
+      if (owner && owner.id !== oldId) return null;
+      if (titleKey(target) === titleKey(oldTitle)) return 'title';
+      return target === oldId ? 'id' : null;
+    };
     let relinked = 0;
     for (const other of wiki.pages) {
       const updated = rewriteLinks(other.content, isTarget, kind => kind === 'id' ? newId : title);
@@ -425,7 +457,7 @@
       const sep = descriptor.indexOf('|');
       const target = (sep < 0 ? descriptor : descriptor.slice(0, sep)).trim();
       const label = (sep < 0 ? target : descriptor.slice(sep + 1)).trim();
-      const match = wiki.pages.find(p => p.id === target) || wiki.pages.find(p => p.title.toLowerCase() === target.toLowerCase());
+      const match = wiki.pages.find(p => p.id === target) || wiki.pages.find(p => titleKey(p.title) === titleKey(target));
       return protect('<a href="#" class="wiki-link' + (!match ? ' missing-link' : '') + '" data-wiki-target="' + escapeHtml(target) + '">' + escapeHtml(label || target) + '</a>');
     });
     s = s.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/gi, (_m, label, url) =>
@@ -467,16 +499,16 @@
       const heading = line.match(/^(#{1,6})\s+(.+)$/);
       if (heading) {
         const level = Math.min(heading[1].length, 4);
-        out.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`); i++; continue;
+        out.push(`<h${level} dir="auto">${inlineMarkdown(heading[2])}</h${level}>`); i++; continue;
       }
       if (/^\s*(?:---+|\*\*\*+)\s*$/.test(line)) { out.push('<hr>'); i++; continue; }
       if (line.includes('|') && i + 1 < lines.length && tableDivider(lines[i + 1])) {
         const tableStartLine = i;
         const headers = cells(line); i += 2;
-        let table = '<table><thead><tr>' + headers.map(c => '<th>' + inlineMarkdown(c) + '</th>').join('') + '</tr></thead><tbody>';
+        let table = '<table><thead><tr>' + headers.map(c => '<th dir="auto">' + inlineMarkdown(c) + '</th>').join('') + '</tr></thead><tbody>';
         while (i < lines.length && lines[i].includes('|') && lines[i].trim()) {
           const values = cells(lines[i++]);
-          table += '<tr>' + headers.map((_h, j) => '<td>' + inlineMarkdown(values[j] || '') + '</td>').join('') + '</tr>';
+          table += '<tr>' + headers.map((_h, j) => '<td dir="auto">' + inlineMarkdown(values[j] || '') + '</td>').join('') + '</tr>';
         }
         out.push('<div class="table-block"><div class="table-block-actions"><button type="button" class="table-edit-btn" data-table-line="' + tableStartLine + '">✎ Edit table</button></div><div class="table-scroll">' + table + '</tbody></table></div></div>'); continue;
       }
@@ -486,18 +518,18 @@
         const itemRE = listType === 'ul' ? /^\s*[-*+] (.*)$/ : /^\s*\d+\. (.*)$/;
         while (i < lines.length && itemRE.test(lines[i])) {
           const item = lines[i++].match(itemRE)[1];
-          items.push('<li>' + inlineMarkdown(item) + '</li>');
+          items.push('<li dir="auto">' + inlineMarkdown(item) + '</li>');
         }
         out.push('<' + listType + '>' + items.join('') + '</' + listType + '>'); continue;
       }
       if (/^\s*>/.test(line)) {
         const quote = [];
         while (i < lines.length && /^\s*>/.test(lines[i])) quote.push(lines[i++].replace(/^\s*>\s?/, ''));
-        out.push('<blockquote>' + inlineMarkdown(quote.join(' ')) + '</blockquote>'); continue;
+        out.push('<blockquote dir="auto">' + inlineMarkdown(quote.join(' ')) + '</blockquote>'); continue;
       }
       const paragraph = [line]; i++;
       while (i < lines.length && !blockStart(lines, i)) paragraph.push(lines[i++]);
-      out.push('<p>' + paragraph.map(inlineMarkdown).join('<br>') + '</p>');
+      out.push('<p dir="auto">' + paragraph.map(inlineMarkdown).join('<br>') + '</p>');
     }
     return out.join('\n');
   }
@@ -704,7 +736,7 @@
     return {
       schemaVersion: SCHEMA_VERSION, type: 'localwiki-index', name: wiki.name,
       updatedAt: wiki.updatedAt || isoNow(),
-      pages: [...wiki.pages].sort((a, b) => a.id.localeCompare(b.id)).map(p => ({id: p.id, file: pathFor(p.id)}))
+      pages: [...wiki.pages].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map(p => ({id: p.id, file: pathFor(p.id)}))
     };
   }
   function jsonText(value) { return JSON.stringify(value, null, 2) + '\n'; }
@@ -778,7 +810,7 @@
     const ids = new Set(), paths = new Set();
     for (const entry of index.pages) {
       if (!entry || typeof entry.id !== 'string' || !entry.id || typeof entry.file !== 'string' ||
-          !/^pages\/[a-zA-Z0-9][a-zA-Z0-9._-]*\.json$/.test(entry.file) ||
+          !/^pages\/[\p{L}\p{N}][\p{L}\p{M}\p{N}._-]*\.json$/u.test(entry.file) ||
           entry.file !== pathFor(entry.id) || ids.has(entry.id) || paths.has(entry.file)) {
         throw new Error('Invalid or duplicate page entry in wiki.json.');
       }
@@ -843,12 +875,12 @@
       const relative = file.webkitRelativePath || file.name;
       const parts = relative.split('/');
       if (parts.length > 1) { name = parts[0]; parts.shift(); }
-      const path = parts.join('/');
+      const path = parts.join('/').normalize('NFC');
       if (fileMap.has(path)) throw new Error('Duplicate file path: ' + path);
       fileMap.set(path, file);
     }
     const result = await readFolderContents(async path => {
-      const file = fileMap.get(path);
+      const file = fileMap.get(path.normalize('NFC'));
       if (!file) throw new Error('Missing ' + path);
       return file.text();
     });
@@ -934,7 +966,7 @@
     if (!a) return;
     event.preventDefault();
     const target = a.dataset.wikiTarget;
-    const match = pageById(target) || wiki.pages.find(p => p.title.toLocaleLowerCase() === target.toLocaleLowerCase());
+    const match = pageById(target) || wiki.pages.find(p => titleKey(p.title) === titleKey(target));
     if (match) selectPage(match.id);
     else if (confirm(`Page "${target}" does not exist. Create it?`)) createPage(null, target.slice(0, 140));
   }
@@ -1039,11 +1071,13 @@
     });
     document.addEventListener('keydown', event => {
       if ((event.ctrlKey || event.metaKey) && !event.altKey) {
-        if (event.key.toLowerCase() === 's') { event.preventDefault(); saveChanges(); }
-        if (event.key.toLowerCase() === 'k') { event.preventDefault(); els.search.focus(); els.search.select(); }
-        if (event.key.toLowerCase() === 'n') { event.preventDefault(); createPage(); }
-        if (event.target === els.content && event.key.toLowerCase() === 'b') { event.preventDefault(); formatSelection('bold'); }
-        if (event.target === els.content && event.key.toLowerCase() === 'i') { event.preventDefault(); formatSelection('italic'); }
+        // On non-Latin layouts (e.g. Russian, Greek) event.key is not a Latin letter; use the physical key.
+        const key = /^[a-z]$/i.test(event.key) ? event.key.toLowerCase() : (event.code.match(/^Key([A-Z])$/)?.[1].toLowerCase() || '');
+        if (key === 's') { event.preventDefault(); saveChanges(); }
+        if (key === 'k') { event.preventDefault(); els.search.focus(); els.search.select(); }
+        if (key === 'n') { event.preventDefault(); createPage(); }
+        if (event.target === els.content && key === 'b') { event.preventDefault(); formatSelection('bold'); }
+        if (event.target === els.content && key === 'i') { event.preventDefault(); formatSelection('italic'); }
       }
     });
     window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });

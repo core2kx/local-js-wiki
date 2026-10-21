@@ -14,7 +14,14 @@ Page titles are unique (ignoring case). When you rename a page (the change is ap
 - The page ID and filename, and the `parentId` of its child pages.
 - On the next save, the new file is written, `wiki.json` is updated, and the old file is deleted.
 
-IDs are lowercase ASCII: accents are simplified (`Café` → `cafe`), other characters become hyphens, and clashes get a numeric suffix (`c`, `c-2`).
+### Titles in any language
+
+Titles, filenames, links, and search work in any script. IDs are lowercase and keep the title's own alphabet: `Привет мир` → `привет-мир.json`, `東京の天気` → `東京の天気.json`, `שלום עולם` → `שלום-עולם.json`. Accents on Latin letters are simplified (`Café` → `cafe`); punctuation, symbols, and emoji become hyphens or are dropped; name clashes get a numeric suffix (`c`, `c-2`). Filenames are capped at 60 characters / 150 bytes.
+
+- Title comparison (duplicates and links) ignores case the same way on every computer, regardless of the browser's language: `Straße` matches `STRASSE`, and differently-encoded accents count as equal.
+- Right-to-left text (Hebrew, Arabic) is displayed right-to-left in titles, the editor, the sidebar, and each rendered paragraph.
+- Word counts handle languages written without spaces (Chinese, Japanese, Thai).
+- Keyboard shortcuts also work on non-Latin keyboard layouts.
 
 ## Tables, symbols and icons
 

@@ -26,7 +26,7 @@
     <div class="workspace">
       <aside class="sidebar" aria-label="Wiki navigation">
         <div class="sidebar-top">
-          <label class="search-wrap"><span class="visually-hidden">Search all pages</span><span class="search-icon">⌕</span><input type="search" id="search" placeholder="Search pages..." autocomplete="off"><kbd>Ctrl K</kbd></label>
+          <label class="search-wrap"><span class="visually-hidden">Search all pages</span><span class="search-icon">⌕</span><input type="search" id="search" dir="auto" placeholder="Search pages..." autocomplete="off"><kbd>Ctrl K</kbd></label>
           <div class="sidebar-heading"><span id="sidebar-heading">Pages</span><button id="new-page-btn" class="btn btn-icon btn-primary btn-small-square" title="New top-level page" aria-label="New page">+</button></div>
         </div>
         <nav class="page-nav" id="page-nav" aria-label="Pages"></nav>
@@ -61,11 +61,11 @@
             </div>
           </div>
           <section class="editor-heading">
-            <div class="page-title-row"><button type="button" id="page-icon-btn" class="page-icon-btn" title="Choose page icon" aria-label="Choose page icon"><span id="page-icon-display">▤</span></button><input id="page-title" class="title-input" type="text" maxlength="140" aria-label="Page title" placeholder="Untitled page"></div>
+            <div class="page-title-row"><button type="button" id="page-icon-btn" class="page-icon-btn" title="Choose page icon" aria-label="Choose page icon"><span id="page-icon-display">▤</span></button><input id="page-title" dir="auto" class="title-input" type="text" maxlength="140" aria-label="Page title" placeholder="Untitled page"></div>
             <div class="page-info"><span id="page-modified"></span><span class="info-divider">·</span><span id="page-word-count">0 words</span></div>
             <div class="metadata-row">
               <label class="metadata-field"><span>Parent</span><select id="parent-select" aria-label="Parent page"></select></label>
-              <label class="metadata-field metadata-tags"><span>Tags</span><input id="tags-input" type="text" placeholder="Comma-separated tags" aria-label="Page tags"></label>
+              <label class="metadata-field metadata-tags"><span>Tags</span><input id="tags-input" dir="auto" type="text" placeholder="Comma-separated tags" aria-label="Page tags"></label>
             </div>
           </section>
           <div class="editor-card">
@@ -90,7 +90,7 @@
             </div>
             <div class="editor-content" id="editor-content">
               <label class="visually-hidden" for="content-input">Markdown page editor</label>
-              <textarea id="content-input" spellcheck="true" placeholder="Write in Markdown…"></textarea>
+              <textarea id="content-input" dir="auto" spellcheck="true" placeholder="Write in Markdown…"></textarea>
               <article id="preview" class="markdown-body"></article>
             </div>
           </div>
