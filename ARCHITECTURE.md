@@ -82,6 +82,10 @@ Other operations follow the same pattern: **record undo → change state → tou
 
 ## Rules worth keeping
 
+- **Every change is recorded.** Add a line under "Unreleased" in `CHANGELOG.md` and update the status in
+  `FEATURES.md`. To release, bump `js/version.js`, move the notes under the new version, commit and tag
+  `vX.Y.Z` (`tests/version.test.js` checks the file and changelog agree). Changing the file layout also
+  changes `schemaVersion` in `wiki.json` and is a MAJOR version.
 - **Colors come from the palette.** Use the CSS variables (`var(--accent)`, `var(--warning)`, ...) rather
   than fixed colors, and add any new color to every palette in `palettes.js` (light and dark);
   `tests/palettes.test.js` checks completeness and contrast.

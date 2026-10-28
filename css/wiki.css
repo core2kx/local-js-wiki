@@ -79,6 +79,7 @@ table { caption-side: bottom; border-collapse: collapse; }
 .search-empty { color: var(--muted); padding: 12px; font-size: 12px; }
 mark { background: var(--highlight); color: var(--highlight-text); border-radius: 2px; }
 .sidebar-bottom { border-top: 1px solid var(--border); padding: 12px 13px 17px; }
+.app-version { margin: 4px 12px 0; color: var(--muted); font-size: 10.5px; }
 .sidebar-action { border: 0; background: none; width: 100%; text-align: left; color: var(--text); font-size: 12px; padding: 8px 12px; border-radius: 7px; }
 .sidebar-action:hover { background: var(--accent-soft); }
 .file-label { color: var(--muted); border-top: 1px solid var(--border); padding: 12px 12px 0; margin-top: 9px; font-size: 11px; overflow-wrap: anywhere; }

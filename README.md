@@ -88,6 +88,7 @@ localwiki/
 ├── css/
 │   └── wiki.css               # All styling; self-contained and editable
 ├── js/                        # Plain scripts, loaded in order by index.html
+│   ├── version.js             # The app version (see CHANGELOG.md)
 │   ├── icon-library.js        # Bundled SVG icons; optional to extend
 │   ├── palettes.js            # Color palettes (light and dark versions)
 │   ├── i18n.js, languages.js  # Interface languages: translation core; adding/saving languages
@@ -224,6 +225,8 @@ New pages never take the filename of a set-aside file.
 - SVG pictograms are selected from a bundled allowlist; arbitrary SVG or HTML in page content is not executed. If you export pages as JSON, the icon markup `:icon[name]:` is intended for LocalWiki rendering. Unicode symbols and emoji remain portable to other editors.
 
 ## For developers
+
+Versions follow Semantic Versioning: see [CHANGELOG.md](CHANGELOG.md) for what changed in each version and [FEATURES.md](FEATURES.md) for every feature and what is planned. The version is set in `js/version.js` and shown at the bottom of the sidebar.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the code is organized. Tests need Node 22 or newer and run with `node --test` from the project folder; nothing else is installed.
 

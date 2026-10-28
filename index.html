@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/wiki.css">
   <!-- Scripts load in this order; each file adds its part to window.LocalWiki. See ARCHITECTURE.md. -->
   <!-- Pure logic: no page access (also used by the tests in tests/) -->
+  <script defer src="js/version.js"></script>
   <script defer src="js/icon-library.js"></script>
   <script defer src="js/i18n.js"></script>
   <script defer src="js/lang/en.js"></script>
@@ -84,6 +85,7 @@
           <button class="sidebar-action" id="export-zip-btn">⇩ &nbsp; <span data-i18n="side.export_zip">Export wiki ZIP…</span></button>
           <button class="sidebar-action" id="settings-btn">⚙ &nbsp; <span data-i18n="side.settings">Wiki settings</span></button>
           <div class="file-label" id="file-label">Working locally · No server</div>
+          <div class="app-version" id="app-version"></div>
         </div>
       </aside>
       <main id="content" class="content-area">
