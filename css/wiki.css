@@ -66,6 +66,13 @@ table { caption-side: bottom; border-collapse: collapse; }
 .sidebar-heading { display: flex; align-items: center; justify-content: space-between; margin: 23px 5px 8px; color: var(--muted); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1.15px; }
 .page-nav { flex: 1; min-height: 200px; overflow: auto; padding: 2px 12px 24px; }
 .nav-entry { display: flex; align-items: center; width: 100%; gap: 8px; text-align: left; border: 0; background: transparent; border-radius: 7px; color: var(--text); padding: 7px 8px; min-height: 35px; }
+.sidebar-heading-buttons { display: inline-flex; gap: 6px; align-items: center; }
+.sort-az { width: auto; padding: 0 7px; font-size: 10.5px; letter-spacing: 0; text-transform: none; }
+.nav-entry[draggable="true"] { cursor: grab; }
+.nav-entry.drop-before { box-shadow: 0 -2px 0 var(--accent); border-radius: 0; }
+.nav-entry.drop-after { box-shadow: 0 2px 0 var(--accent); border-radius: 0; }
+.nav-entry.drop-into { background: var(--accent-soft); outline: 2px solid var(--accent); outline-offset: -2px; }
+.page-nav.drop-end { box-shadow: inset 0 -3px 0 var(--accent); }
 .nav-entry:hover { background: var(--accent-soft); }
 .nav-entry.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
 .nav-entry .nav-page-icon { opacity: .65; font-size: 15px; flex: 0 0 17px; }

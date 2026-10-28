@@ -14,7 +14,7 @@ Status: ✅ shipped · 🚧 in progress · 📋 planned · 🐞 known issue
 | Human-readable page file names; links follow renames | ✅ | 2.0 |
 | Titles and text in any alphabet | ✅ | 2.0 |
 | Tags, page icons, page width | ✅ | 1.3 |
-| Manual page order: drag and drop, move up/down, sort A–Z | 📋 | 2.7 |
+| Manual page order: drag and drop, move up/down, sort A–Z | ✅ | 2.7 |
 
 ## Editing
 

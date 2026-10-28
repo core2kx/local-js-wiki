@@ -15,10 +15,10 @@
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
   const {titleKey} = LW.text;
-  const {isoNow, uniqueId, pageWithTitle, findLinkTarget, descendantsOf} = LW.model;
+  const {isoNow, uniqueId, pageWithTitle, findLinkTarget, descendantsOf, siblingsOf, placePage, clearOrder} = LW.model;
   const {rewriteLinks} = LW.markdown;
   const state = LW.state;
-  const {pageById, currentPage, markDirty, touchPage} = LW.store;
+  const {pageById, currentPage, markDirty, touchPage, forgetPageText} = LW.store;
   const history = LW.history;
   const ui = (LW.ui ||= {});
   const {t} = LW.i18n;
@@ -141,6 +141,51 @@
     p.parentId = parentId; touchPage(p);
     ui.renderTree(); ui.renderBreadcrumbs(p); ui.renderParentChoices(p);
   }
+  // --- Order in the tree --------------------------------------------------------------------------
+  // Pages whose order changed but whose text did not: rewrite their files without stamping a new date.
+  function markReordered(ids) {
+    for (const id of ids) { const page = pageById(id); if (page) { forgetPageText(page); state.changedIds.add(id); } }
+    markDirty();
+  }
+  // Puts a page under parentId (null: top level), before the page beforeId (null: last).
+  // Used by drag and drop and by Move up / Move down.
+  function reorderPage(id, parentId, beforeId = null) {
+    commitTitle();
+    const wiki = state.wiki, page = pageById(id); if (!page || id === beforeId) return;
+    if (parentId && (parentId === id || descendantsOf(wiki.pages, id).has(parentId))) { ui.toast(t('toast.cannot_move')); return; }
+    // Try it on copies first, so a drop that changes nothing leaves no undo step behind.
+    const reparented = (page.parentId ?? null) !== parentId;
+    const trial = wiki.pages.map(p => ({...p}));
+    const sequence = list => siblingsOf(list, parentId).map(p => p.id).join();
+    const was = sequence(trial);
+    placePage(trial, id, parentId, beforeId);
+    if (!reparented && sequence(trial) === was) return; // dropped where it already is
+    history.record({key: reparented ? 'act.move' : 'act.reorder', params: {title: page.title}});
+    const changed = placePage(wiki.pages, id, parentId, beforeId);
+    if (reparented) touchPage(page);
+    markReordered(changed.filter(other => !(reparented && other === id)));
+    ui.renderTree();
+    const current = currentPage();
+    if (current) { ui.renderParentChoices(current); ui.renderBreadcrumbs(current); }
+  }
+  // Moves the open page one place up (-1) or down (1) among the pages beside it.
+  function movePageBy(step) {
+    const page = currentPage(); if (!page) return;
+    const parentId = page.parentId && pageById(page.parentId) ? page.parentId : null;
+    const group = siblingsOf(state.wiki.pages, parentId), at = group.findIndex(p => p.id === page.id);
+    const to = at + step;
+    if (to < 0 || to >= group.length) return;
+    reorderPage(page.id, parentId, step < 0 ? group[to].id : (group[to + 1]?.id ?? null));
+  }
+  // Forgets all hand-made ordering: every group is alphabetical again.
+  function sortAlphabetically() {
+    commitTitle();
+    if (!state.wiki.pages.some(p => 'order' in p)) { ui.toast(t('toast.sorted')); return; }
+    if (!confirm(t('confirm.sort_alpha'))) return;
+    history.record('act.sort_alpha');
+    markReordered(clearOrder(state.wiki.pages));
+    ui.renderTree(); ui.toast(t('toast.sorted'));
+  }
   // icon: "icon:<name>", an emoji or symbol, or "" to remove it.
   function setIcon(icon) {
     const page = currentPage(); if (!page) return;
@@ -206,5 +251,5 @@
     state.indexDirty = true; markDirty(); ui.renderAll();
   }
 
-  LW.pages = {selectPage, createPage, deletePage, editTitle, commitTitle, editTags, editContent, movePage, setIcon, openLink, restoreRevision, restoreDeleted, updateSettings};
+  LW.pages = {selectPage, createPage, deletePage, editTitle, commitTitle, editTags, editContent, movePage, reorderPage, movePageBy, sortAlphabetically, setIcon, openLink, restoreRevision, restoreDeleted, updateSettings};
 })();

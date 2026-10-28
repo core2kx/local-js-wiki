@@ -41,6 +41,8 @@ globalThis.LocalWiki.i18n.register({
   "side.results": "Search results",
   "side.new_page_tip": "New top-level page",
   "side.new_page": "New page",
+  "side.sort_az": "A–Z",
+  "side.sort_tip": "Sort all pages A–Z (removes any order you set by hand)",
   "side.new_wiki": "New wiki",
   "side.save_as": "Save to folder…",
   "side.export_zip": "Export wiki ZIP…",
@@ -59,6 +61,10 @@ globalThis.LocalWiki.i18n.register({
   "page.width_tip": "Set page width (relative to the area beside the sidebar)",
   "page.child": "Child page",
   "page.child_tip": "Add a nested child page",
+  "page.move_up": "↑ Move up",
+  "page.move_up_tip": "Move this page up among the pages beside it",
+  "page.move_down": "↓ Move down",
+  "page.move_down_tip": "Move this page down among the pages beside it",
   "page.history": "History",
   "page.history_tip": "Earlier saved versions of this page, and deleted pages",
   "page.delete": "Delete",
@@ -302,6 +308,7 @@ globalThis.LocalWiki.i18n.register({
    "other": "Renamed. Updated links in {count} pages."
   },
   "toast.cannot_move": "Cannot move a page inside itself.",
+  "toast.sorted": "All pages are sorted A–Z.",
   "toast.restored_version": "Restored the earlier version. Use Undo to go back.",
   "toast.restored_page": "Restored “{title}”.",
   "toast.undid": "Undone: {action}",
@@ -314,6 +321,7 @@ globalThis.LocalWiki.i18n.register({
    "one": "Delete “{title}” and its {count} child page? You can restore them with Undo.",
    "other": "Delete “{title}” and its {count} child pages? You can restore them with Undo."
   },
+  "confirm.sort_alpha": "Sort all pages A–Z? Any order you set by hand is removed. You can undo this.",
   "confirm.create_missing": "Page “{title}” does not exist. Create it?",
   "prompt.new_wiki": "Name your new wiki:",
   "count.pages": {
@@ -334,6 +342,8 @@ globalThis.LocalWiki.i18n.register({
   "act.tags": "Editing tags",
   "act.typing": "Typing",
   "act.move": "Moving “{title}”",
+  "act.reorder": "Reordering “{title}”",
+  "act.sort_alpha": "Sorting all pages A–Z",
   "act.set_icon": "Changing the page icon",
   "act.remove_icon": "Removing the page icon",
   "act.restore_version": "Restoring an earlier version of “{title}”",
@@ -600,6 +610,10 @@ globalThis.LocalWiki.i18n.register({
   "palette.evergreen": "Name of a color palette in the wiki settings.",
   "symbol.check_mark": "Name of a symbol in the symbol picker; people search for symbols by this name.",
   "emoji.pin": "Name of an emoji in the emoji picker; people search for emoji by this name.",
-  "prob.language_file": "A file in the wiki folder's languages/ folder that is not a valid language file."
+  "prob.language_file": "A file in the wiki folder's languages/ folder that is not a valid language file.",
+  "act.reorder": "After \"Undo:\" — nominal phrase, like the other act.* texts.",
+  "side.sort_az": "Tiny button label: the first and last letters of the alphabet, e.g. A–Z.",
+  "page.move_up": "Starts with an arrow character; keep it.",
+  "page.move_down": "Starts with an arrow character; keep it."
  }
 });

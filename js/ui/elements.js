@@ -15,7 +15,7 @@
     name: $('wiki-name'), status: $('save-status'), open: $('open-btn'), save: $('save-btn'),
     undo: $('undo-btn'), redo: $('redo-btn'), theme: $('theme-btn'), languageButton: $('language-btn'),
     // Sidebar
-    search: $('search'), sidebarHeading: $('sidebar-heading'), nav: $('page-nav'), newPage: $('new-page-btn'),
+    search: $('search'), sidebarHeading: $('sidebar-heading'), nav: $('page-nav'), newPage: $('new-page-btn'), sortAz: $('sort-az-btn'), moveUp: $('move-up-btn'), moveDown: $('move-down-btn'),
     newWiki: $('new-wiki-btn'), saveAs: $('save-as-btn'), exportZip: $('export-zip-btn'),
     settingsButton: $('settings-btn'), fileLabel: $('file-label'), problemsButton: $('problems-btn'),
     // Page header and metadata

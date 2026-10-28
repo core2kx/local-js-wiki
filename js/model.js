@@ -45,6 +45,39 @@
   function findLinkTarget(pages, target) {
     return pages.find(p => p.id === target) || pages.find(p => titleKey(p.title) === titleKey(target));
   }
+  // Pages beside each other in the tree: the ones placed by hand (a whole-number "order") first, in
+  // that order, then everything else alphabetically.
+  function sortSiblings(list) {
+    const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, {sensitivity:'base', numeric:true});
+    const placed = list.filter(p => Number.isInteger(p.order)).sort((a, b) => a.order - b.order || byTitle(a, b));
+    return [...placed, ...list.filter(p => !Number.isInteger(p.order)).sort(byTitle)];
+  }
+  // The pages directly under parentId (null: the top level, which also holds pages whose parent is missing).
+  function siblingsOf(pages, parentId) {
+    const known = new Set(pages.map(p => p.id));
+    return sortSiblings(pages.filter(p => parentId === null ? !p.parentId || !known.has(p.parentId) : p.parentId === parentId));
+  }
+  // Puts a page under parentId (null: top level), just before the page beforeId (null: last), and
+  // numbers that group so the order sticks. Returns the ids of the pages that changed.
+  // The caller makes sure the page is not moved inside itself.
+  function placePage(pages, id, parentId, beforeId) {
+    const page = pages.find(p => p.id === id);
+    const group = siblingsOf(pages, parentId).filter(p => p.id !== id);
+    const at = beforeId === null ? -1 : group.findIndex(p => p.id === beforeId);
+    group.splice(at < 0 ? group.length : at, 0, page);
+    const changed = [];
+    if ((page.parentId ?? null) !== parentId) { page.parentId = parentId; changed.push(id); }
+    group.forEach((p, index) => {
+      if (p.order !== index) { p.order = index; if (!changed.includes(p.id)) changed.push(p.id); }
+    });
+    return changed;
+  }
+  // Forgets every hand-made order, so all pages are alphabetical again. Returns the ids that changed.
+  function clearOrder(pages) {
+    const changed = [];
+    for (const p of pages) if ('order' in p) { delete p.order; changed.push(p.id); }
+    return changed;
+  }
   function sortByTitle(list) {
     return [...list].sort((a, b) => a.title.localeCompare(b.title, undefined, {sensitivity:'base', numeric:true}));
   }
@@ -120,6 +153,7 @@
       createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : isoNow(),
       updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : isoNow()
     };
+    if (Number.isInteger(raw.order) && Math.abs(raw.order) < 1e9) page.order = raw.order; // placed by hand
     return {page, notes};
   }
   // Fixes cross-page problems in place. report(page, message, repaired): message is {key, params}
@@ -162,6 +196,7 @@
 
   LW.model = {
     isoNow, pathFor, PAGE_PATH, uniqueId, pageWithTitle, findLinkTarget, linkTargetFor, sortByTitle,
+    sortSiblings, siblingsOf, placePage, clearOrder,
     descendantsOf, ancestors, normalizePage, repairStructure, normalizeWiki,
     DEFAULT_APP_NAME, LOGO_PATH, defaultAppearance, normalizeAppearance
   };

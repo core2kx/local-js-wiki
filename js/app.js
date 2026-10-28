@@ -23,6 +23,9 @@
     // Sidebar
     els.search.addEventListener('input', ui.renderTree);
     els.newPage.addEventListener('click', () => pages.createPage());
+    els.sortAz.addEventListener('click', () => pages.sortAlphabetically());
+    els.moveUp.addEventListener('click', () => pages.movePageBy(-1));
+    els.moveDown.addEventListener('click', () => pages.movePageBy(1));
     els.newWiki.addEventListener('click', storage.newWiki);
     els.saveAs.addEventListener('click', storage.saveToFolder);
     els.exportZip.addEventListener('click', storage.exportZip);
@@ -57,6 +60,7 @@
     ui.installFolderHelp();
     ui.installSettings();
     ui.installLanguage();
+    ui.installSidebar();
     document.getElementById('app-version').textContent = 'v' + LW.version;
 
     // Read-only folder fallback: chosen from the folder-access dialog (ui/folder-help.js).

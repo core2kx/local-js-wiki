@@ -20,9 +20,15 @@ Planned work is tracked in [FEATURES.md](FEATURES.md).
 ## Unreleased
 
 ### Planned (see FEATURES.md)
-- Manual page order (drag and drop, move up/down, sort A–Z).
 - Images in pages.
 - Text sizes and colors.
+
+## 2.7.0 — 2026-10-28
+
+### Added
+- Manual page order: drag pages in the sidebar (top third = before, bottom third = after, middle = inside as a child), or use **Move up / Move down** on the page. **A–Z** in the sidebar heading returns every group to alphabetical order. All of it is undoable.
+- Pages placed by hand store a whole-number `"order"` in their page file; pages without one stay alphabetical after the placed ones. Reordering rewrites only the page files whose order changed and does not change their "Edited" dates or saved history.
+- Translations of the new texts in all nine languages.
 
 ## 2.6.0 — 2026-10-21
 
@@ -93,4 +99,4 @@ Reworked from the imported LocalWiki 1.3. Not backward compatible with 1.3 wikis
 
 The project as first imported (created with ChatGPT). Single-file app, one JSON file per page.
 
-[Unreleased]: https://github.com/core2kx/local-js-wiki/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/core2kx/local-js-wiki/compare/v2.7.0...HEAD

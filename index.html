@@ -75,7 +75,7 @@
       <aside class="sidebar" data-i18n-aria="side.nav" aria-label="Wiki navigation">
         <div class="sidebar-top">
           <label class="search-wrap"><span class="visually-hidden" data-i18n="side.search_label">Search all pages</span><span class="search-icon">⌕</span><input type="search" id="search" dir="auto" data-i18n-placeholder="side.search_ph" placeholder="Search pages..." autocomplete="off"></label>
-          <div class="sidebar-heading"><span id="sidebar-heading">Pages</span><button id="new-page-btn" class="btn btn-icon btn-primary btn-small-square" data-i18n-title="side.new_page_tip" data-i18n-aria="side.new_page" title="New top-level page" aria-label="New page">+</button></div>
+          <div class="sidebar-heading"><span id="sidebar-heading">Pages</span><span class="sidebar-heading-buttons"><button id="sort-az-btn" class="btn btn-icon btn-ghost btn-small-square sort-az" data-i18n="side.sort_az" data-i18n-title="side.sort_tip" title="Sort all pages A–Z (removes any order you set by hand)">A–Z</button><button id="new-page-btn" class="btn btn-icon btn-primary btn-small-square" data-i18n-title="side.new_page_tip" data-i18n-aria="side.new_page" title="New top-level page" aria-label="New page">+</button></span></div>
         </div>
         <nav class="page-nav" id="page-nav" data-i18n-aria="side.pages" aria-label="Pages"></nav>
         <div class="sidebar-bottom">
@@ -106,6 +106,8 @@
                   <option value="100">100%</option>
                 </select>
               </label>
+              <button class="btn btn-ghost btn-sm" id="move-up-btn" data-i18n="page.move_up" data-i18n-title="page.move_up_tip" title="Move this page up among the pages beside it">↑ Move up</button>
+              <button class="btn btn-ghost btn-sm" id="move-down-btn" data-i18n="page.move_down" data-i18n-title="page.move_down_tip" title="Move this page down among the pages beside it">↓ Move down</button>
               <button class="btn btn-ghost btn-sm" id="new-child-btn" data-i18n-title="page.child_tip" title="Add a nested child page">+ <span data-i18n="page.child">Child page</span></button>
               <button class="btn btn-ghost btn-sm" id="history-btn" data-i18n="page.history" data-i18n-title="page.history_tip" title="Earlier saved versions of this page, and deleted pages">History</button>
               <button class="btn btn-ghost btn-sm" id="delete-page-btn" data-i18n="page.delete" data-i18n-title="page.delete_tip" title="Delete the selected page">Delete</button>
