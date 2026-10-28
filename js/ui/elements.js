@@ -26,7 +26,7 @@
     modified: $('page-modified'), count: $('page-word-count'), parent: $('parent-select'), tags: $('tags-input'),
     // Editor
     card: $('editor-content'), toolbar: $('editor-toolbar'), content: $('content-input'),
-    visual: $('visual-editor'), visualContext: $('visual-context'), imageFile: $('image-file'),
+    visual: $('visual-editor'), visualContext: $('visual-context'), imageFile: $('image-file'), sizeButton: $('size-btn'), colorButton: $('color-btn'), styleMenu: $('style-menu'),
     symbolsButton: $('symbols-btn'), iconsButton: $('icons-btn'), pageId: $('page-id-short'),
     // Table dialog
     tableDialog: $('table-dialog'), tableTitle: $('table-dialog-title'), tableGrid: $('table-builder-grid'),

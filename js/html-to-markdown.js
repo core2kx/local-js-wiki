@@ -30,7 +30,7 @@
   // --- Inline content -----------------------------------------------------------------------------
   // Backslash-escape characters that would start formatting, links, code or icons.
   function escapeText(text) {
-    return text.replace(/[\\`*[\]|]/g, '\\$&').replace(/__/g, '\\_\\_').replace(/~~/g, '\\~\\~');
+    return text.replace(/[\\`*[\]|}]/g, '\\$&').replace(/__/g, '\\_\\_').replace(/~~/g, '\\~\\~');
   }
   // Puts markers around text, keeping surrounding spaces outside (and each line separate).
   function wrap(marker, text) {
@@ -50,6 +50,21 @@
     const alt = plain(node.getAttribute('data-alt') ?? node.getAttribute('alt') ?? '');
     const width = node.getAttribute('data-width');
     return '![' + alt + '](' + path + ')' + (['25', '50', '75'].includes(width) ? '{width=' + width + '%}' : '');
+  }
+
+  // The size and color a <span> carries, size first so that the color ends up outermost.
+  const SIZE_CLASS = /(?:^|\s)text-(small|large|huge)(?=\s|$)/, COLOR_CLASS = /(?:^|\s)text-(red|orange|yellow|green|blue|purple|pink|gray)(?=\s|$)/;
+  function stylesOf(node) {
+    const classes = node.getAttribute('class') || '';
+    const size = classes.match(SIZE_CLASS), color = classes.match(COLOR_CLASS);
+    return [size && ['size', size[1]], color && ['color', color[1]]].filter(Boolean);
+  }
+  // :size[large]{text}, per line, with surrounding spaces kept outside.
+  function wrapStyle([kind, name], text) {
+    return text.split('\n').map(line => {
+      const [, before, inner, after] = line.match(/^(\s*)([\s\S]*?)(\s*)$/);
+      return inner ? before + ':' + kind + '[' + name + ']{' + inner + '}' + after : line;
+    }).join('\n');
   }
 
   function inline(nodes) { return Array.from(nodes, inlineNode).join(''); }
@@ -82,7 +97,11 @@
         if (label && /^(https?:\/\/|mailto:)/i.test(href)) return '[' + label + '](' + href.replace(/\s/g, '%20').replace(/\)/g, '%29') + ')';
         return escapeText(label);
       }
-      default: return inline(node.childNodes); // <span>, <font>, <u>, ... keep only their content
+      default: {
+        // Sizes and colors (spans made by markdown.js or the toolbar); anything else keeps only its content.
+        const styles = node.nodeName === 'SPAN' ? stylesOf(node) : [];
+        return styles.reduce((text, style) => wrapStyle(style, text), inline(node.childNodes));
+      }
     }
   }
 

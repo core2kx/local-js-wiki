@@ -21,6 +21,7 @@
   function applyAppearance(appearance = state.wiki.appearance, logo = state.logo) {
     const colors = LW.palettes.byId(appearance.palette)[theme()];
     for (const [token, value] of Object.entries(colors)) document.documentElement.style.setProperty('--' + token, value);
+    for (const [name, value] of Object.entries(LW.palettes.TEXT_COLORS[theme()])) document.documentElement.style.setProperty('--c-' + name, value);
     els.brandName.textContent = appearance.appName;
     els.brand.setAttribute('aria-label', t('top.brand_home', {name: appearance.appName}));
     fillBrandIcon(els.brandIcon, appearance, logo);

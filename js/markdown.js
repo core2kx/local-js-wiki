@@ -21,7 +21,28 @@
 
   // --- Rendering ----------------------------------------------------------------------------------
   // Characters a backslash can make literal.
-  const ESCAPABLE = /\\([\\`*_~\[\]|#>+.:-])/g;
+  const ESCAPABLE = /\\([\\`*_~\[\]|#>+.:{}-])/g;
+  // Sizes and colors: :size[large]{text} and :color[red]{text}, which may be nested and may hold other
+  // inline formatting. A "}" ends the nearest open one; write \} for a literal brace inside.
+  const TEXT_SIZES = ['small', 'large', 'huge'];
+  const TEXT_COLORS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'gray'];
+  function styledSpans(s, protect) {
+    const frames = [], open = [];
+    const re = /:(size|color)\[([a-z]+)\]\{|\}/g;
+    for (let m; (m = re.exec(s));) {
+      if (m[0] === '}') { const frame = open.pop(); if (frame) frame.close = m.index; continue; }
+      const valid = (m[1] === 'size' ? TEXT_SIZES : TEXT_COLORS).includes(m[2]);
+      const frame = {start: m.index, end: m.index + m[0].length, close: -1, cls: valid ? 'text-' + m[2] : null};
+      frames.push(frame); open.push(frame);
+    }
+    const edits = [];
+    for (const f of frames) if (f.cls && f.close >= 0) edits.push([f.start, f.end, protect('<span class="' + f.cls + '">')], [f.close, f.close + 1, protect('</span>')]);
+    if (!edits.length) return s;
+    edits.sort((a, b) => a[0] - b[0]);
+    let out = '', at = 0;
+    for (const [from, to, html] of edits) { out += s.slice(at, from) + html; at = to; }
+    return out + s.slice(at);
+  }
   // options.linkExists(target) tells whether a [[target]] resolves to a page (missing links are styled);
   // options.imageUrl(path) gives the address to show a picture from (null: the picture is missing).
   function inlineMarkdown(input, options) {
@@ -56,6 +77,7 @@
     });
     s = s.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/gi, (_m, label, url) =>
       protect('<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(label) + '</a>'));
+    s = styledSpans(s, protect);
     s = escapeHtml(s);
     s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');

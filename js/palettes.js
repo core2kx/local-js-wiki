@@ -12,10 +12,11 @@
      highlight, highlight-text         search matches
      diff-added, diff-removed          page history comparisons
 
+   The text colors (TEXT_COLORS) are applied as --c-<name> and are checked against every palette's backgrounds.
    tests/palettes.test.js checks every palette for readable contrast (WCAG ratios).
    Pure data: runs under Node.
    Depends on: nothing.
-   Provides:   LocalWiki.palettes {list, byId(id), DEFAULT_ID, TOKENS} */
+   Provides:   LocalWiki.palettes {list, byId(id), DEFAULT_ID, TOKENS, TEXT_COLOR_NAMES, TEXT_COLORS} */
 (() => {
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
@@ -50,8 +51,15 @@
       light: v(['#ffffff', '#ffffff', '#f2f2f2', '#ffffff', '#000000', '#3d3d3d', '#7a7a7a', '#0047ab', '#003380', '#e0eaff', '#ffffff', '#7a4200', '#ffe86b', '#000000', '#d4f4dd', '#ffd9d9']),
       dark: v(['#000000', '#0d0d0d', '#050505', '#0a0a0a', '#ffffff', '#cfcfcf', '#8a8a8a', '#8ab4ff', '#b3ceff', '#1a2a4a', '#000000', '#ffb74d', '#6b5800', '#ffffff', '#0f3d1e', '#4d1414'])}
   ];
+  // Text colors a person can give words in a page (:color[red]{text}). They are the same in every
+  // palette and chosen to stay readable on all of their backgrounds, in light and dark.
+  const TEXT_COLOR_NAMES = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'gray'];
+  const TEXT_COLORS = {
+    light: {red: '#b3261e', orange: '#a14a00', yellow: '#7a5900', green: '#18703a', blue: '#1a56b0', purple: '#7a3e9d', pink: '#b0286b', gray: '#5a616c'},
+    dark: {red: '#ff9a90', orange: '#ffb066', yellow: '#f0d060', green: '#7ed99a', blue: '#8ab4ff', purple: '#d0a2f0', pink: '#ff9ec4', gray: '#b0b6c0'}
+  };
   const DEFAULT_ID = 'evergreen';
   const byId = id => list.find(p => p.id === id) || list.find(p => p.id === DEFAULT_ID);
 
-  LW.palettes = Object.freeze({list, byId, DEFAULT_ID, TOKENS});
+  LW.palettes = Object.freeze({list, byId, DEFAULT_ID, TOKENS, TEXT_COLOR_NAMES, TEXT_COLORS});
 })();

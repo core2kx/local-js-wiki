@@ -5,7 +5,7 @@
    Stored page content is always plain Markdown.
 
    Depends on: i18n.js, markdown.js, state.js, history.js, ui/elements.js, ui/page.js, ui/sidebar.js, ui/link-picker.js
-   Provides:   LocalWiki.ui.formatSelection, insertAtCaret */
+   Provides:   LocalWiki.ui.formatSelection, insertAtCaret, markdownStyle */
 (() => {
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
@@ -48,6 +48,22 @@
     if (!selected && placeholder) input.setSelectionRange(start + before.length, start + before.length + placeholder.length);
   }
 
+  // Markdown editor: wraps the selection as :size[large]{...} or :color[red]{...}.
+  function markdownStyle(group, value) {
+    const page = currentPage(); if (!page) return;
+    ui.ensureEditable();
+    const input = els.content;
+    const start = input.selectionStart, end = input.selectionEnd;
+    const selected = input.value.substring(start, end);
+    const before = ':' + group + '[' + value + ']{', after = '}', text = selected || t('insert.text');
+    LW.history.record(group === 'size' ? 'act.text_size' : 'act.text_color');
+    input.setRangeText(before + text.replace(/\}/g, '\\}') + after, start, end, 'end');
+    page.content = input.value;
+    touchPage(page); ui.renderMarkdown(); ui.renderTree(); ui.renderPageStats();
+    input.focus();
+    if (!selected) input.setSelectionRange(start + before.length, start + before.length + text.length);
+  }
+
   // Markdown editor links: choose the target in the link dialog, then write the link over the
   // selection (the selected text becomes the link text).
   function insertLink(kind) {
@@ -80,5 +96,5 @@
     textarea.focus();
   }
 
-  Object.assign(ui, {formatSelection, insertAtCaret});
+  Object.assign(ui, {formatSelection, insertAtCaret, markdownStyle});
 })();

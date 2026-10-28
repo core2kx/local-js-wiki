@@ -80,6 +80,12 @@ Use the **Image** toolbar button (or paste or drop a picture file into the Visua
 - **Link a folder first** (Open folder or Save to folder…). Pictures live in the folder; without one they are lost when the page is closed.
 - Pictures are included in the ZIP export and copied by **Save to folder…**.
 
+## Text size and color
+
+Select words and use the **Aa** (size) or **A** (color) toolbar button: sizes are Small, Normal, Large and Huge; colors are red, orange, yellow, green, blue, purple, pink and gray (a fixed set that stays readable in light and dark mode and on every palette). Choose **Normal** or **Default color** to take it away again.
+
+In the page it is written `:size[large]{words}` or `:color[red]{words}`, and they can be combined: `:color[red]{:size[huge]{Warning}}`. They can hold bold text, links and icons. A `}` inside needs a backslash (`\}`); the Visual editor does this for you. Other Markdown programs show this notation as plain text.
+
 ## Tables, symbols and icons
 
 - **Create tables:** In Visual, choose **▦ Table** to insert a table, then type into the cells and use the table bar to add or remove rows and columns. In Markdown, **▦ Table** opens a grid dialog. Tables have no size limit.
@@ -232,7 +238,7 @@ New pages never take the filename of a set-aside file.
 - Old files are only cleaned up in a folder opened (or first saved) in the current session. If you recover a browser draft and save it with **Save to folder…**, files from pages renamed or deleted in that draft stay behind; they are harmless because the index no longer references them.
 - Links to a deleted page are not removed; they show as missing links.
 - Browser restrictions prevent unattended opening of `wiki.json` and `pages/*.json` through relative `file://` paths. Always use the **Open folder** button.
-- The Markdown renderer is a lightweight subset of Markdown, not a full CommonMark editor. Very complicated tables and nested formatting are not supported. Lists have one level (nested lists made in Visual are flattened), and there are no colors or underlining (pictures: see above).
+- The Markdown renderer is a lightweight subset of Markdown, not a full CommonMark editor. Very complicated tables and nested formatting are not supported. Lists have one level (nested lists made in Visual are flattened), and there is no underlining (pictures, sizes and colors: see above).
 - SVG pictograms are selected from a bundled allowlist; arbitrary SVG or HTML in page content is not executed. If you export pages as JSON, the icon markup `:icon[name]:` is intended for LocalWiki rendering. Unicode symbols and emoji remain portable to other editors.
 
 ## For developers

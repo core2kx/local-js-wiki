@@ -20,7 +20,21 @@ Planned work is tracked in [FEATURES.md](FEATURES.md).
 ## Unreleased
 
 ### Planned (see FEATURES.md)
-- Text sizes and colors.
+- Right-to-left layout; CSV import/export of translations; native-speaker review of translations.
+
+## 2.9.0 — 2026-10-28
+
+### Added
+- Text sizes (Small, Normal, Large, Huge) and eight text colors (red, orange, yellow, green, blue, purple, pink, gray) from two new toolbar buttons, in both the Visual and Markdown editors. Select words, then choose a size or color; "Normal" and "Default color" take it away again.
+- In the page they are written `:size[large]{words}` and `:color[red]{words}`; they can be nested and can hold bold, links and icons.
+- The colors adapt to light and dark mode and are checked for readable contrast (WCAG 4.5:1) on every palette's backgrounds.
+- Translations of the new texts in all nine languages.
+
+### Changed
+- A closing brace `}` typed in the Visual editor is stored as `\}` so it cannot end a size or color by accident.
+
+### Notes
+- Other Markdown tools show `:color[red]{words}` as plain text; the words themselves are never lost.
 
 ## 2.8.0 — 2026-10-28
 

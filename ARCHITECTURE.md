@@ -31,7 +31,7 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 | **Pure logic** | `icon-library.js`, `i18n.js`, `lang/*.js`, `palettes.js`, `text.js`, `model.js`, `markdown.js`, `zip.js`, `html-to-markdown.js`, `search.js` | Functions that take data and return data. They never touch the page, so they also run under Node and are covered by the tests. |
 | **State** | `folder.js`, `state.js`, `languages.js` | Helpers for reading and writing folder files; the open wiki (`LocalWiki.state`) and change tracking (`LocalWiki.store`). |
 | **Features** | `images.js`, `revisions.js`, `history.js`, `pages.js`, `storage.js` | Operations: saved page history, undo/redo, page editing and renaming, opening/saving/autosave/export. They change state and then ask the UI to redraw. They never touch HTML elements directly. |
-| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/appearance.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/visual-editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/link-picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js`, `ui/settings.js`, `ui/image-insert.js`, `ui/language.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
+| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/appearance.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/visual-editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/link-picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js`, `ui/settings.js`, `ui/image-insert.js`, `ui/text-style.js`, `ui/language.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
 | **Start** | `app.js` | Wires the remaining controls to features, restores the browser draft and preferences, draws the first screen. |
 
 ### Files at a glance
@@ -52,6 +52,7 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 | `js/folder.js` | Reading, writing, deleting and listing files in a folder handle |
 | `js/state.js` | Every field of the open wiki's state, `markDirty`/`touchPage`, the crash-recovery draft |
 | `js/images.js` | The wiki's pictures: names, what is saved yet, ZIP files. Pages only hold `![text](images/name.png)` |
+| `js/ui/text-style.js` | The Size and Color toolbar menus; styling goes to `visualStyle` (Visual: splits the selection's elements and wraps its text in classed spans) or `markdownStyle` |
 | `js/ui/image-insert.js` | Choosing, checking and scaling picture files; paste and drop; inserting into either editor |
 | `js/revisions.js` | Saved page history: when a version is kept, thinning, line diff, following renames and deletes |
 | `js/history.js` | Undo/redo snapshots and grouping (session only; `revisions.js` is the saved history) |
@@ -103,6 +104,9 @@ Other operations follow the same pattern: **record undo → change state → tou
   `markdown.toHtml` output and saves `htmlToMarkdown` of what it contains. Anything new the renderer
   outputs must be understood by `html-to-markdown.js`; the round-trip test in
   `tests/html-to-markdown.test.js` guards this.
+- **New inline Markdown syntax needs both directions.** `markdown.js` renders it and `html-to-markdown.js`
+  must write it back; add the construct to the round-trip tests (`tests/html-to-markdown.test.js`,
+  `tests/text-style.test.js`). New colors go in `palettes.js` (`TEXT_COLORS`) and the stylesheet.
 - **Set-aside files are never written or deleted.** See `storage.js` and `state.setAside`. The same
   goes for a `revisions/` file that cannot be parsed.
 - **Renames must be reported to revisions.** Anything that changes a page ID calls

@@ -53,6 +53,7 @@
   <script defer src="js/ui/folder-help.js"></script>
   <script defer src="js/ui/settings.js"></script>
   <script defer src="js/ui/image-insert.js"></script>
+  <script defer src="js/ui/text-style.js"></script>
   <script defer src="js/ui/language.js"></script>
   <!-- Start -->
   <script defer src="js/app.js"></script>
@@ -140,6 +141,8 @@
                 <button type="button" class="format-btn" data-format="olist" data-i18n-title="tool.olist" title="Numbered list">1.</button>
                 <button type="button" class="format-btn" data-format="quote" data-i18n-title="tool.quote" title="Quote">❝</button>
                 <button type="button" class="format-btn" data-format="code" data-i18n-title="tool.code" title="Inline code">{ }</button>
+                <button type="button" class="format-btn" id="size-btn" aria-haspopup="menu" data-i18n-title="tool.size_tip" title="Change the size of the selected text"><span class="size-glyph">A<small>A</small></span></button>
+                <button type="button" class="format-btn" id="color-btn" aria-haspopup="menu" data-i18n-title="tool.color_tip" title="Change the color of the selected text"><span class="color-glyph">A</span></button>
                 <button type="button" class="format-btn" data-format="codeblock" data-i18n-title="tool.codeblock" title="Code block">&lt;/&gt;</button>
                 <button type="button" class="format-btn" data-format="link" data-i18n-title="tool.link" title="External link">↗</button>
                 <button type="button" class="format-btn" data-format="wiki" data-i18n-title="tool.wiki" title="Link to a wiki page">[[]]</button>
@@ -153,6 +156,7 @@
               <label class="visually-hidden" for="content-input" data-i18n="editor.md_label">Markdown page editor</label>
               <textarea id="content-input" dir="auto" spellcheck="true" data-i18n-placeholder="editor.md_ph" placeholder="Write in Markdown…"></textarea>
               <div id="visual-editor" class="markdown-body visual-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" data-i18n-aria="editor.visual_label" data-i18n-dataph="editor.visual_ph" aria-label="Page editor (visual)" data-placeholder="Start writing…"></div>
+              <div id="style-menu" class="style-menu" role="menu" hidden></div>
               <div id="visual-context" class="visual-context" role="toolbar" data-i18n-aria="editor.context" aria-label="Link and table actions" hidden></div>
             </div>
           </div>

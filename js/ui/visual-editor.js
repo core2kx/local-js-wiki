@@ -8,9 +8,9 @@
    A small context bar appears for links (Open, Edit, Remove), for a clicked picture (size, description, remove) and inside tables (add/remove rows and columns, delete the table). Paste inserts plain
    text, so formatting from other sites cannot sneak in.
 
-   Depends on: i18n.js, model.js, markdown.js, html-to-markdown.js, state.js, history.js, pages.js,
+   Depends on: i18n.js, model.js, palettes.js, markdown.js, html-to-markdown.js, state.js, history.js, pages.js,
                ui/elements.js, ui/link-picker.js
-   Provides:   LocalWiki.ui.renderVisual, visualFormat, visualInsertText, visualInsertIcon, visualInsertImage,
+   Provides:   LocalWiki.ui.renderVisual, visualFormat, visualInsertText, visualInsertIcon, visualInsertImage, visualStyle,
                saveVisualSelection, installVisualEditor */
 (() => {
   'use strict';
@@ -209,6 +209,85 @@
     else editor().append(wrapper);
     prepare();
     placeCaret(thead.querySelector('th'), true);
+  }
+
+  // --- Text sizes and colors ----------------------------------------------------------------------
+  // The selected words get <span class="text-red"> (or text-large ...); a span of the same kind
+  // already there is replaced. value null: back to normal size / default color.
+  const STYLE_VALUES = {size: ['small', 'large', 'huge'], color: LW.palettes.TEXT_COLOR_NAMES};
+  const STYLE_BOUNDARY = /^(P|DIV|H[1-6]|LI|TD|TH|BLOCKQUOTE|PRE|UL|OL|TABLE|THEAD|TBODY|TR)$/;
+  const indexOf = node => Array.prototype.indexOf.call(node.parentNode.childNodes, node);
+  const isStyleSpan = (node, group) => node.nodeName === 'SPAN' && STYLE_VALUES[group].some(value => node.classList.contains('text-' + value));
+  // Cuts every inline element (bold, links, other spans) in two at a point, up to the enclosing
+  // block, so that nothing straddles it. Returns the point as {parent, before}: the block and the
+  // child that comes right after the point (null: the end of the block).
+  function splitAt(container, offset) {
+    let parent = container, index = offset;
+    if (container.nodeType === 3) {
+      parent = container.parentNode;
+      if (offset <= 0) index = indexOf(container);
+      else if (offset >= container.nodeValue.length) index = indexOf(container) + 1;
+      else { container.splitText(offset); index = indexOf(container) + 1; }
+    }
+    while (parent !== editor() && !STYLE_BOUNDARY.test(parent.nodeName)) {
+      if (index <= 0) index = indexOf(parent);
+      else if (index >= parent.childNodes.length) index = indexOf(parent) + 1;
+      else {
+        const tail = parent.cloneNode(false);
+        while (parent.childNodes[index]) tail.append(parent.childNodes[index]);
+        parent.after(tail); index = indexOf(parent) + 1;
+      }
+      parent = parent.parentNode;
+    }
+    return {parent, before: parent.childNodes[index] || null};
+  }
+  const pointIndex = point => (point.before ? indexOf(point.before) : point.parent.childNodes.length);
+  function visualStyle(group, value) {
+    editor().focus(); restoreSelection();
+    const selected = selectionRange();
+    if (!selected || selected.collapsed || !editor().contains(selected.commonAncestorContainer)) { ui.toast(t('toast.select_text')); return; }
+    LW.history.record(group === 'size' ? 'act.text_size' : 'act.text_color');
+    // End first, so the start is still valid; afterwards nothing straddles either boundary.
+    const end = splitAt(selected.endContainer, selected.endOffset);
+    const start = splitAt(selected.startContainer, selected.startOffset);
+    const range = document.createRange();
+    range.setStart(start.parent, pointIndex(start)); range.setEnd(end.parent, pointIndex(end));
+    // The words to style, found before anything moves: text inside paragraphs, headings, list items,
+    // quotes and table cells (never inside code).
+    const walker = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT);
+    const texts = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.nodeValue.trim() || !range.intersectsNode(node) || closestIn(node, 'pre, code, .inline-wiki-icon')) continue;
+      if (closestIn(node, 'p, h1, h2, h3, h4, li, td, th, blockquote')) texts.push(node);
+    }
+    if (!texts.length) return;
+    for (const span of [...editor().querySelectorAll('span')]) {
+      if (isStyleSpan(span, group) && range.intersectsNode(span)) span.replaceWith(...span.childNodes);
+    }
+    if (value) {
+      for (const node of texts) {
+        const span = document.createElement('span'); span.className = 'text-' + value;
+        node.replaceWith(span); span.append(node);
+      }
+    }
+    mergeNeighbours();
+    const outer = node => (isStyleSpan(node.parentNode, group) && node.parentNode.childNodes.length === 1 ? node.parentNode : node);
+    const after = document.createRange();
+    after.setStartBefore(outer(texts[0])); after.setEndAfter(outer(texts[texts.length - 1]));
+    getSelection().removeAllRanges(); getSelection().addRange(after);
+    changed();
+  }
+  // Joins neighbouring elements of the same kind that splitting left behind: **a** **b** and
+  // two spans with the same size or color each become one.
+  function mergeNeighbours() {
+    const same = (a, b) => b && b.nodeType === 1 && a.nodeName === b.nodeName && a.className === b.className && a.nodeName !== 'A';
+    for (let again = true; again;) {
+      again = false;
+      for (const el of editor().querySelectorAll('strong, b, em, i, del, s, span')) {
+        if (el.nodeName === 'SPAN' && !el.className.startsWith('text-')) continue;
+        while (el.nextSibling && same(el, el.nextSibling)) { const next = el.nextSibling; el.append(...next.childNodes); next.remove(); again = true; }
+      }
+    }
   }
 
   // --- Pictures -----------------------------------------------------------------------------------
@@ -428,5 +507,5 @@
     document.addEventListener('selectionchange', updateBar);
   }
 
-  Object.assign(ui, {renderVisual, visualFormat, visualInsertText, visualInsertIcon, visualInsertImage, saveVisualSelection, installVisualEditor});
+  Object.assign(ui, {renderVisual, visualFormat, visualInsertText, visualInsertIcon, visualInsertImage, visualStyle, saveVisualSelection, installVisualEditor});
 })();
