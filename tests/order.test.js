@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const {load} = require('./load');
 const {MemoryDirectory} = require('./memory-folder');
 
-const LW = load('icon-library', 'text', 'model', 'markdown', 'zip', 'search', 'folder', 'state', 'languages', 'revisions', 'history', 'pages', 'storage');
+const LW = load('icon-library', 'text', 'model', 'markdown', 'zip', 'search', 'folder', 'state', 'languages', 'images', 'revisions', 'history', 'pages', 'storage');
 const {model, state, history, pages, storage} = LW;
 globalThis.window = globalThis;
 

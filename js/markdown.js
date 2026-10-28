@@ -17,11 +17,13 @@
   const LW = (globalThis.LocalWiki ||= {});
   const {escapeHtml} = LW.text;
   const icons = LW.icons;
+  const IMAGE_PATH = /^images\/[\p{L}\p{N}][\p{L}\p{M}\p{N}._-]*\.(?:png|jpe?g|gif|webp)$/iu; // see model.js
 
   // --- Rendering ----------------------------------------------------------------------------------
   // Characters a backslash can make literal.
   const ESCAPABLE = /\\([\\`*_~\[\]|#>+.:-])/g;
-  // options.linkExists(target) tells whether a [[target]] resolves to a page (missing links are styled).
+  // options.linkExists(target) tells whether a [[target]] resolves to a page (missing links are styled);
+  // options.imageUrl(path) gives the address to show a picture from (null: the picture is missing).
   function inlineMarkdown(input, options) {
     // Code spans, icons and links are rendered first and swapped for placeholders, so the
     // emphasis rules below cannot reach inside them.
@@ -35,6 +37,16 @@
     s = s.replace(/:icon\[([a-z0-9-]+)\]:/g, (literal, name) => icons.has(name)
       ? protect('<span class="inline-wiki-icon" role="img" aria-label="' + escapeHtml(name) + '" data-icon="' + escapeHtml(name) + '">' + icons.svg(name) + '</span>')
       : literal);
+    // Pictures from the wiki folder only (nothing is ever loaded from the web):
+    // ![description](images/name.png) with an optional {width=25%|50%|75%}.
+    s = s.replace(/!\[([^\]\n]*)\]\((images\/[^\s)]+)\)(?:\{width=(25|50|75|100)%\})?/g, (literal, alt, path, width) => {
+      if (!IMAGE_PATH.test(path)) return literal;
+      const url = options.imageUrl ? options.imageUrl(path) : null;
+      const attributes = ' data-image="' + escapeHtml(path) + '" data-alt="' + escapeHtml(alt) + '"' + (width && width !== '100' ? ' data-width="' + width + '"' : '');
+      return protect(url
+        ? '<img class="page-image" src="' + escapeHtml(url) + '" alt="' + escapeHtml(alt) + '"' + attributes + '>'
+        : '<span class="page-image-missing" contenteditable="false"' + attributes + '>' + escapeHtml(alt || path) + '</span>');
+    });
     s = s.replace(/\[\[([^\]\n]+)\]\]/g, (_m, descriptor) => {
       const sep = descriptor.indexOf('|');
       const target = (sep < 0 ? descriptor : descriptor.slice(0, sep)).trim();

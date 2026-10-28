@@ -17,6 +17,7 @@
   const state = {
     wiki: {name: 'My Wiki', appearance: defaultAppearance(), pages: []}, // {name, appearance, pages}; see model.js
     logo: null,                // the wiki's logo picture as a PNG data URL (appearance.icon "image"), or null
+    images: new Map(),         // pictures of the open wiki: "images/<name>" -> {blob, url, saved} (see images.js)
     logoDirty: false,          // branding/logo.png must be written (or removed) on the next save
     currentId: null,           // id of the page being viewed
     folderHandle: null,        // the linked, writable folder, or null (not linked / read-only)

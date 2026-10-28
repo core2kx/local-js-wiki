@@ -42,9 +42,20 @@
   // Text for places that are not parsed as Markdown ([[target|label]], [label](url)).
   const plain = text => text.replace(/[[\]|\n]/g, ' ').replace(/\s+/g, ' ').trim();
 
+  // A picture (an <img>, or the placeholder for a missing one) back to ![description](images/name.png){width=50%}.
+  const IMAGE_PATH = /^images\/[\p{L}\p{N}][\p{L}\p{M}\p{N}._-]*\.(?:png|jpe?g|gif|webp)$/iu; // see model.js
+  function imageMarkdown(node) {
+    const path = (node.getAttribute('data-image') || '').trim();
+    if (!IMAGE_PATH.test(path)) return '';
+    const alt = plain(node.getAttribute('data-alt') ?? node.getAttribute('alt') ?? '');
+    const width = node.getAttribute('data-width');
+    return '![' + alt + '](' + path + ')' + (['25', '50', '75'].includes(width) ? '{width=' + width + '%}' : '');
+  }
+
   function inline(nodes) { return Array.from(nodes, inlineNode).join(''); }
   function inlineNode(node) {
     if (node.nodeType === TEXT) return escapeText(node.nodeValue.replace(/[\s\u00a0]+/g, ' '));
+    if (node.nodeType === ELEMENT && node.getAttribute('data-image')) return imageMarkdown(node);
     if (node.nodeType !== ELEMENT || SKIP.has(node.nodeName)) return '';
     if (node.nodeName === 'BR') return '\n';
     if (hasClass(node, 'inline-wiki-icon')) {

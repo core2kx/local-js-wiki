@@ -78,6 +78,19 @@
     for (const p of pages) if ('order' in p) { delete p.order; changed.push(p.id); }
     return changed;
   }
+  // --- Images ---------------------------------------------------------------------------------------
+  // A page may show pictures stored in the wiki folder as images/<name>.<png|jpg|jpeg|gif|webp>.
+  const IMAGE_PATH = /^images\/[\p{L}\p{N}][\p{L}\p{M}\p{N}._-]*\.(?:png|jpe?g|gif|webp)$/iu;
+  const IMAGE_WIDTHS = [25, 50, 75, 100]; // percent of the page width; 100 is the default
+  // A free file name for a picture: images/<slug of the original name>.<ext>, numbered when taken.
+  // taken: the paths already used (compared without regard to case).
+  function imagePathFor(originalName, ext, taken) {
+    const base = LW.text.slug(String(originalName || '').replace(/\.[^.]*$/, ''), 'image');
+    const used = new Set([...taken].map(path => path.toLowerCase()));
+    let path = `images/${base}.${ext}`;
+    for (let i = 2; used.has(path.toLowerCase()); i++) path = `images/${base}-${i}.${ext}`;
+    return path;
+  }
   function sortByTitle(list) {
     return [...list].sort((a, b) => a.title.localeCompare(b.title, undefined, {sensitivity:'base', numeric:true}));
   }
@@ -196,7 +209,7 @@
 
   LW.model = {
     isoNow, pathFor, PAGE_PATH, uniqueId, pageWithTitle, findLinkTarget, linkTargetFor, sortByTitle,
-    sortSiblings, siblingsOf, placePage, clearOrder,
+    sortSiblings, siblingsOf, placePage, clearOrder, IMAGE_PATH, IMAGE_WIDTHS, imagePathFor,
     descendantsOf, ancestors, normalizePage, repairStructure, normalizeWiki,
     DEFAULT_APP_NAME, LOGO_PATH, defaultAppearance, normalizeAppearance
   };

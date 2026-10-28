@@ -17,6 +17,7 @@
   // kind: a toolbar button's data-format value.
   function formatSelection(kind) {
     const p = currentPage(); if (!p) return;
+    if (kind === 'image') { ui.pickImage(); return; }
     if (ui.activeSurface() === 'visual') { ui.visualFormat(kind); return; }
     if (kind === 'table') { ui.openTableBuilder(); return; }
     ui.ensureEditable();

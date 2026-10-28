@@ -61,6 +61,7 @@
     ui.installSettings();
     ui.installLanguage();
     ui.installSidebar();
+    ui.installImageInsert();
     document.getElementById('app-version').textContent = 'v' + LW.version;
 
     // Read-only folder fallback: chosen from the folder-access dialog (ui/folder-help.js).

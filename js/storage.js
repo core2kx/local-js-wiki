@@ -6,6 +6,7 @@
                    pages/<id>.json       one file per page (see model.js)
                    revisions/<id>.json   earlier versions of a page (see revisions.js)
                    branding/logo.png     the wiki's icon, when an image was chosen (appearance.icon "image")
+                   images/*              pictures shown in pages (see images.js)
                    languages/<code>.json added interface languages (see languages.js)
    Folders are accessed with the browser's File System Access API (Chrome, Edge, Brave). Without it,
    a folder can still be read through a file input, but not written (use Export ZIP instead).
@@ -18,7 +19,7 @@
    changed pages, then wiki.json (only when needed), then deletes files of pages that were removed
    or renamed. Autosave does this a moment after editing pauses.
 
-   Depends on: i18n.js, text.js, model.js, zip.js, folder.js, state.js, languages.js, revisions.js,
+   Depends on: i18n.js, text.js, model.js, zip.js, folder.js, state.js, languages.js, images.js, revisions.js,
                history.js, pages.js; asks LocalWiki.ui to redraw.
    Provides:   LocalWiki.storage */
 (() => {
@@ -122,6 +123,15 @@
       if (repaired) result.repairedIds.add(page.id);
       problem(pathFor(page.id), repaired ? 'prob.page_note_fixed' : 'prob.page_note', {note}, repaired ? 'repaired' : 'info');
     });
+    // Pictures (images/*): the files themselves are only read lazily by the browser; unusable names are ignored.
+    result.images = [];
+    if (listFiles) {
+      for (const name of await listFiles(LW.images.DIR)) {
+        const path = LW.images.DIR + '/' + name;
+        if (!LW.model.IMAGE_PATH.test(path)) continue;
+        try { result.images.push({path, blob: await getBlob(path)}); } catch (_) { /* unreadable: skip */ }
+      }
+    }
     // Interface languages added to this wiki (languages/*.json); languages.js registers them.
     if (listFiles) {
       for (const name of (await listFiles(LW.languages.DIR)).filter(n => n.toLowerCase().endsWith('.json'))) {
@@ -134,6 +144,7 @@
   function acceptLoadedFolder(result, name, handle) {
     state.wiki = {name: result.name, appearance: result.appearance, pages: result.pages};
     state.logo = result.logo; state.logoDirty = false;
+    LW.images.load(result.images);
     state.currentId = state.wiki.pages[0]?.id || null;
     // Only files that loaded may ever be deleted as stale; set-aside files are never touched.
     state.diskPaths = new Set(result.pages.map(p => pathFor(p.id)));
@@ -242,6 +253,7 @@
       state.diskPaths = new Set(); state.indexDirty = true; // never delete files we did not write here
       state.copySetAside = state.setAside.length > 0;
       state.logoDirty = !!state.logo;
+      LW.images.markAllPending();
       markDirty();
       await saveChanges();
     } catch (err) {
@@ -261,7 +273,7 @@
     const {wiki, setAside} = state;
     const keep = new Set([...wiki.pages, ...setAside].map(p => pathFor(p.id)));
     const stale = [...state.diskPaths].filter(path => !keep.has(path));
-    if (!state.dirty && !state.indexDirty && !state.changedIds.size && !stale.length && !state.copySetAside && !state.logoDirty) { if (!auto) ui.toast(t('toast.no_changes')); return; }
+    if (!state.dirty && !state.indexDirty && !state.changedIds.size && !stale.length && !state.copySetAside && !state.logoDirty && !LW.images.pending().length) { if (!auto) ui.toast(t('toast.no_changes')); return; }
     state.saving = true; ui.setSaveStatus();
     // Snapshot everything up front so edits made during the async writes cannot mix states.
     const version = state.changeVersion;
@@ -269,6 +281,7 @@
     const copying = state.copySetAside ? setAside.filter(entry => entry.text !== null) : [];
     const indexText = state.indexDirty ? jsonText(indexObject(state.copySetAside)) : null;
     const logoChange = state.logoDirty ? {logo: state.logo} : null;
+    const newImages = LW.images.pending();
     try {
       // Keep versions that are about to be overwritten or deleted. A problem here must not stop
       // the save itself.
@@ -282,6 +295,11 @@
       }
       // Set-aside files are copied byte for byte, and are not added to diskPaths (never deleted).
       for (const entry of copying) await writeText(pagesDir, entry.file.split('/')[1], entry.text);
+      // Pictures go before the pages that show them.
+      if (newImages.length) {
+        const imagesDir = await subfolder(state.folderHandle, LW.images.DIR, true);
+        for (const [path, blob] of newImages) { await writeText(imagesDir, path.split('/')[1], blob); LW.images.markSaved([path]); }
+      }
       // The logo picture goes before the manifest that refers to it.
       if (logoChange) {
         const [dirName, fileName] = LOGO_PATH.split('/');
@@ -348,7 +366,7 @@
     LW.pages.commitTitle();
     try {
       const name = slug(state.wiki.name, 'my-wiki') + '.zip';
-      downloadBlob(LW.zip.makeZip([...filesForExport(), ...await revisions.allFiles()]), name);
+      downloadBlob(LW.zip.makeZip([...filesForExport(), ...await LW.images.allFiles(), ...await revisions.allFiles()]), name);
       ui.toast(t('toast.exported', {name}));
     } catch (err) { console.error(err); ui.toast(t('toast.export_failed', {error: i18n.describeError(err)})); }
   }
@@ -357,7 +375,7 @@
     const name = prompt(t('prompt.new_wiki'), t('default.wiki_name'));
     if (name === null) return;
     state.wiki = LW.model.normalizeWiki({name: name.trim() || t('default.wiki_name'), pages: []});
-    state.logo = null; state.logoDirty = false;
+    state.logo = null; state.logoDirty = false; LW.images.reset();
     state.currentId = null; state.folderHandle = null; state.folderName = null; state.draftRecovered = false; state.dirty = false;
     state.diskPaths.clear(); state.changedIds.clear(); state.renameFrom = null; state.indexDirty = true; state.changeVersion++;
     state.pendingRenames = []; revisions.reset([]);

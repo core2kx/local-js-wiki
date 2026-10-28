@@ -30,8 +30,8 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 |---|---|---|
 | **Pure logic** | `icon-library.js`, `i18n.js`, `lang/*.js`, `palettes.js`, `text.js`, `model.js`, `markdown.js`, `zip.js`, `html-to-markdown.js`, `search.js` | Functions that take data and return data. They never touch the page, so they also run under Node and are covered by the tests. |
 | **State** | `folder.js`, `state.js`, `languages.js` | Helpers for reading and writing folder files; the open wiki (`LocalWiki.state`) and change tracking (`LocalWiki.store`). |
-| **Features** | `revisions.js`, `history.js`, `pages.js`, `storage.js` | Operations: saved page history, undo/redo, page editing and renaming, opening/saving/autosave/export. They change state and then ask the UI to redraw. They never touch HTML elements directly. |
-| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/appearance.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/visual-editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/link-picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js`, `ui/settings.js`, `ui/language.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
+| **Features** | `images.js`, `revisions.js`, `history.js`, `pages.js`, `storage.js` | Operations: saved page history, undo/redo, page editing and renaming, opening/saving/autosave/export. They change state and then ask the UI to redraw. They never touch HTML elements directly. |
+| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/appearance.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/visual-editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/link-picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js`, `ui/settings.js`, `ui/image-insert.js`, `ui/language.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
 | **Start** | `app.js` | Wires the remaining controls to features, restores the browser draft and preferences, draws the first screen. |
 
 ### Files at a glance
@@ -51,6 +51,8 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 | `js/search.js` | Query parsing, ranking, result snippets, and the page picker's filtering (`pickPages`) |
 | `js/folder.js` | Reading, writing, deleting and listing files in a folder handle |
 | `js/state.js` | Every field of the open wiki's state, `markDirty`/`touchPage`, the crash-recovery draft |
+| `js/images.js` | The wiki's pictures: names, what is saved yet, ZIP files. Pages only hold `![text](images/name.png)` |
+| `js/ui/image-insert.js` | Choosing, checking and scaling picture files; paste and drop; inserting into either editor |
 | `js/revisions.js` | Saved page history: when a version is kept, thinning, line diff, following renames and deletes |
 | `js/history.js` | Undo/redo snapshots and grouping (session only; `revisions.js` is the saved history) |
 | `js/pages.js` | Create/select/delete pages, editing fields, committing renames |

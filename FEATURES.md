@@ -25,7 +25,7 @@ Status: ✅ shipped · 🚧 in progress · 📋 planned · 🐞 known issue
 | Visual (WYSIWYG) and Split editing; tables edited in place | ✅ | 2.3 |
 | No table size limit | ✅ | 2.3 |
 | Insert link dialog (page search, list of all pages, web addresses) | ✅ | 2.5 |
-| Images in pages (stored in the wiki folder) | 📋 | 2.8 |
+| Images in pages (stored in the wiki folder; sizes; paste and drop) | ✅ | 2.8 |
 | Text sizes (Small, Normal, Large, Huge) | 📋 | 2.9 |
 | Text colors (named, theme-aware set) | 📋 | 2.9 |
 | Caret jumps when editing table header cells (not reproduced; needs repro details) | 🐞 | — |

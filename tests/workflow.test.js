@@ -26,7 +26,7 @@ function exampleFolder(extraPages = {}, extraEntries = []) {
   return {root, pagesDir};
 }
 
-const LW = load('icon-library', 'text', 'model', 'markdown', 'zip', 'search', 'folder', 'state', 'languages', 'revisions', 'history', 'pages', 'storage');
+const LW = load('icon-library', 'text', 'model', 'markdown', 'zip', 'search', 'folder', 'state', 'languages', 'images', 'revisions', 'history', 'pages', 'storage');
 const {state, store, history, pages, storage} = LW;
 globalThis.window = globalThis;
 

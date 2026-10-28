@@ -70,6 +70,16 @@ Added languages are saved in the wiki folder as `languages/<code>.json` (and in 
 
 **Built-in languages** are generated: edit `languages/<code>.json`, then run `node tools/build-languages.js` to rewrite `js/lang/<code>.js` (the browser cannot read JSON files from disk, so each language ships as a script). A new built-in also needs its `<script>` line in `index.html`. The tests fail if a script is out of date or a language is incomplete.
 
+## Pictures
+
+Use the **Image** toolbar button (or paste or drop a picture file into the Visual editor) to put a picture in a page. PNG, JPEG, GIF and WebP work; large pictures are scaled down to 1600 px on the long side. The picture is copied into the wiki folder as `images/<name>` and the page stores only `![description](images/name.png)`.
+
+- **Click a picture** in the Visual editor to make it Small (25%), Medium (50%), Large (75%) or Full width, to change its description (read by screen readers), or to remove it from the page. The file stays in the folder.
+- In Markdown a size is written after the picture: `![A cat](images/cat.png){width=50%}`.
+- Only pictures from the wiki folder are shown; addresses on the web are never loaded.
+- **Link a folder first** (Open folder or Save to folder…). Pictures live in the folder; without one they are lost when the page is closed.
+- Pictures are included in the ZIP export and copied by **Save to folder…**.
+
 ## Tables, symbols and icons
 
 - **Create tables:** In Visual, choose **▦ Table** to insert a table, then type into the cells and use the table bar to add or remove rows and columns. In Markdown, **▦ Table** opens a grid dialog. Tables have no size limit.
@@ -91,6 +101,7 @@ localwiki/
 │   ├── version.js             # The app version (see CHANGELOG.md)
 │   ├── icon-library.js        # Bundled SVG icons; optional to extend
 │   ├── palettes.js            # Color palettes (light and dark versions)
+│   ├── images.js              # The pictures of a wiki (images/ folder)
 │   ├── i18n.js, languages.js  # Interface languages: translation core; adding/saving languages
 │   ├── lang/                  # Built-in languages (generated from languages/*.json)
 │   ├── text.js, model.js, markdown.js, zip.js, search.js   # Pure logic
@@ -115,7 +126,7 @@ localwiki/
 └── README.md
 ```
 
-A wiki folder can be anywhere on your disk, independently of the app directory. **Make a new empty folder for your own wiki** (e.g. `Documents/TechWiki`). The editor writes `wiki.json` and creates `pages/` (plus `revisions/` for page history, `branding/` for an icon image and `languages/` for added languages) within that chosen folder.
+A wiki folder can be anywhere on your disk, independently of the app directory. **Make a new empty folder for your own wiki** (e.g. `Documents/TechWiki`). The editor writes `wiki.json` and creates `pages/` (plus `revisions/` for page history, `branding/` for an icon image, `images/` for pictures and `languages/` for added languages) within that chosen folder.
 
 ### Example index, `wiki.json`
 
@@ -221,7 +232,7 @@ New pages never take the filename of a set-aside file.
 - Old files are only cleaned up in a folder opened (or first saved) in the current session. If you recover a browser draft and save it with **Save to folder…**, files from pages renamed or deleted in that draft stay behind; they are harmless because the index no longer references them.
 - Links to a deleted page are not removed; they show as missing links.
 - Browser restrictions prevent unattended opening of `wiki.json` and `pages/*.json` through relative `file://` paths. Always use the **Open folder** button.
-- The Markdown renderer is a lightweight subset of Markdown, not a full CommonMark editor. Very complicated tables and nested formatting are not supported. Lists have one level (nested lists made in Visual are flattened), and there are no images, colors or underlining.
+- The Markdown renderer is a lightweight subset of Markdown, not a full CommonMark editor. Very complicated tables and nested formatting are not supported. Lists have one level (nested lists made in Visual are flattened), and there are no colors or underlining (pictures: see above).
 - SVG pictograms are selected from a bundled allowlist; arbitrary SVG or HTML in page content is not executed. If you export pages as JSON, the icon markup `:icon[name]:` is intended for LocalWiki rendering. Unicode symbols and emoji remain portable to other editors.
 
 ## For developers

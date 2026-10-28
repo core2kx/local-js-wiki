@@ -5,12 +5,12 @@
    autosave, renames and history work exactly as with the Markdown editor).
 
    Toolbar buttons format the selection; the link buttons open the link dialog (ui/link-picker.js).
-   A small context bar appears for links (Open, Edit, Remove) and inside tables (add/remove rows and columns, delete the table). Paste inserts plain
+   A small context bar appears for links (Open, Edit, Remove), for a clicked picture (size, description, remove) and inside tables (add/remove rows and columns, delete the table). Paste inserts plain
    text, so formatting from other sites cannot sneak in.
 
    Depends on: i18n.js, model.js, markdown.js, html-to-markdown.js, state.js, history.js, pages.js,
                ui/elements.js, ui/link-picker.js
-   Provides:   LocalWiki.ui.renderVisual, visualFormat, visualInsertText, visualInsertIcon,
+   Provides:   LocalWiki.ui.renderVisual, visualFormat, visualInsertText, visualInsertIcon, visualInsertImage,
                saveVisualSelection, installVisualEditor */
 (() => {
   'use strict';
@@ -35,7 +35,7 @@
     const page = currentPage();
     if (!page) { editor().innerHTML = ''; shown = null; hideBar(); return; }
     if (!force && shown && shown.id === page.id && shown.content === page.content) return;
-    editor().innerHTML = LW.markdown.toHtml(page.content, {linkExists});
+    editor().innerHTML = LW.markdown.toHtml(page.content, {linkExists, imageUrl: LW.images.urlFor});
     prepare();
     shown = {id: page.id, content: page.content};
     hideBar();
@@ -44,6 +44,7 @@
   // a final table or code block.
   function prepare() {
     for (const icon of editor().querySelectorAll('.inline-wiki-icon')) icon.contentEditable = 'false';
+    for (const missing of editor().querySelectorAll('.page-image-missing')) missing.title = t('img.missing_tip', {path: missing.dataset.image});
     const last = editor().lastElementChild;
     if (last && (last.matches('.table-block, pre, hr, blockquote, ul, ol'))) {
       const p = document.createElement('p'); p.append(document.createElement('br')); editor().append(p);
@@ -210,6 +211,48 @@
     placeCaret(thead.querySelector('th'), true);
   }
 
+  // --- Pictures -----------------------------------------------------------------------------------
+  function visualInsertImage(path, alt) {
+    restoreSelection();
+    LW.history.record('act.insert_image');
+    const picture = document.createElement('img');
+    picture.className = 'page-image'; picture.src = LW.images.urlFor(path); picture.alt = alt;
+    picture.dataset.image = path; picture.dataset.alt = alt;
+    const range = selectionRange() || endRange();
+    range.deleteContents(); range.insertNode(picture);
+    const after = document.createRange(); after.setStartAfter(picture); after.collapse(true);
+    getSelection().removeAllRanges(); getSelection().addRange(after);
+    prepare();
+    changed();
+  }
+  // The picture the selection is exactly around (after clicking it), if any.
+  function selectedPicture(range) {
+    if (!range || range.startContainer !== range.endContainer || range.startContainer.nodeType !== 1 || range.endOffset - range.startOffset !== 1) return null;
+    const node = range.startContainer.childNodes[range.startOffset];
+    return node && node.nodeName === 'IMG' && node.dataset.image ? node : null;
+  }
+  const SIZE_TEXT = {25: 'img.size_25', 50: 'img.size_50', 75: 'img.size_75', 100: 'img.size_100'};
+  function pictureButtons(picture) {
+    const label = document.createElement('span');
+    label.className = 'context-label'; label.textContent = t('img.label', {path: picture.dataset.image});
+    const edit = (action, change) => () => { LW.history.record(action); change(); changed(); updateBar(); };
+    const current = picture.dataset.width || '100';
+    const sizes = LW.model.IMAGE_WIDTHS.map(percent => {
+      const b = button(t(SIZE_TEXT[percent]), t('img.size_tip', {percent}), edit('act.image_size', () => {
+        if (percent === 100) delete picture.dataset.width; else picture.dataset.width = String(percent);
+      }));
+      b.classList.toggle('is-active', current === String(percent));
+      return b;
+    });
+    return [label, ...sizes,
+      button(t('img.describe'), t('img.describe_tip'), () => {
+        const alt = prompt(t('img.describe_prompt'), picture.dataset.alt || '');
+        if (alt === null) return;
+        edit('act.image_describe', () => { picture.dataset.alt = alt.replace(/[\[\]\n]/g, ' ').trim(); picture.alt = picture.dataset.alt; })();
+      }),
+      button(t('img.remove'), t('img.remove_tip'), edit('act.remove_image', () => picture.remove()))];
+  }
+
   // --- Inserting from the picker ------------------------------------------------------------------
   function visualInsertText(text) {
     restoreSelection();
@@ -252,6 +295,9 @@
   function updateBar() {
     const range = selectionRange();
     if (!range || document.activeElement !== editor()) { hideBar(); return; }
+    for (const other of editor().querySelectorAll('img.is-selected')) other.classList.remove('is-selected');
+    const picture = selectedPicture(range);
+    if (picture) { picture.classList.add('is-selected'); showBar(picture, pictureButtons(picture)); return; }
     const link = closestIn(range.startContainer, 'a');
     if (link) { showBar(link, linkButtons(link)); return; }
     const cell = closestIn(range.startContainer, 'td, th');
@@ -347,8 +393,11 @@
     if (node.nodeName === 'BR') return '\n';
     return Array.from(node.childNodes, linesOf).join('');
   }
+  const pictureFiles = list => [...(list || [])].filter(file => file.type.startsWith('image/'));
   function onPaste(event) {
     event.preventDefault();
+    const pictures = pictureFiles(event.clipboardData?.files);
+    if (pictures.length) { saveVisualSelection(); ui.addImageFiles(pictures); return; }
     const text = event.clipboardData?.getData('text/plain') || '';
     if (text) exec('insertText', text);
   }
@@ -362,11 +411,22 @@
     area.addEventListener('input', changed);
     area.addEventListener('keydown', onKeydown);
     area.addEventListener('paste', onPaste);
-    area.addEventListener('drop', event => event.preventDefault()); // dragged HTML would bring foreign markup
+    area.addEventListener('dragover', event => { if (pictureFiles(event.dataTransfer?.files).length || [...(event.dataTransfer?.items || [])].some(item => item.type.startsWith('image/'))) event.preventDefault(); });
+    area.addEventListener('drop', event => { // dragged HTML would bring foreign markup; only picture files are taken
+      event.preventDefault();
+      const pictures = pictureFiles(event.dataTransfer?.files);
+      if (!pictures.length) return;
+      const at = document.caretRangeFromPoint?.(event.clientX, event.clientY);
+      if (at && editor().contains(at.startContainer)) { getSelection().removeAllRanges(); getSelection().addRange(at); }
+      saveVisualSelection(); ui.addImageFiles(pictures);
+    });
     area.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== area) hideBar(); }, 150));
-    area.addEventListener('click', event => { if (event.target.closest('a')) event.preventDefault(); });
+    area.addEventListener('click', event => {
+      if (event.target.closest('a')) event.preventDefault();
+      if (event.target.matches?.('img.page-image')) { const range = document.createRange(); range.selectNode(event.target); getSelection().removeAllRanges(); getSelection().addRange(range); }
+    });
     document.addEventListener('selectionchange', updateBar);
   }
 
-  Object.assign(ui, {renderVisual, visualFormat, visualInsertText, visualInsertIcon, saveVisualSelection, installVisualEditor});
+  Object.assign(ui, {renderVisual, visualFormat, visualInsertText, visualInsertIcon, visualInsertImage, saveVisualSelection, installVisualEditor});
 })();

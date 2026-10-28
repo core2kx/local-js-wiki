@@ -20,8 +20,20 @@ Planned work is tracked in [FEATURES.md](FEATURES.md).
 ## Unreleased
 
 ### Planned (see FEATURES.md)
-- Images in pages.
 - Text sizes and colors.
+
+## 2.8.0 — 2026-10-28
+
+### Added
+- Pictures in pages. The **Image** toolbar button, pasting, or dropping a picture file into the Visual editor stores the picture in the wiki folder (`images/`) and shows it in the page. PNG, JPEG, GIF and WebP are accepted; pictures larger than 1600 px or 2 MB are scaled down first.
+- In the page a picture is written `![description](images/name.png)`, optionally `{width=25%}`, `{width=50%}` or `{width=75%}`. Click a picture in the Visual editor to choose Small / Medium / Large / Full width, change its description, or remove it from the page (the file stays in the folder).
+- Pictures are included in ZIP exports and copied by Save to folder.
+- A picture whose file is missing shows a labelled placeholder instead of breaking the page.
+- Translations of the new texts in all nine languages.
+
+### Notes
+- Only pictures from the wiki folder are shown; web addresses are never loaded (the wiki stays private and offline).
+- Pictures are not kept in the browser's crash-recovery draft (browser storage is too small). Without a linked folder, a picture is lost when the page is closed; the app warns when this applies.
 
 ## 2.7.0 — 2026-10-28
 
