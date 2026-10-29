@@ -48,6 +48,7 @@
   <script defer src="js/ui/visual-table.js"></script>
   <script defer src="js/ui/visual-editor.js"></script>
   <script defer src="js/ui/table-builder.js"></script>
+  <script defer src="js/ui/table-csv.js"></script>
   <script defer src="js/ui/picker.js"></script>
   <script defer src="js/ui/link-picker.js"></script>
   <script defer src="js/ui/problems.js"></script>
@@ -176,11 +177,31 @@
       <button type="button" id="table-remove-row" class="btn btn-sm" data-i18n="table.remove_row">Remove row</button>
       <button type="button" id="table-add-col" class="btn btn-sm" data-i18n="table.add_col">Add column</button>
       <button type="button" id="table-remove-col" class="btn btn-sm" data-i18n="table.remove_col">Remove column</button>
+      <button type="button" id="table-import-csv" class="btn btn-sm" data-i18n="table.import_csv" data-i18n-title="table.import_csv_tip" title="Replace this table with the contents of a CSV file">Import CSV…</button>
+      <button type="button" id="table-export-csv" class="btn btn-sm" data-i18n="table.export_csv" data-i18n-title="table.export_csv_tip" title="Save this table as a CSV file that Excel can open">Download CSV</button>
       <button type="button" id="table-reset-sort" class="btn btn-sm" data-i18n="table.reset_sort" data-i18n-title="table.reset_sort_tip" title="Put the rows back in the order they had before sorting" hidden>Reset sort</button>
       <span id="table-size" class="dialog-hint"></span>
     </div>
     <div class="table-builder-scroll"><div id="table-builder-grid" class="table-builder-grid"></div></div>
     <div class="dialog-foot"><button type="button" id="table-cancel" class="btn" data-i18n="common.cancel">Cancel</button><button type="button" id="table-confirm" class="btn btn-primary">Insert table</button></div>
+  </dialog>
+  <input type="file" id="csv-file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain" hidden>
+  <dialog id="csv-dialog" class="wiki-dialog" aria-labelledby="csv-title">
+    <div class="dialog-head"><h2 id="csv-title" data-i18n="csv.title">Import CSV</h2><button type="button" id="csv-close" class="dialog-close" data-i18n-aria="common.close" aria-label="Close">×</button></div>
+    <p class="dialog-hint" data-i18n="csv.hint">The table will be replaced by the contents of this file. In Excel, use Save As → CSV to make one.</p>
+    <div class="csv-options">
+      <label class="csv-check"><input type="checkbox" id="csv-header" checked> <span data-i18n="csv.header">First row is the header</span></label>
+      <label class="csv-select"><span data-i18n="csv.separator">Separator</span>
+        <select id="csv-separator">
+          <option value="auto" data-i18n="csv.sep_auto">Automatic</option>
+          <option value="," data-i18n="csv.sep_comma">Comma</option>
+          <option value=";" data-i18n="csv.sep_semicolon">Semicolon</option>
+          <option value="&#9;" data-i18n="csv.sep_tab">Tab</option>
+        </select></label>
+      <span id="csv-summary" class="dialog-hint"></span>
+    </div>
+    <div class="table-builder-scroll csv-preview"><table id="csv-preview" class="csv-preview-table"></table></div>
+    <div class="dialog-foot"><button type="button" id="csv-cancel" class="btn" data-i18n="common.cancel">Cancel</button><button type="button" id="csv-confirm" class="btn btn-primary" data-i18n="csv.import">Import</button></div>
   </dialog>
   <dialog id="picker-dialog" class="wiki-dialog picker-dialog" aria-labelledby="picker-title">
     <div class="dialog-head"><h2 id="picker-title" data-i18n="picker.title">Insert icon or symbol</h2><button type="button" id="picker-close" class="dialog-close" data-i18n-aria="common.close" aria-label="Close">×</button></div>

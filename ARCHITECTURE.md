@@ -31,7 +31,7 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 | **Pure logic** | `icon-library.js`, `i18n.js`, `lang/*.js`, `palettes.js`, `text.js`, `model.js`, `markdown.js`, `zip.js`, `html-to-markdown.js`, `table-grid.js`, `search.js` | Functions that take data and return data. They never touch the page, so they also run under Node and are covered by the tests. |
 | **State** | `folder.js`, `state.js`, `languages.js` | Helpers for reading and writing folder files; the open wiki (`LocalWiki.state`) and change tracking (`LocalWiki.store`). |
 | **Features** | `images.js`, `revisions.js`, `history.js`, `pages.js`, `storage.js` | Operations: saved page history, undo/redo, page editing and renaming, opening/saving/autosave/export. They change state and then ask the UI to redraw. They never touch HTML elements directly. |
-| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/appearance.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/visual-table.js`, `ui/visual-editor.js`, `ui/table-builder.js`, `ui/picker.js`, `ui/link-picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js`, `ui/settings.js`, `ui/image-insert.js`, `ui/text-style.js`, `ui/language.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
+| **Screen** | `ui/elements.js`, `ui/status.js`, `ui/appearance.js`, `ui/page.js`, `ui/sidebar.js`, `ui/editor.js`, `ui/visual-table.js`, `ui/visual-editor.js`, `ui/table-builder.js`, `ui/table-csv.js`, `ui/picker.js`, `ui/link-picker.js`, `ui/problems.js`, `ui/revisions.js`, `ui/folder-help.js`, `ui/settings.js`, `ui/image-insert.js`, `ui/text-style.js`, `ui/language.js` | Draw the state and handle each dialog's own buttons. All add functions to `LocalWiki.ui`. |
 | **Start** | `app.js` | Wires the remaining controls to features, restores the browser draft and preferences, draws the first screen. |
 
 ### Files at a glance
@@ -60,7 +60,7 @@ exception: feature modules ask the screen to redraw by calling `LocalWiki.ui.*` 
 | `js/storage.js` | Folder format, tolerant loading, saving, autosave, export, new wiki |
 | `js/ui/appearance.js`, `js/ui/settings.js` | Applying the palette, app name, icon and favicon; the Wiki settings dialog |
 | `js/ui/link-picker.js` | The Insert link dialog: page search and list, web addresses; callers insert the result |
-| `js/table-grid.js` | Rules for moving and sorting table rows and columns (as permutations) and the memory behind Reset sort |
+| `js/table-grid.js` | Rules for moving and sorting table rows and columns (as permutations), the memory behind Reset sort, and reading and writing CSV |
 | `js/ui/visual-table.js` | Table grips, selection, drag-to-move, and the extra table-bar buttons of the Visual editor |
 | `js/ui/visual-editor.js` | The Visual editor: rendering, toolbar actions, link and table bars, code-block Enter |
 | `js/ui/*.js` | Everything you see; one file per area of the screen |

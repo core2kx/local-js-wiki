@@ -92,3 +92,52 @@ test('after rows change, sorting starts a new memory from the current order', ()
   rows = apply(rows, plan.order);
   assert.deepEqual(apply(rows, grid.planReset(memory, key, rows)).map(r => r[0]), ['z', 'a', 'b']);
 });
+
+// --- CSV --------------------------------------------------------------------------------------------
+test('parseDelimited handles quotes, doubled quotes, line breaks inside cells, CRLF and a BOM', () => {
+  const text = '﻿name,note\r\n"Smith, J","says ""hi"""\r\n"two\nlines",x\r\n\r\n';
+  assert.deepEqual(grid.parseDelimited(text, ','), [['name', 'note'], ['Smith, J', 'says "hi"'], ['two\nlines', 'x']]);
+  assert.deepEqual(grid.parseDelimited('a;b\n1;2', ';'), [['a', 'b'], ['1', '2']]);
+  assert.deepEqual(grid.parseDelimited('a,,"",d', ','), [['a', '', '', 'd']]);
+  assert.deepEqual(grid.parseDelimited('', ','), []);
+});
+
+test('detectDelimiter chooses the separator of the first line, ignoring quoted text', () => {
+  assert.equal(grid.detectDelimiter('a,b,c\n1,2,3'), ',');
+  assert.equal(grid.detectDelimiter('Namn;Pris\nÄpple;1,5'), ';');
+  assert.equal(grid.detectDelimiter('a\tb\n1\t2'), '\t');
+  assert.equal(grid.detectDelimiter('"a,b";c\n1;2'), ';');
+  assert.equal(grid.detectDelimiter('single'), ',');
+});
+
+test('gridFromRows pads rows, flattens line breaks, and makes a header when there is none', () => {
+  assert.deepEqual(grid.gridFromRows([['h1', 'h2', 'h3'], ['a', 'b'], ['x\ny']]), [['h1', 'h2', 'h3'], ['a', 'b', ''], ['x y', '', '']]);
+  assert.deepEqual(grid.gridFromRows([['a', 'b'], ['c', 'd']], {header: false}), [['Column 1', 'Column 2'], ['a', 'b'], ['c', 'd']]);
+  assert.deepEqual(grid.gridFromRows([['only', 'header']]), [['only', 'header'], ['', '']], 'a table always has a data row');
+  assert.deepEqual(grid.gridFromRows([]), [['Column 1'], ['']]);
+});
+
+test('toCsv quotes only where needed, and what it writes parses back', () => {
+  const values = [['Name', 'Note'], ['Smith, J', 'says "hi"'], [' padded ', 'plain'], ['', 'ä ö å']];
+  const csv = grid.toCsv(values);
+  assert.equal(csv.split('\r\n')[0], 'Name,Note');
+  assert.equal(csv.split('\r\n')[2], '" padded ",plain');
+  assert.deepEqual(grid.parseDelimited(csv, ','), values.filter(r => r.some(c => c.trim())));
+  const semi = grid.toCsv([['a;b', 'c']], ';');
+  assert.equal(semi, '"a;b";c\r\n');
+  assert.deepEqual(grid.parseDelimited(grid.toCsv([['a\tb', 'c']], '\t'), '\t'), [['a\tb', 'c']]);
+});
+
+test('defaultDelimiter follows the decimal separator of the locale', () => {
+  assert.equal(grid.defaultDelimiter('en'), ',');
+  assert.equal(grid.defaultDelimiter('sv'), ';');
+  assert.equal(grid.defaultDelimiter('de'), ';');
+});
+
+test('spreadsheetRows recognises copied cells and nothing else', () => {
+  assert.deepEqual(grid.spreadsheetRows('a\tb\r\n1\t2\r\n'), [['a', 'b'], ['1', '2']]);
+  assert.equal(grid.spreadsheetRows('just text\nmore text'), null);
+  assert.equal(grid.spreadsheetRows('a\tb'), null, 'one line is just text');
+  assert.equal(grid.spreadsheetRows('a\tb\n1'), null, 'ragged');
+  assert.equal(grid.spreadsheetRows('a\t"b\nc"\n1\t2'), null, 'quoted cells are left alone');
+});

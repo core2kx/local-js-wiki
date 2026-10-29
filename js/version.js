@@ -8,5 +8,5 @@
 (() => {
   'use strict';
   const LW = (globalThis.LocalWiki ||= {});
-  LW.version = '2.10.0';
+  LW.version = '2.11.0';
 })();

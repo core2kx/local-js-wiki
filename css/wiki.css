@@ -320,3 +320,13 @@ mark { background: var(--highlight); color: var(--highlight-text); border-radius
 .table-ctl-btn { border: 1px solid transparent; background: transparent; color: var(--text); border-radius: 4px; font-size: 11px; line-height: 1; padding: 4px 6px; cursor: pointer; }
 .table-ctl-btn:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); }
 .table-ctl-btn:disabled { opacity: .3; cursor: default; }
+
+/* LocalWiki 2.11: CSV import dialog */
+.csv-options { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; margin: 14px 0 12px; }
+.csv-check, .csv-select { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.csv-select select { border: 1px solid var(--border); border-radius: 6px; background: var(--input); color: var(--text); padding: 5px 8px; }
+.csv-options .dialog-hint { margin: 0 0 0 auto; }
+.csv-preview { max-height: 40vh; }
+.csv-preview-table { border-collapse: collapse; width: max-content; min-width: 100%; font-size: 13px; }
+.csv-preview-table th, .csv-preview-table td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; white-space: nowrap; }
+.csv-preview-table th { background: var(--sidebar-bg); }

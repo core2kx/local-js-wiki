@@ -32,7 +32,9 @@
     tableDialog: $('table-dialog'), tableTitle: $('table-dialog-title'), tableGrid: $('table-builder-grid'),
     tableSize: $('table-size'), tableConfirm: $('table-confirm'), tableCancel: $('table-cancel'), tableClose: $('table-close'),
     tableAddRow: $('table-add-row'), tableRemoveRow: $('table-remove-row'),
-    tableAddCol: $('table-add-col'), tableRemoveCol: $('table-remove-col'), tableResetSort: $('table-reset-sort'),
+    tableAddCol: $('table-add-col'), tableRemoveCol: $('table-remove-col'), tableResetSort: $('table-reset-sort'), tableImportCsv: $('table-import-csv'), tableExportCsv: $('table-export-csv'),
+    csvFile: $('csv-file'), csvDialog: $('csv-dialog'), csvClose: $('csv-close'), csvCancel: $('csv-cancel'), csvConfirm: $('csv-confirm'),
+    csvHeader: $('csv-header'), csvSeparator: $('csv-separator'), csvSummary: $('csv-summary'), csvPreview: $('csv-preview'),
     // Icon/symbol picker dialog
     pickerDialog: $('picker-dialog'), pickerSearch: $('picker-search'), pickerResults: $('picker-results'),
     pickerClear: $('picker-clear'), pickerHint: $('picker-hint'), pickerClose: $('picker-close'), pickerCancel: $('picker-cancel'),

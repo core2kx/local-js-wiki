@@ -5,6 +5,7 @@
    The editors apply that permutation to their own rows or cells (the Visual editor moves HTML cells,
    the table dialog moves strings), so formatting inside cells is never touched.
 
+   Also CSV and spreadsheet text (parseDelimited, detectDelimiter, gridFromRows, toCsv, spreadsheetRows).
    Moving: movePermutation. Sorting: sortPermutation, with a small memory (planSort / planReset /
    sortState) of the order a table had before it was first sorted, so "Reset sort" can restore it.
 
@@ -111,6 +112,66 @@
     return order;
   }
 
+  // --- CSV and spreadsheet text -------------------------------------------------------------------
+  // Rows of cells from delimited text: quoted cells may hold the separator, quotes ("") and line
+  // breaks; a leading byte-order mark and blank lines are ignored.
+  function parseDelimited(text, delimiter) {
+    const rows = [];
+    let row = [], cell = '', quoted = false;
+    text = String(text).replace(/^﻿/, '');
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (quoted) {
+        if (ch !== '"') cell += ch;
+        else if (text[i + 1] === '"') { cell += '"'; i++; }
+        else quoted = false;
+      } else if (ch === '"' && cell === '') quoted = true;
+      else if (ch === delimiter) { row.push(cell); cell = ''; }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        row.push(cell); rows.push(row); row = []; cell = '';
+      } else cell += ch;
+    }
+    if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter(cells => cells.some(c => c.trim() !== ''));
+  }
+  // The separator the first line uses most (outside quotes): comma, semicolon or tab.
+  function detectDelimiter(text) {
+    const counts = {',': 0, ';': 0, '\t': 0};
+    let quoted = false;
+    for (const ch of String(text).replace(/^﻿/, '')) {
+      if (ch === '"') quoted = !quoted;
+      else if (!quoted && (ch === '\n' || ch === '\r')) { if (Object.values(counts).some(n => n)) break; }
+      else if (!quoted && ch in counts) counts[ch]++;
+    }
+    return Object.keys(counts).reduce((best, d) => (counts[d] > counts[best] ? d : best), ',');
+  }
+  // A table grid from rows of cells: every row is padded to the widest, line breaks inside cells
+  // become spaces, and without a header row one is made with label(n) ("Column n").
+  function gridFromRows(rows, {header = true, label = n => 'Column ' + n} = {}) {
+    const width = Math.max(1, ...rows.map(r => r.length));
+    const grid = rows.map(r => Array.from({length: width}, (_, i) => String(r[i] ?? '').replace(/\s*[\r\n]+\s*/g, ' ').trim()));
+    if (!header || !grid.length) grid.unshift(Array.from({length: width}, (_, i) => label(i + 1)));
+    if (grid.length < 2) grid.push(Array(width).fill(''));
+    return grid;
+  }
+  function toCsv(values, delimiter = ',') {
+    const needsQuotes = new RegExp('["\\r\\n]|^\\s|\\s$' + (delimiter === '\t' ? '|\\t' : '|' + delimiter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    const cell = value => { const v = String(value); return needsQuotes.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    return values.map(row => row.map(cell).join(delimiter)).join('\r\n') + '\r\n';
+  }
+  // Excel in a language that writes decimals with a comma expects ";" between cells.
+  const defaultDelimiter = locale => { try { return new Intl.NumberFormat(locale).format(1.5).includes(',') ? ';' : ','; } catch (_) { return ','; } };
+  // Cells copied from a spreadsheet arrive as tab-separated lines. Returns rows of cells, or null
+  // when the text is not that (it needs two or more lines with the same number of tabs, at least one).
+  function spreadsheetRows(text) {
+    const lines = String(text).replace(/\r\n?/g, '\n').replace(/\n+$/, '').split('\n');
+    if (lines.length < 2 || lines.some(line => line.includes('"'))) return null;
+    const tabs = (lines[0].match(/\t/g) || []).length;
+    if (!tabs || lines.some(line => (line.match(/\t/g) || []).length !== tabs)) return null;
+    return lines.map(line => line.split('\t'));
+  }
+
   const memory = new Map(); // shared by the Visual editor and the table dialog
-  LW.tableGrid = {memory, movePermutation, isIdentity, permute, numberOf, compareCells, sortPermutation, rowKey, tableKey, sortState, planSort, planReset};
+  LW.tableGrid = {parseDelimited, detectDelimiter, gridFromRows, toCsv, defaultDelimiter, spreadsheetRows, memory, movePermutation, isIdentity, permute, numberOf, compareCells, sortPermutation, rowKey, tableKey, sortState, planSort, planReset};
 })();

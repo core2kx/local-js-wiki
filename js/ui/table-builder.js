@@ -131,6 +131,8 @@
     els.tableCancel.addEventListener('click', () => els.tableDialog.close());
     els.tableConfirm.addEventListener('click', commitTable);
     els.tableResetSort.addEventListener('click', resetSort);
+    els.tableExportCsv.addEventListener('click', () => ui.exportCsv(tableDraft.values));
+    els.tableImportCsv.addEventListener('click', () => ui.importCsv(values => { tableDraft.values = values; renderTableGrid(); }));
     els.tableAddRow.addEventListener('click', () => {
       tableDraft.values.push(tableDraft.values[0].map(() => '')); renderTableGrid();
     });

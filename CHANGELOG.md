@@ -21,7 +21,14 @@ Planned work is tracked in [FEATURES.md](FEATURES.md).
 
 ### Planned (see FEATURES.md)
 - Right-to-left layout; CSV import/export of translations; native-speaker review of translations.
-- Table CSV export and import, and pasting spreadsheet cells as a table (next release).
+
+## 2.11.0 — 2026-10-29
+
+### Added
+- **Download CSV** (table bar in the Visual editor, and the table dialog): saves the table as a `.csv` file that opens in Excel. The file is UTF-8 with a byte-order mark so accented letters survive; the cell separator is `;` when the computer's language writes decimals with a comma (as Excel there expects) and `,` otherwise.
+- **Import CSV…**: pick a CSV or tab-separated file and a preview shows how it will read. Choose whether the first row is the header and, if needed, the separator (comma, semicolon or tab; detected automatically by default). Importing replaces the table's contents and is one undo step. Quoted cells, doubled quotes, line breaks inside cells (turned into spaces) and a byte-order mark are handled; files up to 2 MB.
+- **Paste cells from a spreadsheet** (Excel, LibreOffice, Google Sheets) into either editor and they become a table, with the first row as the header. Undo pastes them as plain text instead. Pasting inside an existing table or a code block is left alone.
+- Texts for all of this in all nine languages (AI-drafted).
 
 ## 2.10.0 — 2026-10-29
 

@@ -195,15 +195,32 @@
     }
     return tr;
   }
-  // A new 3 × 2 table after the block with the caret (replacing it if it is empty).
-  function insertTable() {
+  // A row holding the given texts (an empty text keeps the cell the caret can enter).
+  function filledRow(values, header = false) {
+    const tr = document.createElement('tr');
+    for (const value of values) {
+      const cell = document.createElement(header ? 'th' : 'td');
+      if (value) cell.textContent = value; else cell.append(document.createElement('br'));
+      tr.append(cell);
+    }
+    return tr;
+  }
+  // Replaces everything in a table with the given rows (values[0] is the header).
+  function fillTable(table, values) {
+    const head = table.tHead || table.createTHead(), body = table.tBodies[0] || table.createTBody();
+    head.replaceChildren(filledRow(values[0], true));
+    body.replaceChildren(...values.slice(1).map(row => filledRow(row)));
+  }
+  // A new table after the block with the caret (replacing it if it is empty): 3 × 2 and empty, or
+  // filled with values (header row first).
+  function insertTable(values = null) {
     const block = topBlock(selectionRange()?.startContainer);
     const wrapper = document.createElement('div'); wrapper.className = 'table-block';
     const scroll = document.createElement('div'); scroll.className = 'table-scroll';
     const table = document.createElement('table');
     const thead = document.createElement('thead'), tbody = document.createElement('tbody');
-    thead.append(emptyRow(3, true)); tbody.append(emptyRow(3), emptyRow(3));
-    table.append(thead, tbody); scroll.append(table); wrapper.append(scroll);
+    table.append(thead, tbody);
+    if (values) fillTable(table, values); else { thead.append(emptyRow(3, true)); tbody.append(emptyRow(3), emptyRow(3)); } scroll.append(table); wrapper.append(scroll);
     if (block && !block.textContent.trim() && !block.querySelector('.inline-wiki-icon') && block.nodeName === 'P') block.replaceWith(wrapper);
     else if (block) block.after(wrapper);
     else editor().append(wrapper);
@@ -479,6 +496,13 @@
     const pictures = pictureFiles(event.clipboardData?.files);
     if (pictures.length) { saveVisualSelection(); ui.addImageFiles(pictures); return; }
     const text = event.clipboardData?.getData('text/plain') || '';
+    const rows = !closestIn(selectionRange()?.startContainer, 'td, th, pre') && LW.tableGrid.spreadsheetRows(text);
+    if (rows) { // cells copied from a spreadsheet become a table
+      LW.history.record('act.paste_table');
+      insertTable(LW.tableGrid.gridFromRows(rows, {label: n => t('table.column_n', {n})}));
+      changed(); ui.toast(t('toast.pasted_table'));
+      return;
+    }
     if (text) exec('insertText', text);
   }
 
@@ -508,7 +532,7 @@
     area.addEventListener('scroll', updateBar);
     window.addEventListener('resize', updateBar);
     document.addEventListener('selectionchange', updateBar);
-    ui.visualHooks = {editor: area, prepare, changed, placeCaret, removeTable, button, refreshBar: updateBar,
+    ui.visualHooks = {editor: area, prepare, changed, placeCaret, removeTable, button, fillTable, refreshBar: updateBar,
       currentTable: () => closestIn(selectionRange()?.startContainer, 'table')};
   }
 

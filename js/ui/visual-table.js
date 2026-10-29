@@ -236,7 +236,18 @@
         button(t('table.move_up'), t('table.move_up_tip'), () => at > 1 && moveRows(table, at, 1, at - 1, keep)),
         button(t('table.move_down'), t('table.move_down_tip'), () => at < table.rows.length - 1 && moveRows(table, at, 1, at + 2, keep))]),
       button(t('table.sort'), t('table.sort_tip'), () => sortBy(table, column, keep)),
-      ...reset];
+      ...reset,
+      button(t('table.export_csv'), t('table.export_csv_tip'), () => ui.exportCsv(valuesOf(table))),
+      button(t('table.import_csv'), t('table.import_csv_tip'), () => ui.importCsv(values => importInto(table, values)))];
+  }
+  const valuesOf = table => [...table.rows].map(textsOf);
+  // Replaces the table's contents with imported rows, as one undo step.
+  function importInto(table, values) {
+    if (!table.isConnected) return;
+    selection = null;
+    hooks().editor.focus();
+    edit('act.import_csv', null, () => hooks().fillTable(table, values));
+    hooks().placeCaret(table.rows[0].cells[0], true);
   }
 
   // Called whenever the caret is (or is not) in a table: draws the grips and drops stale selections.
