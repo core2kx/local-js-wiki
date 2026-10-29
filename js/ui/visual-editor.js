@@ -354,7 +354,7 @@
   }
 
   // --- Context bar (links and tables) -------------------------------------------------------------
-  function hideBar() { els.visualContext.hidden = true; els.visualContext.replaceChildren(); }
+  function hideBar() { els.visualContext.hidden = true; els.visualContext.replaceChildren(); ui.visualTable?.hide(); }
   function button(label, title, action) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'context-btn'; b.textContent = label; b.title = title;
@@ -362,12 +362,12 @@
     b.addEventListener('click', action);
     return b;
   }
-  function showBar(anchor, buttons) {
+  function showBar(anchor, buttons, lift = 0) {
     const bar = els.visualContext;
     bar.replaceChildren(...buttons);
     bar.hidden = false;
     const box = anchor.getBoundingClientRect(), frame = els.card.getBoundingClientRect();
-    const top = box.top - frame.top - bar.offsetHeight - 6;
+    const top = box.top - frame.top - bar.offsetHeight - 6 - lift;
     bar.style.top = (top < 0 ? box.bottom - frame.top + 6 : top) + 'px';
     bar.style.left = Math.max(0, Math.min(box.left - frame.left, frame.width - bar.offsetWidth)) + 'px';
   }
@@ -375,12 +375,13 @@
     const range = selectionRange();
     if (!range || document.activeElement !== editor()) { hideBar(); return; }
     for (const other of editor().querySelectorAll('img.is-selected')) other.classList.remove('is-selected');
+    const cell = closestIn(range.startContainer, 'td, th');
+    ui.visualTable?.update(cell);
     const picture = selectedPicture(range);
     if (picture) { picture.classList.add('is-selected'); showBar(picture, pictureButtons(picture)); return; }
     const link = closestIn(range.startContainer, 'a');
     if (link) { showBar(link, linkButtons(link)); return; }
-    const cell = closestIn(range.startContainer, 'td, th');
-    if (cell) { showBar(cell.closest('table'), tableButtons(cell)); return; }
+    if (cell) { showBar(cell.closest('table'), ui.visualTable.barButtons(cell, tableButtons(cell)), 18); return; }
     hideBar();
   }
   function linkButtons(link) {
@@ -504,7 +505,11 @@
       if (event.target.closest('a')) event.preventDefault();
       if (event.target.matches?.('img.page-image')) { const range = document.createRange(); range.selectNode(event.target); getSelection().removeAllRanges(); getSelection().addRange(range); }
     });
+    area.addEventListener('scroll', updateBar);
+    window.addEventListener('resize', updateBar);
     document.addEventListener('selectionchange', updateBar);
+    ui.visualHooks = {editor: area, prepare, changed, placeCaret, removeTable, button, refreshBar: updateBar,
+      currentTable: () => closestIn(selectionRange()?.startContainer, 'table')};
   }
 
   Object.assign(ui, {renderVisual, visualFormat, visualInsertText, visualInsertIcon, visualInsertImage, visualStyle, saveVisualSelection, installVisualEditor});

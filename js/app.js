@@ -53,6 +53,7 @@
 
     // Dialogs wire their own buttons.
     ui.installTableBuilder();
+    ui.installVisualTable();
     ui.installPicker();
     ui.installLinkPicker();
     ui.installProblems();

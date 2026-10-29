@@ -89,12 +89,13 @@ In the page it is written `:size[large]{words}` or `:color[red]{words}`, and the
 ## Tables, symbols and icons
 
 - **Create tables:** In Visual, choose **▦ Table** to insert a table, then type into the cells and use the table bar to add or remove rows and columns. In Markdown, **▦ Table** opens a grid dialog. Tables have no size limit.
+- **Move and sort:** In Visual, small grips appear above the columns and beside the rows while the cursor is in a table. Click a grip to select that column or row (Shift-click to select several) and drag it to move it, or use the **◀ Column / Column ▶ / ▲ Row / Row ▼** buttons in the table bar. The ⇅ on a column grip (or **Sort**) sorts the rows by that column, ascending and then descending; numbers, dates and text each sort the way you would expect. **Reset sort** restores the order from before sorting, as long as the rows are the same. The table dialog in Markdown has the same buttons. Sorting rewrites the table (and can be undone); the page does not remember a sort after a reload.
 - **Edit an existing table:** In Visual, click into it and edit the cells directly. In Markdown, put the text cursor inside the table and choose **▦ Table**; changes are written back to the same Markdown table while keeping the surrounding page intact.
 - **Insert symbols:** Choose **Ω Symbols**; search names (e.g. `ohm`, `arrow`, `check`, `degree`), then click an entry to insert the Unicode character at the editor cursor.
 - **Insert icons:** Choose **☆ Icons**; choose from 32 local scalable SVG icons or switch to emoji. Search is included. SVG icons are saved as text markers such as `:icon[server]:`. The local `js/icon-library.js` file supplies their artwork, so no icon fonts or CSS framework are required. Symbols and emoji are saved as plain Unicode text.
 - **Assign a page icon:** Click the square icon beside the page title to choose an icon, emoji, or symbol. The selection appears on the page and in the navigation sidebar, and is stored as the `icon` value in that page's JSON file.
 
-Note: Tables are saved as **Markdown**, not separate structured table objects. This keeps JSON easy to read and edit, but it is not a spreadsheet and does not include merged cells, formulas, sorting, or CSV import.
+Note: Tables are saved as **Markdown**, not separate structured table objects. This keeps JSON easy to read and edit, but it is not a spreadsheet and does not include merged cells or formulas.
 
 ## Folder layout
 

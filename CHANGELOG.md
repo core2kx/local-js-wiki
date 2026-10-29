@@ -21,6 +21,16 @@ Planned work is tracked in [FEATURES.md](FEATURES.md).
 
 ### Planned (see FEATURES.md)
 - Right-to-left layout; CSV import/export of translations; native-speaker review of translations.
+- Table CSV export and import, and pasting spreadsheet cells as a table (next release).
+
+## 2.10.0 — 2026-10-29
+
+### Added
+- **Move table columns and rows.** In the Visual editor, small grips appear above the columns and beside the rows when the cursor is in a table: click one to select that column or row (Shift-click to extend), drag it to move it. The table bar also has **◀ Column / Column ▶ / ▲ Row / Row ▼** buttons. The header row always stays first. Each move is one undo step.
+- **Sort a table by a column.** Click the ⇅ on a column grip (or **Sort** in the table bar): ascending first, then descending. Numbers sort as numbers (`1 000`, `2,5`, `€4,50`, `12%`), `yyyy-mm-dd` dates by date, text without regard to case and with numbers in natural order (item 2 before item 10); blank cells stay last.
+- **Reset sort** puts the rows back in the order they had before the first sort. The wiki remembers that order for the session, while the same rows are in the table (it is forgotten if you add or remove rows, change a header, or reload).
+- The table dialog (Markdown editor) has the same ◀ ▶ ▲ ▼ and sort buttons and a **Reset sort** button.
+- Texts for all of this in all nine languages (AI-drafted, as before).
 
 ## 2.9.0 — 2026-10-28
 

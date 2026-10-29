@@ -302,3 +302,21 @@ mark { background: var(--highlight); color: var(--highlight-text); border-radius
 .language-result-line { margin: 4px 0; font-size: 12.5px; overflow-wrap: anywhere; }
 .language-result-line.is-ok { color: var(--accent); font-weight: 650; }
 .language-result-line.is-error, .language-result-line.is-warning { color: var(--warning); }
+
+/* LocalWiki 2.10: table grips (select and move columns and rows), sort arrows */
+.table-handles { position: absolute; inset: 0; z-index: 15; pointer-events: none; }
+.editor-content.mode-markdown .table-handles { display: none; }
+.table-grip { position: absolute; pointer-events: auto; box-sizing: border-box; background: var(--sidebar-bg); border: 1px solid var(--border); border-radius: 4px; color: var(--muted); cursor: grab; touch-action: none; user-select: none; display: flex; align-items: center; justify-content: flex-end; overflow: hidden; }
+.table-grip:hover { border-color: var(--accent); background: var(--accent-soft); }
+.table-grip.is-selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+.table-grip.row { cursor: grab; }
+.grip-sort { border: 0; background: transparent; color: inherit; font-size: 10px; line-height: 1; padding: 0 4px; height: 100%; cursor: pointer; }
+.grip-sort:hover, .grip-sort.is-active { color: var(--accent); font-weight: 700; }
+.table-grip.is-selected .grip-sort { color: #fff; }
+.table-drop-line { position: absolute; background: var(--accent); border-radius: 2px; pointer-events: none; }
+.markdown-body td.cell-selected, .markdown-body th.cell-selected { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
+.table-ctl { display: flex; align-items: center; justify-content: center; gap: 2px; padding: 3px; background: var(--sidebar-bg); border: 1px solid var(--border); }
+.table-ctl-row { flex-direction: column; }
+.table-ctl-btn { border: 1px solid transparent; background: transparent; color: var(--text); border-radius: 4px; font-size: 11px; line-height: 1; padding: 4px 6px; cursor: pointer; }
+.table-ctl-btn:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); }
+.table-ctl-btn:disabled { opacity: .3; cursor: default; }

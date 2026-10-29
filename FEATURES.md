@@ -24,6 +24,9 @@ Status: ✅ shipped · 🚧 in progress · 📋 planned · 🐞 known issue
 | Tables (grid dialog), symbols, emoji, SVG icons | ✅ | 1.3 |
 | Visual (WYSIWYG) and Split editing; tables edited in place | ✅ | 2.3 |
 | No table size limit | ✅ | 2.3 |
+| Select, drag-move and button-move table columns and rows | ✅ | 2.10 |
+| Sort a table by any column; Reset sort | ✅ | 2.10 |
+| Table CSV export / import; paste spreadsheet cells as a table | 📋 | — |
 | Insert link dialog (page search, list of all pages, web addresses) | ✅ | 2.5 |
 | Images in pages (stored in the wiki folder; sizes; paste and drop) | ✅ | 2.8 |
 | Text sizes (Small, Normal, Large, Huge) | ✅ | 2.9 |
